@@ -397,6 +397,147 @@ sudo systemctl status mongod
 # Restart MongoDB
 sudo systemctl restart mongod
 
+---
+
+## 🎨 Frontend Setup
+
+### Step 1: Navigate to Frontend Directory
+
+```bash
+cd /home/montassar/Desktop/ai_receptionist/frontend
+```
+
+### Step 2: Install Dependencies
+
+```bash
+npm install
+```
+
+This will install:
+- React 18
+- Vite (build tool)
+- React Router
+- Axios
+- Tailwind CSS
+- Day.js
+
+### Step 3: Configure Environment
+
+```bash
+# Copy environment template
+cp .env.example .env.local
+
+# Edit the file
+nano .env.local
+```
+
+Set the backend API URL:
+```env
+VITE_API_BASE=http://localhost:8000/api/v1
+```
+
+### Step 4: Start Development Server
+
+```bash
+npm run dev
+```
+
+The frontend will be available at: **http://localhost:5173**
+
+### Step 5: Build for Production
+
+```bash
+# Create optimized production build
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+The production files will be in `dist/` directory.
+
+---
+
+## 🧪 Testing the Complete System
+
+### 1. Start All Services
+
+**Terminal 1 - Backend:**
+```bash
+cd /home/montassar/Desktop/ai_receptionist/backend
+source venv/bin/activate
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+**Terminal 2 - ngrok (for Twilio webhooks):**
+```bash
+ngrok http 8000
+```
+
+**Terminal 3 - Frontend:**
+```bash
+cd /home/montassar/Desktop/ai_receptionist/frontend
+npm run dev
+```
+
+### 2. Access the Dashboard
+
+1. Open browser: **http://localhost:5173**
+2. Login with default credentials:
+   - Username: `admin`
+   - Password: `admin123`
+   
+   Or register a new account
+
+### 3. Test Features
+
+**Dashboard:**
+- View appointment statistics
+- See today's appointments
+- Quick navigation to all sections
+
+**Appointments:**
+- Create new appointment
+- Edit existing appointments
+- Filter by status
+- Delete appointments
+
+**Conversations:**
+- View all customer conversations
+- Search conversations
+- View message history
+
+**Services:**
+- Add new services
+- Edit service details (name, price, duration)
+- Toggle active/inactive status
+- Delete services
+
+### 4. Test AI Conversation (SMS)
+
+Send SMS to your Twilio number:
+```
+"I want to book a haircut for tomorrow at 2pm"
+```
+
+Then check:
+1. **Conversations page** - See the AI chat
+2. **Appointments page** - Appointment should be created
+3. **Dashboard** - Statistics updated
+
+---
+
+## 🔧 Troubleshooting
+
+### MongoDB Connection Issues
+
+```bash
+# Check MongoDB status
+sudo systemctl status mongod
+
+# Restart MongoDB
+sudo systemctl restart mongod
+
 # Check logs
 sudo journalctl -u mongod -n 50
 ```
@@ -404,10 +545,12 @@ sudo journalctl -u mongod -n 50
 ### Port Already in Use
 
 ```bash
-# Find process using port 8000
+# Backend (port 8000)
 sudo lsof -i :8000
+sudo kill -9 <PID>
 
-# Kill the process
+# Frontend (port 5173)
+sudo lsof -i :5173
 sudo kill -9 <PID>
 ```
 
@@ -419,6 +562,25 @@ pip install -r requirements.txt --force-reinstall
 
 # Clear pip cache
 pip cache purge
+```
+
+### Frontend Build Issues
+
+```bash
+# Clear node_modules and reinstall
+cd frontend
+rm -rf node_modules package-lock.json
+npm install
+
+# Clear Vite cache
+rm -rf node_modules/.vite
+```
+
+### CORS Issues
+
+If frontend can't connect to backend, update `backend/.env`:
+```env
+CORS_ORIGINS=["http://localhost:5173","http://localhost:3000"]
 ```
 
 ### Twilio Webhook Not Working
@@ -435,7 +597,7 @@ pip cache purge
 ### View Server Logs
 
 ```bash
-# Real-time logs
+# Backend real-time logs
 tail -f backend/logs/app.log
 
 # Last 100 lines
@@ -453,13 +615,23 @@ mongosh
 db.stats()
 ```
 
+### Frontend Development
+
+```bash
+# Check Vite dev server
+curl http://localhost:5173
+
+# View browser console
+# Open DevTools (F12) > Console tab
+```
+
 ---
 
 ## 🚀 Production Deployment
 
-### Prepare for Production
+### Backend Production
 
-1. Update `.env`:
+1. Update `backend/.env`:
    ```env
    DEBUG=False
    ENVIRONMENT=production
@@ -470,46 +642,110 @@ db.stats()
    python3 -c "import secrets; print(secrets.token_urlsafe(32))"
    ```
 
-3. Update CORS_ORIGINS with your domain
+3. Update CORS_ORIGINS with your domain:
+   ```env
+   CORS_ORIGINS=["https://yourdomain.com"]
+   ```
 
-### Deploy Options
+4. Use production-grade server:
+   ```bash
+   gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+   ```
 
-- **Railway**: https://railway.app/
-- **Render**: https://render.com/
-- **DigitalOcean**: https://www.digitalocean.com/
-- **AWS EC2**
-- **Google Cloud Platform**
+### Frontend Production
+
+1. Update `frontend/.env.local`:
+   ```env
+   VITE_API_BASE=https://api.yourdomain.com/api/v1
+   ```
+
+2. Build production assets:
+   ```bash
+   cd frontend
+   npm run build
+   ```
+
+3. Deploy `dist/` folder to:
+   - **Vercel**: `vercel --prod`
+   - **Netlify**: Drag & drop `dist/` folder
+   - **AWS S3**: Use AWS CLI
+   - **Your server**: Copy to nginx/Apache root
+
+### Example nginx Configuration
+
+```nginx
+# Frontend
+server {
+    listen 80;
+    server_name yourdomain.com;
+    root /var/www/ai-receptionist/frontend/dist;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+
+# Backend API
+server {
+    listen 80;
+    server_name api.yourdomain.com;
+
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
 
 ### SSL Certificate
 
 Use Let's Encrypt for free SSL:
 ```bash
 sudo apt install certbot python3-certbot-nginx -y
-sudo certbot --nginx -d yourdomain.com
+sudo certbot --nginx -d yourdomain.com -d api.yourdomain.com
 ```
+
+### Deploy Options
+
+- **Backend**: Railway, Render, DigitalOcean, AWS EC2, Google Cloud
+- **Frontend**: Vercel, Netlify, Cloudflare Pages, AWS S3+CloudFront
+- **Database**: MongoDB Atlas (free tier available)
 
 ---
 
 ## 📝 Next Steps
 
 1. ✅ Backend running and tested
-2. ⬜ Create frontend React dashboard
+2. ✅ Frontend dashboard deployed
 3. ⬜ Add more AI features
 4. ⬜ Deploy to production
 5. ⬜ Configure domain and SSL
 6. ⬜ Set up monitoring and alerts
+7. ⬜ Add E2E tests
+8. ⬜ Implement real-time WebSocket updates
 
 ---
 
 ## 📚 Additional Resources
 
+- **Frontend Setup**: `docs/frontend_setup.md`
+- **API Documentation**: `docs/api_endpoints.md`
+- **Database Schema**: `docs/database_schema.md`
+- **Project Documentation**: `docs/project_doc.md`
 - **FastAPI Docs**: https://fastapi.tiangolo.com/
+- **React Docs**: https://react.dev/
 - **Twilio Docs**: https://www.twilio.com/docs
 - **Groq API**: https://console.groq.com/docs
 - **MongoDB**: https://docs.mongodb.com/
+- **Vite**: https://vitejs.dev/
+- **Tailwind CSS**: https://tailwindcss.com/
 
 ---
 
 **Last Updated:** November 13, 2025
 
 For issues or questions, check `docs/project_doc.md` or create an issue on GitHub.
+
