@@ -272,6 +272,12 @@ class DateTimeUtils:
         """
         now = DateTimeUtils.now()
         
+        # Ensure both datetimes are timezone-aware for comparison
+        if dt.tzinfo is None:
+            # Localize naive datetime to configured timezone
+            tz = pytz.timezone(settings.TIMEZONE)
+            dt = tz.localize(dt)
+        
         # Can't book in the past
         if dt < now:
             return False, "Cannot book appointments in the past"

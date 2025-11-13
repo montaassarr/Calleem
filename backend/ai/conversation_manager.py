@@ -51,7 +51,7 @@ class ConversationManager:
         """
         try:
             # Ensure DB is initialized
-            if not self.db:
+            if self.db is None:
                 await self.initialize()
             
             # Get or create conversation

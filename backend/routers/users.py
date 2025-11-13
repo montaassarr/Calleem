@@ -27,15 +27,15 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Password hashing (using argon2 instead of bcrypt due to compatibility issues)
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 # OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/users/login")
 
 
 def hash_password(password: str) -> str:
-    """Hash a password"""
+    """Hash a password using argon2"""
     return pwd_context.hash(password)
 
 

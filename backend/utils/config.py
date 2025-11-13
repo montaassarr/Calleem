@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     REDIS_DB: int = 0
     REDIS_PASSWORD: str = ""
     
+    # Celery (Optional)
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
+    
     # Logging
     LOG_LEVEL: str = "INFO"
     LOG_FILE: str = "logs/app.log"
@@ -61,6 +65,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "allow"  # Allow extra fields from .env
 
 
 # Create global settings instance
