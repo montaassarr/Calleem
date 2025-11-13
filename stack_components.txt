@@ -1,0 +1,263 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    AI RECEPTIONIST BARBER SHOP WEB APP                          ║
+║                         STACK COMPONENTS & DEPENDENCIES                         ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+================================================================================
+                            🧠 AI LAYER
+================================================================================
+Framework/Library         Purpose                           Install Command
+--------------------------------------------------------------------------------
+groq                     LLM API for natural conversation   pip install groq
+langchain                AI orchestration & prompt mgmt     pip install langchain
+transformers             Hugging Face fallback models       pip install transformers
+torch                    ML framework (for transformers)    pip install torch
+sentencepiece            Tokenization                       pip install sentencepiece
+
+================================================================================
+                         ⚙️ BACKEND LAYER (Python)
+================================================================================
+Framework/Library         Purpose                           Install Command
+--------------------------------------------------------------------------------
+fastapi                  High-performance web framework     pip install fastapi
+uvicorn[standard]        ASGI server for FastAPI            pip install uvicorn[standard]
+pydantic                 Data validation & settings         pip install pydantic
+python-dotenv            Environment variable management    pip install python-dotenv
+twilio                   SMS/Voice communication API        pip install twilio
+requests                 HTTP client library                pip install requests
+aiohttp                  Async HTTP client                  pip install aiohttp
+python-multipart         File upload support                pip install python-multipart
+passlib[bcrypt]          Password hashing                   pip install passlib[bcrypt]
+python-jose[cryptography] JWT token generation              pip install python-jose[cryptography]
+websockets               Real-time WebSocket support        pip install websockets
+
+================================================================================
+                         🗄️ DATABASE LAYER
+================================================================================
+Framework/Library         Purpose                           Install Command
+--------------------------------------------------------------------------------
+pymongo                  MongoDB driver for Python          pip install pymongo
+motor                    Async MongoDB driver               pip install motor
+dnspython                Required for MongoDB Atlas         pip install dnspython
+
+================================================================================
+                    🎨 FRONTEND LAYER (React/Node.js)
+================================================================================
+Framework/Library         Purpose                           Install Command
+--------------------------------------------------------------------------------
+react                    UI library                         npm install react
+react-dom                React DOM renderer                 npm install react-dom
+vite                     Build tool & dev server            npm install vite
+tailwindcss              Utility-first CSS framework        npm install -D tailwindcss
+postcss                  CSS processing                     npm install -D postcss
+autoprefixer             CSS vendor prefixing               npm install -D autoprefixer
+axios                    HTTP client                        npm install axios
+react-router-dom         Client-side routing                npm install react-router-dom
+framer-motion            Animation library                  npm install framer-motion
+socket.io-client         Real-time WebSocket client         npm install socket.io-client
+lucide-react             Modern icon library                npm install lucide-react
+date-fns                 Date manipulation                  npm install date-fns
+react-hot-toast          Toast notifications                npm install react-hot-toast
+
+================================================================================
+                      🔧 DEVOPS & DEPLOYMENT TOOLS
+================================================================================
+Tool                     Purpose                           Install Command
+--------------------------------------------------------------------------------
+docker                   Containerization                   sudo apt install docker.io
+docker-compose           Multi-container orchestration      sudo apt install docker-compose
+nginx                    Reverse proxy                      sudo apt install nginx
+gunicorn                 WSGI HTTP server                   pip install gunicorn
+redis                    Caching & message broker           sudo apt install redis-server
+celery                   Background task queue              pip install celery
+pytest                   Testing framework                  pip install pytest
+black                    Code formatter                     pip install black
+flake8                   Code linter                        pip install flake8
+
+================================================================================
+                      🔑 ENVIRONMENT VARIABLES (.env)
+================================================================================
+Variable Name                    Description                           Example Value
+--------------------------------------------------------------------------------
+# MongoDB
+MONGO_URI                       MongoDB connection string             mongodb://localhost:27017
+MONGO_DB_NAME                   Database name                         ai_barber_receptionist
+
+# Twilio
+TWILIO_ACCOUNT_SID              Twilio Account SID                    ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN               Twilio Auth Token                     your_auth_token_here
+TWILIO_PHONE_NUMBER             Twilio phone number                   +1234567890
+TWILIO_VERIFY_SID               Twilio Verify Service SID             VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Groq API
+GROQ_API_KEY                    Groq API key for LLM                  REDACTED_GROQ_KEY
+GROQ_MODEL                      Model name to use                     mixtral-8x7b-32768
+
+# JWT & Security
+SECRET_KEY                      JWT secret key                        your-secret-key-min-32-chars
+ALGORITHM                       JWT algorithm                         HS256
+ACCESS_TOKEN_EXPIRE_MINUTES     Token expiration time                 30
+
+# Application
+APP_NAME                        Application name                      Royal Fade Barbershop AI
+DEBUG                           Debug mode                            True
+CORS_ORIGINS                    Allowed CORS origins                  http://localhost:5173
+
+# Business Details
+BUSINESS_NAME                   Barber shop name                      Royal Fade Barbershop
+BUSINESS_HOURS                  Operating hours                       Mon-Sat 9AM-8PM
+AVAILABLE_SERVICES              Services offered                      Haircut,Beard Trim,Fade,Shave
+
+================================================================================
+                      📦 QUICK INSTALL COMMANDS
+================================================================================
+
+# Backend (Python) - Create virtual environment first
+python3 -m venv venv
+source venv/bin/activate  # On Ubuntu/Linux
+pip install --upgrade pip
+
+# Install all backend dependencies at once
+pip install fastapi uvicorn[standard] pydantic python-dotenv twilio requests \
+            aiohttp python-multipart passlib[bcrypt] python-jose[cryptography] \
+            websockets pymongo motor dnspython groq langchain transformers \
+            torch sentencepiece gunicorn celery pytest black flake8
+
+# Frontend (Node.js) - Navigate to frontend folder first
+cd frontend
+npm create vite@latest . -- --template react
+npm install
+npm install -D tailwindcss postcss autoprefixer
+npm install axios react-router-dom framer-motion socket.io-client \
+            lucide-react date-fns react-hot-toast
+
+# Initialize Tailwind CSS
+npx tailwindcss init -p
+
+# System tools (Ubuntu)
+sudo apt update
+sudo apt install -y docker.io docker-compose nginx redis-server
+
+================================================================================
+                      🏗️ PROJECT STRUCTURE OVERVIEW
+================================================================================
+
+ai_receptionist/
+├── backend/
+│   ├── main.py                         # FastAPI entry point
+│   ├── requirements.txt                # Python dependencies
+│   ├── .env                            # Environment variables (gitignored)
+│   ├── .env.example                    # Example env file
+│   ├── Dockerfile                      # Docker configuration
+│   ├── routers/                        # API route handlers
+│   │   ├── __init__.py
+│   │   ├── webhook.py                  # Twilio webhook endpoint
+│   │   ├── appointments.py             # Appointment CRUD
+│   │   ├── services.py                 # Services management
+│   │   └── users.py                    # Admin authentication
+│   ├── ai/                             # AI logic layer
+│   │   ├── __init__.py
+│   │   ├── groq_agent.py              # Groq API integration
+│   │   ├── conversation_manager.py     # Conversation state tracking
+│   │   ├── intents.py                  # Intent classification
+│   │   └── prompt_templates.py         # Prompt engineering
+│   ├── database/                       # Database configuration
+│   │   ├── __init__.py
+│   │   └── mongo_config.py            # MongoDB connection
+│   ├── models/                         # Data models
+│   │   ├── __init__.py
+│   │   ├── appointment.py             # Appointment schema
+│   │   ├── conversation.py            # Conversation schema
+│   │   ├── service.py                 # Service schema
+│   │   └── user.py                    # User/Admin schema
+│   └── utils/                          # Utility functions
+│       ├── __init__.py
+│       ├── twilio_handler.py          # Twilio API wrapper
+│       ├── text_formatter.py          # Text processing
+│       └── datetime_utils.py          # Date/time helpers
+├── frontend/
+│   ├── src/
+│   │   ├── main.jsx                   # React entry point
+│   │   ├── App.jsx                    # Main app component
+│   │   ├── components/                # Reusable components
+│   │   │   ├── Navbar.jsx
+│   │   │   ├── Sidebar.jsx
+│   │   │   ├── AppointmentCard.jsx
+│   │   │   ├── ConversationView.jsx
+│   │   │   └── StatisticsPanel.jsx
+│   │   ├── pages/                     # Page components
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── Appointments.jsx
+│   │   │   ├── Conversations.jsx
+│   │   │   ├── Services.jsx
+│   │   │   └── Login.jsx
+│   │   └── api/                       # API client
+│   │       └── axios.js
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── tailwind.config.js
+│   └── index.html
+├── docs/
+│   ├── project_doc.md                 # Step-by-step implementation guide
+│   ├── project_plan.md                # Project plan & progress tracker
+│   ├── api_endpoints.md               # API documentation
+│   ├── database_schema.md             # Database schema documentation
+│   └── setup_guide.md                 # Installation & setup guide
+├── docker-compose.yml                 # Docker orchestration
+├── .gitignore                         # Git ignore file
+└── README.md                          # Project overview
+
+================================================================================
+                      ✅ VERIFICATION CHECKLIST
+================================================================================
+
+Before running the application, ensure:
+
+□ Python 3.9+ installed                 python3 --version
+□ Node.js 18+ installed                 node --version
+□ MongoDB running locally or Atlas      mongosh --version
+□ Twilio account created (free tier)    https://www.twilio.com/try-twilio
+□ Groq API key obtained                 https://console.groq.com/
+□ Virtual environment activated         source venv/bin/activate
+□ All Python packages installed         pip list
+□ All npm packages installed            npm list --depth=0
+□ Environment variables configured      ls -la .env
+□ MongoDB connection tested             mongosh $MONGO_URI
+□ Redis running (optional)              redis-cli ping
+
+================================================================================
+                      🚀 QUICK START COMMANDS
+================================================================================
+
+# 1. Backend Setup
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+# Edit .env with your actual credentials
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# 2. Frontend Setup (in new terminal)
+cd frontend
+npm install
+npm run dev
+
+# 3. Access the application
+# Backend API: http://localhost:8000
+# Frontend Dashboard: http://localhost:5173
+# API Docs: http://localhost:8000/docs
+
+================================================================================
+                      📚 ADDITIONAL RESOURCES
+================================================================================
+
+FastAPI Documentation:       https://fastapi.tiangolo.com/
+Twilio Python SDK:           https://www.twilio.com/docs/libraries/python
+Groq API Docs:              https://console.groq.com/docs
+MongoDB Python Driver:       https://pymongo.readthedocs.io/
+React Documentation:         https://react.dev/
+TailwindCSS:                https://tailwindcss.com/
+Vite:                       https://vitejs.dev/
+
+================================================================================

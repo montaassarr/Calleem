@@ -1,0 +1,118 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:6.0
+    container_name: ai-receptionist-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: SecurePassword123
+      MONGO_INITDB_DATABASE: ai_barber_receptionist
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - ai-receptionist-network
+
+  # Redis (optional - for caching and background tasks)
+  redis:
+    image: redis:7-alpine
+    container_name: ai-receptionist-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ai-receptionist-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai-receptionist-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Database
+      MONGO_URI: mongodb://REDACTED:REDACTED@mongodb:27017/ai_barber_receptionist?authSource=admin
+      MONGO_DB_NAME: ai_barber_receptionist
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      
+      # Application
+      DEBUG: "False"
+      ENVIRONMENT: production
+      
+      # These should be set via .env file or environment variables
+      # TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      # TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      # TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER}
+      # GROQ_API_KEY: ${GROQ_API_KEY}
+      # SECRET_KEY: ${SECRET_KEY}
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - mongodb
+      - redis
+    volumes:
+      - ./backend/logs:/app/logs
+    networks:
+      - ai-receptionist-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend (uncomment when ready)
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: ai-receptionist-frontend
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:80"
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - ai-receptionist-network
+
+  # Nginx Reverse Proxy (optional - for production)
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: ai-receptionist-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx/ssl:/etc/nginx/ssl:ro
+  #   depends_on:
+  #     - backend
+  #     - frontend
+  #   networks:
+  #     - ai-receptionist-network
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  ai-receptionist-network:
+    driver: bridge
