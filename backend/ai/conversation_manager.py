@@ -103,14 +103,30 @@ class ConversationManager:
             )
             conversation["messages"].append(ai_message.dict())
             
-            booking_result = await self._attempt_appointment_creation(conversation)
-            if booking_result and booking_result.get("confirmation_text"):
-                ai_response_text = f"{ai_response_text}\n\n{booking_result['confirmation_text']}"
-                conversation["messages"][-1]["text"] = ai_response_text
-            elif booking_result and booking_result.get("error"):
-                conversation["state"]["next_question"] = "new time"
-                ai_response_text = f"{ai_response_text}\n\n{booking_result['error']}"
-                conversation["messages"][-1]["text"] = ai_response_text
+            # Handle appointment creation or update
+            if intent == ConversationIntent.UPDATE_APPOINTMENT.value or (
+                conversation.get("appointment_id") and 
+                intent == ConversationIntent.BOOK_APPOINTMENT.value
+            ):
+                # Try to update existing appointment
+                update_result = await self._attempt_appointment_update(conversation)
+                if update_result and update_result.get("confirmation_text"):
+                    ai_response_text = f"{ai_response_text}\n\n{update_result['confirmation_text']}"
+                    conversation["messages"][-1]["text"] = ai_response_text
+                elif update_result and update_result.get("error"):
+                    conversation["state"]["next_question"] = "new time"
+                    ai_response_text = f"{ai_response_text}\n\n{update_result['error']}"
+                    conversation["messages"][-1]["text"] = ai_response_text
+            else:
+                # Try to create new appointment
+                booking_result = await self._attempt_appointment_creation(conversation)
+                if booking_result and booking_result.get("confirmation_text"):
+                    ai_response_text = f"{ai_response_text}\n\n{booking_result['confirmation_text']}"
+                    conversation["messages"][-1]["text"] = ai_response_text
+                elif booking_result and booking_result.get("error"):
+                    conversation["state"]["next_question"] = "new time"
+                    ai_response_text = f"{ai_response_text}\n\n{booking_result['error']}"
+                    conversation["messages"][-1]["text"] = ai_response_text
 
             # Update conversation in database
             conversation["updated_at"] = datetime.utcnow()
@@ -426,6 +442,85 @@ class ConversationManager:
         except Exception as exc:
             logger.error(f"Failed to create appointment from conversation: {exc}", exc_info=True)
             return {"error": "I couldn't finalize the booking automatically. Let's confirm the time manually."}
+
+    async def _attempt_appointment_update(self, conversation: Dict) -> Optional[Dict[str, Any]]:
+        """Update existing appointment when new time/date is provided"""
+        appointment_id = conversation.get("appointment_id")
+        if not appointment_id:
+            logger.info("No existing appointment to update")
+            return None
+        
+        state = conversation.get("state", {})
+        info = await self._aggregate_booking_info(conversation)
+        
+        # Check if new date or time was mentioned
+        new_date = info.get("date")
+        new_time = info.get("time")
+        
+        if not (new_date or new_time):
+            logger.info("No new date/time provided for update")
+            return None
+        
+        # Parse the new datetime
+        appointment_dt = datetime_utils.parse_datetime_expression(new_date, new_time)
+        if not appointment_dt:
+            return {"error": "I couldn't understand that time. Could you specify the date and time again?"}
+        
+        # Validate the new time
+        is_valid, error_msg = datetime_utils.is_valid_appointment_time(appointment_dt)
+        if not is_valid:
+            return {"error": error_msg}
+        
+        # Update the appointment in database
+        try:
+            from bson import ObjectId
+            update_data = {
+                "datetime": appointment_dt,
+                "updated_at": datetime.utcnow()
+            }
+            
+            result = await self.db.appointments.update_one(
+                {"_id": ObjectId(appointment_id)},
+                {"$set": update_data}
+            )
+            
+            if result.modified_count == 0:
+                logger.warning(f"Appointment {appointment_id} not found or not modified")
+                return {"error": "I couldn't find that appointment. Would you like to book a new one?"}
+            
+            # Get updated appointment
+            updated = await self.db.appointments.find_one({"_id": ObjectId(appointment_id)})
+            updated["id"] = str(updated["_id"])
+            
+            # Update conversation state
+            state.setdefault("collected_info", {})["datetime_iso"] = appointment_dt.isoformat()
+            state["completed"] = True
+            
+            logger.info(f"✅ Appointment {appointment_id} updated to {appointment_dt}")
+            
+            # Send update confirmation SMS
+            appointment_details = {
+                "client_name": updated.get("client_name", ""),
+                "service": updated.get("service", "appointment"),
+                "datetime_formatted": text_formatter.format_datetime_display(
+                    appointment_dt.astimezone(datetime_utils.get_timezone())
+                ),
+                "duration_minutes": updated.get("duration_minutes", 30)
+            }
+            
+            phone = updated.get("client_phone") or conversation.get("phone_number")
+            if phone:
+                update_msg = f"""Your {appointment_details['service']} appointment has been rescheduled to {appointment_details['datetime_formatted']}. 
+
+Looking forward to seeing you! - {settings.BUSINESS_NAME}"""
+                twilio_handler.send_sms(phone, update_msg)
+            
+            confirmation_text = f"Perfect! I've updated your {updated.get('service', 'appointment').lower()} to {text_formatter.format_datetime_display(appointment_dt.astimezone(datetime_utils.get_timezone()))}."
+            return {"appointment": updated, "confirmation_text": confirmation_text}
+            
+        except Exception as exc:
+            logger.error(f"Failed to update appointment: {exc}", exc_info=True)
+            return {"error": "I had trouble updating the appointment. Please try again."}
 
     def _format_confirmation_text(self, appointment: Dict[str, Any]) -> str:
         """Build a conversational confirmation string"""

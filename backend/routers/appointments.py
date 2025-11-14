@@ -197,7 +197,7 @@ async def update_appointment(appointment_id: str, update: AppointmentUpdate):
 
 @router.delete("/{appointment_id}", status_code=204)
 async def delete_appointment(appointment_id: str):
-    """Delete/Cancel an appointment"""
+    """Permanently delete an appointment from database"""
     try:
         db = get_database()
         
@@ -205,13 +205,46 @@ async def delete_appointment(appointment_id: str):
         if not ObjectId.is_valid(appointment_id):
             raise HTTPException(status_code=400, detail="Invalid appointment ID")
         
-        # Get appointment before deletion
+        # Get appointment before deletion (for logging)
         appointment = await db.appointments.find_one({"_id": ObjectId(appointment_id)})
         
         if not appointment:
             raise HTTPException(status_code=404, detail="Appointment not found")
         
-        # Mark as cancelled instead of deleting
+        # PERMANENTLY DELETE from database
+        result = await db.appointments.delete_one({"_id": ObjectId(appointment_id)})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Appointment not found")
+        
+        logger.info(f"🗑️ Appointment permanently deleted: {appointment_id}")
+        
+        return None
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting appointment: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to delete appointment")
+
+
+@router.post("/{appointment_id}/cancel", response_model=AppointmentResponse)
+async def cancel_appointment(appointment_id: str):
+    """Cancel an appointment (updates status to cancelled)"""
+    try:
+        db = get_database()
+        
+        # Validate ObjectId
+        if not ObjectId.is_valid(appointment_id):
+            raise HTTPException(status_code=400, detail="Invalid appointment ID")
+        
+        # Get appointment before cancellation
+        appointment = await db.appointments.find_one({"_id": ObjectId(appointment_id)})
+        
+        if not appointment:
+            raise HTTPException(status_code=404, detail="Appointment not found")
+        
+        # Update status to cancelled
         await db.appointments.update_one(
             {"_id": ObjectId(appointment_id)},
             {
@@ -222,22 +255,100 @@ async def delete_appointment(appointment_id: str):
             }
         )
         
+        # Retrieve updated appointment
+        cancelled_appointment = await db.appointments.find_one({"_id": ObjectId(appointment_id)})
+        cancelled_appointment["id"] = str(cancelled_appointment["_id"])
+        
         logger.info(f"❌ Appointment cancelled: {appointment_id}")
         
         # Send cancellation notification
-        cancellation_msg = f"""Your appointment at {appointment['datetime'].strftime('%b %d at %-I:%M %p')} has been cancelled. 
-        
-Feel free to rebook anytime! - {appointment.get('business_name', 'Royal Fade Barbershop')}"""
+        cancellation_msg = f"""Your appointment on {text_formatter.format_datetime_display(appointment['datetime'])} has been cancelled.
+
+Feel free to rebook anytime! - Royal Fade Barbershop"""
         
         twilio_handler.send_sms(appointment["client_phone"], cancellation_msg)
         
-        return None
+        return AppointmentResponse(**cancelled_appointment)
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting appointment: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to delete appointment")
+        logger.error(f"Error cancelling appointment: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to cancel appointment")
+
+
+@router.get("/availability/check")
+async def check_availability(
+    date: Optional[str] = Query(None, description="Date in YYYY-MM-DD format"),
+    time: Optional[str] = Query(None, description="Time in HH:MM format"),
+    duration_minutes: int = Query(30, ge=15, le=240, description="Duration in minutes")
+):
+    """Check if a time slot is available"""
+    try:
+        db = get_database()
+        
+        # Parse datetime
+        if date and time:
+            datetime_str = f"{date}T{time}:00"
+            requested_datetime = datetime.fromisoformat(datetime_str)
+        else:
+            raise HTTPException(status_code=400, detail="Both date and time are required")
+        
+        # Validate it's not in the past
+        is_valid, error_msg = datetime_utils.is_valid_appointment_time(requested_datetime)
+        if not is_valid:
+            return {
+                "available": False,
+                "reason": error_msg,
+                "requested_datetime": requested_datetime.isoformat()
+            }
+        
+        # Check for overlapping appointments
+        end_datetime = requested_datetime.replace(
+            minute=requested_datetime.minute + duration_minutes
+        )
+        
+        overlapping = await db.appointments.count_documents({
+            "status": {"$in": [AppointmentStatus.CONFIRMED, AppointmentStatus.PENDING]},
+            "$or": [
+                # Existing appointment starts during requested slot
+                {
+                    "datetime": {
+                        "$gte": requested_datetime,
+                        "$lt": end_datetime
+                    }
+                },
+                # Existing appointment ends during requested slot
+                {
+                    "$expr": {
+                        "$and": [
+                            {"$lte": ["$datetime", requested_datetime]},
+                            {
+                                "$gte": [
+                                    {"$add": ["$datetime", {"$multiply": ["$duration_minutes", 60000]}]},
+                                    requested_datetime
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ]
+        })
+        
+        is_available = overlapping == 0
+        
+        return {
+            "available": is_available,
+            "requested_datetime": requested_datetime.isoformat(),
+            "duration_minutes": duration_minutes,
+            "reason": "Time slot is available" if is_available else "Time slot is already booked"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error checking availability: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to check availability")
 
 
 @router.get("/stats/summary")

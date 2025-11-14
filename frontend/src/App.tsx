@@ -19,6 +19,7 @@ import TeamSettings from "./pages/Settings/Team";
 import AISettings from "./pages/Settings/AI";
 import IntegrationsSettings from "./pages/Settings/Integrations";
 import Help from "./pages/Help";
+import ApiTest from "./pages/ApiTest";
 
 const queryClient = new QueryClient();
 
@@ -171,6 +172,16 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Help />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* API Testing */}
+          <Route
+            path="/api-test"
+            element={
+              <ProtectedRoute>
+                <ApiTest />
               </ProtectedRoute>
             }
           />

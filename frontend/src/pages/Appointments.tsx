@@ -35,29 +35,57 @@ const Appointments = () => {
   const { data: appointments = [], isLoading, refetch } = useQuery({
     queryKey: ["appointments"],
     queryFn: () => appointmentsApi.list(),
+    staleTime: 0, // Always fetch fresh data
+    refetchOnWindowFocus: true, // Refetch when window gains focus
   });
 
   // Delete mutation (permanently removes from database)
   const deleteMutation = useMutation({
     mutationFn: appointmentsApi.delete,
+    // Optimistically update UI before API call completes
+    onMutate: async (deletedId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["appointments"] });
+
+      // Snapshot the previous value
+      const previousAppointments = queryClient.getQueryData(["appointments"]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(["appointments"], (old: any) =>
+        old?.filter((appointment: any) => appointment.id !== deletedId) || []
+      );
+
+      // Return context with snapshot
+      return { previousAppointments };
+    },
     onSuccess: () => {
+      // Immediately refetch to get fresh data
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      refetch(); // Force immediate refetch
       toast.success("Appointment permanently deleted");
       setDeleteDialogOpen(false);
       setAppointmentToDelete(null);
     },
-    onError: (error: any) => {
+    onError: (error: any, deletedId, context: any) => {
+      // Rollback on error
+      if (context?.previousAppointments) {
+        queryClient.setQueryData(["appointments"], context.previousAppointments);
+      }
       const errorMessage = error?.response?.data?.detail || "Failed to delete appointment";
       toast.error(errorMessage);
+    },
+    // Always refetch after error or success
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
     },
   });
 
   // Cancel mutation (updates status to 'cancelled')
   const cancelMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
-      appointmentsApi.update(id, data),
+    mutationFn: (id: string) => appointmentsApi.cancel(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      refetch(); // Force immediate refetch
       toast.success("Appointment cancelled successfully");
       setCancelDialogOpen(false);
       setAppointmentToCancel(null);
@@ -87,16 +115,7 @@ const Appointments = () => {
 
   const handleCancelConfirm = () => {
     if (appointmentToCancel) {
-      const appointment = appointments.find(a => a.id === appointmentToCancel);
-      if (appointment) {
-        cancelMutation.mutate({
-          id: appointmentToCancel,
-          data: {
-            ...appointment,
-            status: 'cancelled'
-          }
-        });
-      }
+      cancelMutation.mutate(appointmentToCancel);
     }
   };
 

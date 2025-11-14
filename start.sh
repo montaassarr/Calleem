@@ -31,18 +31,13 @@ echo ""
 # Start Backend
 echo -e "${BLUE}Starting Backend Server...${NC}"
 cd backend
-if [ ! -d "venv" ]; then
-    echo -e "${YELLOW}⚠️  Virtual environment not found. Please run setup first.${NC}"
-    exit 1
-fi
-
-source venv/bin/activate
 echo -e "${GREEN}✅ Backend will start at http://localhost:8000${NC}"
 echo -e "${YELLOW}📝 API Docs: http://localhost:8000/docs${NC}"
 echo ""
 
-# Start backend in background
-uvicorn main:app --reload --host 0.0.0.0 --port 8000 > ../logs/backend.log 2>&1 &
+# Start backend in background with PYTHONPATH
+export PYTHONPATH="/home/montassar/Desktop/ai_receptionist/backend:$PYTHONPATH"
+python3 -m uvicorn main:app --reload --host 0.0.0.0 --port 8000 > ../logs/backend.log 2>&1 &
 BACKEND_PID=$!
 echo -e "${GREEN}✅ Backend started (PID: $BACKEND_PID)${NC}"
 echo ""

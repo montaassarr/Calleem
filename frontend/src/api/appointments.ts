@@ -59,6 +59,51 @@ export const appointmentsApi = {
   },
 
   /**
+   * Cancel an appointment (sets status to cancelled)
+   */
+  cancel: async (appointmentId: string): Promise<AppointmentResponse> => {
+    const response = await api.post<AppointmentResponse>(
+      `/appointments/${appointmentId}/cancel`
+    );
+    return response.data;
+  },
+
+  /**
+   * Check if a time slot is available
+   */
+  checkAvailability: async (
+    date: string,
+    time: string,
+    durationMinutes: number = 30
+  ): Promise<{
+    available: boolean;
+    requested_datetime: string;
+    duration_minutes: number;
+    reason: string;
+  }> => {
+    const response = await api.get('/appointments/availability/check', {
+      params: {
+        date,
+        time,
+        duration_minutes: durationMinutes,
+      },
+    });
+    return response.data;
+  },
+
+  /**
+   * Get appointment statistics
+   */
+  getStats: async (): Promise<{
+    total: number;
+    upcoming: number;
+    by_status: Record<string, number>;
+  }> => {
+    const response = await api.get('/appointments/stats/summary');
+    return response.data;
+  },
+
+  /**
    * Get appointments for a specific date range
    */
   getByDateRange: async (dateFrom: string, dateTo: string): Promise<AppointmentResponse[]> => {
