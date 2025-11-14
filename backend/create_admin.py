@@ -3,6 +3,7 @@ Script to create an admin user
 """
 
 import asyncio
+from datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorClient
 from passlib.context import CryptContext
 from utils.config import settings
@@ -30,8 +31,13 @@ async def create_admin():
         admin_user = {
             'username': 'admin',
             'email': 'admin@example.com',
+            'full_name': 'Shop Owner',
+            'role': 'admin',
             'hashed_password': hashed_password,
-            'is_active': True
+            'active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+            'last_login': None
         }
         
         result = await db.users.insert_one(admin_user)

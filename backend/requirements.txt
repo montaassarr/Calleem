@@ -11,6 +11,7 @@ python-dotenv==1.0.0
 
 # Date/Time Utilities
 pytz==2024.1
+dateparser==1.2.0
 
 # Twilio Integration
 twilio==8.11.0

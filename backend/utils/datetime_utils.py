@@ -5,6 +5,7 @@ DateTime Utility Functions
 from datetime import datetime, timedelta, time
 from typing import Optional, List, Tuple
 import pytz
+from dateparser import parse as dateparse
 from utils.config import settings
 
 
@@ -131,6 +132,58 @@ class DateTimeUtils:
                     return time(hour, minute)
         
         return None
+
+    @staticmethod
+    def parse_datetime_expression(
+        date_text: Optional[str],
+        time_text: Optional[str] = None,
+        reference_date: Optional[datetime] = None
+    ) -> Optional[datetime]:
+        """
+        Parse combined natural language date/time expressions
+        """
+        if not date_text and not time_text:
+            return None
+
+        reference = reference_date or DateTimeUtils.now()
+        expression_parts = []
+
+        if date_text:
+            expression_parts.append(str(date_text))
+        if time_text:
+            expression_parts.append(str(time_text))
+
+        expression = " ".join(expression_parts).strip()
+
+        if expression:
+            parsed = dateparse(
+                expression,
+                settings={
+                    "TIMEZONE": settings.TIMEZONE,
+                    "RETURN_AS_TIMEZONE_AWARE": True,
+                    "PREFER_DATES_FROM": "future",
+                    "RELATIVE_BASE": reference
+                }
+            )
+            if parsed:
+                return parsed
+
+        # Fallback to existing helpers
+        date_obj = None
+        time_obj = None
+
+        if date_text:
+            date_obj = DateTimeUtils.parse_date_natural(date_text, reference)
+        if time_text:
+            time_obj = DateTimeUtils.parse_time_natural(time_text)
+
+        if not date_obj:
+            date_obj = reference
+
+        if date_obj and time_obj:
+            return DateTimeUtils.combine_date_time(date_obj, time_obj)
+
+        return date_obj
     
     @staticmethod
     def combine_date_time(

@@ -1,76 +1,73 @@
-# React + Vite — AI Receptionist frontend
+# Welcome to your Lovable project
 
-This is a small Vite + React 18 scaffold that serves as the admin/dashboard for the AI Receptionist barber-shop project.
+## Project info
 
-It is intentionally minimal and wired to the backend API at runtime. The frontend reads the API base URL from the environment variable VITE_API_BASE (for example: `http://localhost:8000/api/v1`). If not set, the client falls back to `http://localhost:8000/api/v1`.
+**URL**: https://lovable.dev/projects/95a226f8-a28a-4ddc-8d04-63b34483a2b2
 
-## Prerequisites
+## How can I edit this code?
 
-- Node.js >= 18 (recommended)
-- npm (or yarn / pnpm)
+There are several ways of editing your application.
 
-## Quick start
+**Use Lovable**
 
-1. Install dependencies
+Simply visit the [Lovable Project](https://lovable.dev/projects/95a226f8-a28a-4ddc-8d04-63b34483a2b2) and start prompting.
 
-   ```bash
-   npm install
-   ```
+Changes made via Lovable will be committed automatically to this repo.
 
-2. (Optional) Create a local env file to override the API base
+**Use your preferred IDE**
 
-   ```bash
-   # .env.local
-   VITE_API_BASE=http://localhost:8000/api/v1
-   ```
+If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
-3. Start the dev server (HMR enabled)
+The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-   ```bash
-   npm run dev
-   ```
+Follow these steps:
 
-4. Open the URL shown by Vite (usually http://localhost:5173)
+```sh
+# Step 1: Clone the repository using the project's Git URL.
+git clone <YOUR_GIT_URL>
 
-## Build & preview
+# Step 2: Navigate to the project directory.
+cd <YOUR_PROJECT_NAME>
 
-- Build production assets:
+# Step 3: Install the necessary dependencies.
+npm i
 
-  ```bash
-  npm run build
-  ```
+# Step 4: Start the development server with auto-reloading and an instant preview.
+npm run dev
+```
 
-- Preview the production build locally:
+**Edit a file directly in GitHub**
 
-  ```bash
-  npm run preview
-  ```
+- Navigate to the desired file(s).
+- Click the "Edit" button (pencil icon) at the top right of the file view.
+- Make your changes and commit the changes.
 
-## How the frontend talks to the backend
+**Use GitHub Codespaces**
 
-- The axios client is in `src/lib/api.js` and reads `import.meta.env.VITE_API_BASE` at runtime. Ensure your backend is running and reachable at the configured address.
+- Navigate to the main page of your repository.
+- Click on the "Code" button (green button) near the top right.
+- Select the "Codespaces" tab.
+- Click on "New codespace" to launch a new Codespace environment.
+- Edit files directly within the Codespace and commit and push your changes once you're done.
 
-## Auth & protected routes
+## What technologies are used for this project?
 
-- This scaffold uses a simple JWT-in-localStorage approach for demo purposes. Tokens are stored in localStorage and attached to API requests by `src/lib/api.js`. For production, consider a secure refresh-token flow and httpOnly cookies.
+This project is built with:
 
-## Next steps / recommended improvements
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
 
-- Add Tailwind CSS or a component library for styling.
-- Implement appointment create/edit forms using a robust date/time picker (respect backend TIMEZONE setting).
-- Add client-side validation and nicer error handling for API responses.
-- Add E2E tests (Playwright or Cypress) and CI build steps.
+## How can I deploy this project?
 
-## Troubleshooting
+Simply open [Lovable](https://lovable.dev/projects/95a226f8-a28a-4ddc-8d04-63b34483a2b2) and click on Share -> Publish.
 
-- If API calls fail, open the browser devtools Network tab and verify the request URL. Confirm `VITE_API_BASE` is correct and the backend server is running.
+## Can I connect a custom domain to my Lovable project?
 
-## Running the backend locally (reminder)
+Yes, you can!
 
-- From the `backend/` directory start the FastAPI server:
+To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
-  ```bash
-  uvicorn main:app --reload --host 0.0.0.0 --port 8000
-  ```
-
-If you want me to add Tailwind, protected-route components, or implement the appointment UI next, tell me which piece to build first and I'll continue.
+Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)

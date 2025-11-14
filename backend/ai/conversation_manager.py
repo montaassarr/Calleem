@@ -11,10 +11,15 @@ from models.conversation import (
     Message, MessageRole, ConversationIntent,
     ConversationState, ConversationInDB
 )
+from models.appointment import AppointmentCreate, AppointmentStatus
 from ai.groq_agent import groq_agent
 from ai.prompt_templates import prompt_templates
 from ai.intents import intent_classifier
 from database.mongo_config import get_database
+from utils.datetime_utils import datetime_utils
+from utils.text_formatter import text_formatter
+from utils.twilio_handler import twilio_handler
+from utils.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -76,10 +81,12 @@ class ConversationManager:
             # Extract entities from message
             entities = intent_classifier.extract_entities(message_text)
             
-            # Update collected information
-            for key, value in entities.items():
-                if value:
-                    conversation["state"]["collected_info"][key] = value
+            self._update_collected_info(
+                conversation=conversation,
+                entities=entities,
+                phone_number=phone_number,
+                message_text=message_text
+            )
             
             # Generate AI response based on intent and state
             ai_response_text = await self._generate_response(
@@ -96,6 +103,15 @@ class ConversationManager:
             )
             conversation["messages"].append(ai_message.dict())
             
+            booking_result = await self._attempt_appointment_creation(conversation)
+            if booking_result and booking_result.get("confirmation_text"):
+                ai_response_text = f"{ai_response_text}\n\n{booking_result['confirmation_text']}"
+                conversation["messages"][-1]["text"] = ai_response_text
+            elif booking_result and booking_result.get("error"):
+                conversation["state"]["next_question"] = "new time"
+                ai_response_text = f"{ai_response_text}\n\n{booking_result['error']}"
+                conversation["messages"][-1]["text"] = ai_response_text
+
             # Update conversation in database
             conversation["updated_at"] = datetime.utcnow()
             await self._save_conversation(conversation)
@@ -252,6 +268,185 @@ class ConversationManager:
         )
         
         logger.info(f"Conversation {conversation_id} marked as completed")
+
+    def _update_collected_info(
+        self,
+        conversation: Dict,
+        entities: Dict[str, Any],
+        phone_number: str,
+        message_text: str
+    ):
+        """Normalize and store extracted booking information"""
+        state = conversation.setdefault("state", ConversationState().dict())
+        info = state.setdefault("collected_info", {})
+        if phone_number and not info.get("client_phone"):
+            info["client_phone"] = phone_number
+        if entities.get("phone"):
+            info["client_phone"] = text_formatter.clean_phone_number(entities["phone"])
+        if entities.get("email"):
+            info["client_email"] = entities["email"].strip()
+        if entities.get("service"):
+            info["service"] = text_formatter.format_service_name(entities["service"])
+        if entities.get("date"):
+            info["date"] = entities["date"].strip()
+        if entities.get("time"):
+            info["time"] = entities["time"].strip()
+        if entities.get("name"):
+            info["client_name"] = text_formatter.capitalize_name(entities["name"])
+
+        # Attempt to pull name from free text if still missing
+        if message_text and not info.get("client_name"):
+            extracted = text_formatter.extract_name_from_text(message_text.title())
+            if extracted:
+                info["client_name"] = extracted
+
+        # Track duration if user specifies (e.g., "60 min")
+        if "duration" in entities and entities["duration"]:
+            try:
+                info["duration_minutes"] = int(entities["duration"])
+            except (TypeError, ValueError):
+                pass
+
+    async def _aggregate_booking_info(self, conversation: Dict) -> Dict[str, Any]:
+        """Combine collected info with AI extraction for booking"""
+        state = conversation.get("state", {})
+        info = dict(state.get("collected_info", {}))
+        info.setdefault("client_phone", conversation.get("phone_number"))
+        missing_core = [field for field in ["client_name", "service", "date", "time"] if not info.get(field)]
+        if missing_core:
+            transcript = self._build_conversation_transcript(conversation.get("messages", []))
+            ai_info = await groq_agent.extract_booking_info(transcript) or {}
+            mapping = {
+                "client_name": "client_name",
+                "service": "service",
+                "date": "date",
+                "time": "time",
+                "barber": "barber_preference",
+                "notes": "notes"
+            }
+            for ai_key, target_key in mapping.items():
+                value = ai_info.get(ai_key)
+                if value and not info.get(target_key):
+                    if target_key == "service":
+                        info[target_key] = text_formatter.format_service_name(value)
+                    elif target_key == "client_name":
+                        info[target_key] = text_formatter.capitalize_name(value)
+                    else:
+                        info[target_key] = value
+        return info
+
+    def _build_conversation_transcript(self, messages: List[Dict[str, Any]]) -> str:
+        """Flatten last few messages for AI extraction"""
+        if not messages:
+            return ""
+        lines = []
+        recent = messages[-12:]
+        for msg in recent:
+            role = msg.get("role")
+            speaker = "Client" if role in [MessageRole.CLIENT, "client"] else "Ava"
+            lines.append(f"{speaker}: {msg.get('text', '')}")
+        return "\n".join(lines)
+
+    def _is_booking_intent(self, intent: Any) -> bool:
+        """Check whether conversation intent targets booking"""
+        if isinstance(intent, ConversationIntent):
+            return intent == ConversationIntent.BOOK_APPOINTMENT
+        return str(intent or "").lower() == ConversationIntent.BOOK_APPOINTMENT.value
+
+    async def _attempt_appointment_creation(self, conversation: Dict) -> Optional[Dict[str, Any]]:
+        """Create appointment when enough info collected"""
+        state = conversation.get("state", {})
+        if conversation.get("appointment_id"):
+            return None
+        if not self._is_booking_intent(state.get("intent")):
+            return None
+        info = await self._aggregate_booking_info(conversation)
+        required = ["client_name", "service", "date", "time"]
+        missing = [field for field in required if not info.get(field)]
+        if missing:
+            if missing:
+                state["next_question"] = missing[0]
+            return None
+        appointment_dt = datetime_utils.parse_datetime_expression(info.get("date"), info.get("time"))
+        if not appointment_dt:
+            state["next_question"] = "clarify appointment time"
+            return None
+        is_valid, error_msg = datetime_utils.is_valid_appointment_time(appointment_dt)
+        if not is_valid:
+            logger.warning(f"Proposed appointment invalid: {error_msg}")
+            return {"error": error_msg}
+        duration = info.get("duration_minutes") or settings.DEFAULT_APPOINTMENT_DURATION
+        try:
+            duration = int(duration)
+        except (TypeError, ValueError):
+            duration = settings.DEFAULT_APPOINTMENT_DURATION
+        base_phone = info.get("client_phone") or conversation.get("phone_number")
+        client_phone = text_formatter.clean_phone_number(base_phone) if base_phone else None
+        if not client_phone:
+            state["next_question"] = "client phone number"
+            return None
+
+        payload = AppointmentCreate(
+            client_name=text_formatter.capitalize_name(info["client_name"]),
+            client_phone=client_phone,
+            client_email=info.get("client_email"),
+            service=text_formatter.format_service_name(info["service"]),
+            datetime=appointment_dt,
+            duration_minutes=duration,
+            barber_preference=info.get("barber_preference"),
+            notes=info.get("notes")
+        )
+        appointment_doc = payload.dict()
+        appointment_doc.update({
+            "status": AppointmentStatus.CONFIRMED,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "conversation_id": conversation.get("conversation_id")
+        })
+        try:
+            result = await self.db.appointments.insert_one(appointment_doc)
+            created = await self.db.appointments.find_one({"_id": result.inserted_id})
+            created["id"] = str(created["_id"])
+            conversation["appointment_id"] = created["id"]
+            state["completed"] = True
+            state["next_question"] = None
+            state.setdefault("collected_info", {})["datetime_iso"] = appointment_dt.isoformat()
+            state["collected_info"]["status"] = AppointmentStatus.CONFIRMED.value
+            appointment_details = {
+                "client_name": payload.client_name,
+                "service": payload.service,
+                "datetime_formatted": text_formatter.format_datetime_display(
+                    appointment_dt.astimezone(datetime_utils.get_timezone())
+                ),
+                "duration_minutes": duration
+            }
+            twilio_handler.send_appointment_confirmation(payload.client_phone, appointment_details)
+            confirmation_text = self._format_confirmation_text(created)
+            return {"appointment": created, "confirmation_text": confirmation_text}
+        except Exception as exc:
+            logger.error(f"Failed to create appointment from conversation: {exc}", exc_info=True)
+            return {"error": "I couldn't finalize the booking automatically. Let's confirm the time manually."}
+
+    def _format_confirmation_text(self, appointment: Dict[str, Any]) -> str:
+        """Build a conversational confirmation string"""
+        dt_value = appointment.get("datetime")
+        formatted_time = "your requested time"
+        try:
+            if isinstance(dt_value, datetime):
+                dt_obj = dt_value
+            else:
+                iso_value = str(dt_value).replace("Z", "+00:00")
+                dt_obj = datetime.fromisoformat(iso_value)
+            formatted_time = text_formatter.format_datetime_display(
+                dt_obj.astimezone(datetime_utils.get_timezone())
+            )
+        except Exception:
+            pass
+        service = appointment.get("service", "appointment")
+        return (
+            f"All set! I've booked your {service.lower()} for {formatted_time}. "
+            "You'll receive a confirmation text and reminder before the visit."
+        )
 
 
 # Singleton instance

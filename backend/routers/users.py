@@ -95,6 +95,21 @@ async def register_user(user: UserCreate):
     """Register a new user"""
     try:
         db = get_database()
+
+        if not settings.ALLOW_SELF_REGISTRATION:
+            raise HTTPException(
+                status_code=403,
+                detail="Self-service registration is disabled. Please contact the shop owner to request access."
+            )
+
+        max_users = settings.MAX_DASHBOARD_USERS
+        if max_users and max_users > 0:
+            active_users = await db.users.count_documents({"active": True})
+            if active_users >= max_users:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"User limit reached (max {max_users} active users). Deactivate an account before adding another."
+                )
         
         # Check if user exists
         existing_email = await db.users.find_one({"email": user.email})
@@ -172,6 +187,13 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     except Exception as e:
         logger.error(f"Error during login: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Login failed")
+
+
+# Alias for /token endpoint (standard OAuth2)
+@router.post("/token", response_model=Token)
+async def token(form_data: OAuth2PasswordRequestForm = Depends()):
+    """OAuth2 compatible token endpoint - alias for /login"""
+    return await login(form_data)
 
 
 @router.get("/me", response_model=UserResponse)
