@@ -1,14 +1,15 @@
-import { LayoutDashboard, Phone, Calendar, BarChart3, Users, Settings, HelpCircle, LogOut, Scissors, MessageSquare } from "lucide-react";
+import { LayoutDashboard, Phone, Calendar, BarChart3, Users, Settings, HelpCircle, LogOut, Scissors, MessageSquare, Bot, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavLink } from "./NavLink";
 import { useNavigate } from "react-router-dom";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+  { icon: Bot, label: "AI Receptionist", path: "/ai-receptionist" },
   { icon: Calendar, label: "Appointments", path: "/appointments" },
   { icon: MessageSquare, label: "Conversations", path: "/conversations" },
   { icon: Scissors, label: "Services", path: "/services" },
-  { icon: BarChart3, label: "Analytics", path: "/analytics" },
+  { icon: Smartphone, label: "WhatsApp", path: "/whatsapp" },
 ];
 
 const generalItems = [
