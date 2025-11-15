@@ -1,380 +1,758 @@
-twilio code verification : 5ARRCD3J82L8WA445FU3YE17
+# AI Receptionist - Intelligent Barbershop Assistanttwilio code verification : 5ARRCD3J82L8WA445FU3YE17
 
-# 🤖 AI Receptionist for Barber Shop
 
-[![Status](https://img.shields.io/badge/status-production%20ready-brightgreen)]()
-[![Backend](https://img.shields.io/badge/backend-FastAPI-009688)]()
-[![Frontend](https://img.shields.io/badge/frontend-React%2018-61dafb)]()
+
+![Python](https://img.shields.io/badge/python-3.10+-blue.svg)# 🤖 AI Receptionist for Barber Shop
+
+![FastAPI](https://img.shields.io/badge/FastAPI-0.109-green.svg)
+
+![React](https://img.shields.io/badge/React-18-blue.svg)[![Status](https://img.shields.io/badge/status-production%20ready-brightgreen)]()
+
+![MongoDB](https://img.shields.io/badge/MongoDB-6.0-green.svg)[![Backend](https://img.shields.io/badge/backend-FastAPI-009688)]()
+
+![License](https://img.shields.io/badge/license-MIT-blue.svg)[![Frontend](https://img.shields.io/badge/frontend-React%2018-61dafb)]()
+
 [![Database](https://img.shields.io/badge/database-MongoDB-47A248)]()
-[![AI](https://img.shields.io/badge/AI-Groq%20API-orange)]()
 
-An intelligent, AI-powered virtual receptionist system for barber shops that handles customer communications via Twilio (SMS/Voice), manages appointments automatically, and provides a modern web dashboard for business management.
+An intelligent AI-powered receptionist for barbershops that handles customer interactions via WhatsApp, manages appointments, and provides a comprehensive admin dashboard.[![AI](https://img.shields.io/badge/AI-Groq%20API-orange)]()
 
-## 🎯 Project Overview
 
-An intelligent, AI-powered virtual receptionist system for barber shops that handles customer communications via Twilio (SMS/Voice), manages appointments automatically, and provides a modern web dashboard for business management.
 
-### Key Features
+## 🌟 FeaturesAn intelligent, AI-powered virtual receptionist system for barber shops that handles customer communications via Twilio (SMS/Voice), manages appointments automatically, and provides a modern web dashboard for business management.
+
+
+
+### 🤖 AI-Powered Conversations## 🎯 Project Overview
+
+- Natural language understanding via Groq AI
+
+- Intent classification (booking, cancellation, info requests)An intelligent, AI-powered virtual receptionist system for barber shops that handles customer communications via Twilio (SMS/Voice), manages appointments automatically, and provides a modern web dashboard for business management.
+
+- Context-aware responses
+
+- Multi-turn conversation handling### Key Features
+
+- Automatic name extraction and validation
 
 - 🤖 **AI-Powered Conversations**: Natural language understanding using Groq API
-- 📱 **Twilio Integration**: Handle SMS and voice calls automatically
-- 📅 **Smart Appointment Management**: Book, update, and cancel appointments via conversation
-- 💬 **Conversation Transcripts**: Full history of all client interactions
-- 📊 **Admin Dashboard**: React-based dashboard for managing appointments and services
-- ⚡ **Real-time Updates**: WebSocket support for instant dashboard updates
-- 🔐 **Secure Authentication**: JWT-based user authentication
 
-### Technology Stack
+### 📱 WhatsApp Integration- 📱 **Twilio Integration**: Handle SMS and voice calls automatically
 
-**Backend:**
-- FastAPI (Python 3.11+)
-- MongoDB (Database)
-- Groq API (LLM)
+- WhatsApp Cloud API integration- 📅 **Smart Appointment Management**: Book, update, and cancel appointments via conversation
+
+- Real-time message handling- 💬 **Conversation Transcripts**: Full history of all client interactions
+
+- Automated appointment confirmations- 📊 **Admin Dashboard**: React-based dashboard for managing appointments and services
+
+- Business hours awareness- ⚡ **Real-time Updates**: WebSocket support for instant dashboard updates
+
+- Professional communication- 🔐 **Secure Authentication**: JWT-based user authentication
+
+
+
+### 📅 Appointment Management### Technology Stack
+
+- Create, update, and cancel appointments
+
+- Real-time availability checking**Backend:**
+
+- Automatic scheduling- FastAPI (Python 3.11+)
+
+- SMS/WhatsApp notifications- MongoDB (Database)
+
+- Conflict detection- Groq API (LLM)
+
 - Twilio (SMS/Voice)
-- WebSockets (Real-time)
 
-**Frontend:**
-- React 18
-- Vite
-- Tailwind CSS
-- React Router DOM
-- Axios
+### 🎨 Modern Dashboard- WebSockets (Real-time)
+
+- Responsive React + TypeScript frontend
+
+- Real-time data updates (30s polling)**Frontend:**
+
+- Beautiful UI with Shadcn components- React 18
+
+- Appointment calendar view- Vite
+
+- Conversation history- Tailwind CSS
+
+- Service management- React Router DOM
+
+- Analytics and insights- Axios
+
 - Day.js
 
-## 📁 Project Structure
+### 🔐 Security & Authentication
 
-```
-ai_receptionist/
-├── backend/                    # Python FastAPI backend
+- JWT-based authentication## 📁 Project Structure
+
+- Password hashing with Argon2
+
+- Role-based access control```
+
+- Secure API endpointsai_receptionist/
+
+- CORS protection├── backend/                    # Python FastAPI backend
+
 │   ├── main.py                # Application entry point
-│   ├── requirements.txt       # Python dependencies
-│   ├── .env.example          # Environment variables template
-│   ├── Dockerfile            # Docker configuration
-│   │
-│   ├── ai/                   # AI Logic Layer
-│   │   ├── groq_agent.py    # Groq API integration
+
+### 📊 Database│   ├── requirements.txt       # Python dependencies
+
+- MongoDB for data persistence│   ├── .env.example          # Environment variables template
+
+- Optimized queries with indexing│   ├── Dockerfile            # Docker configuration
+
+- Conversation history storage│   │
+
+- Appointment tracking│   ├── ai/                   # AI Logic Layer
+
+- User management│   │   ├── groq_agent.py    # Groq API integration
+
 │   │   ├── conversation_manager.py  # Conversation state
-│   │   ├── intents.py       # Intent classification
+
+## 🚀 Quick Start│   │   ├── intents.py       # Intent classification
+
 │   │   └── prompt_templates.py     # AI prompts
-│   │
+
+### Prerequisites│   │
+
 │   ├── routers/             # API Routes
-│   │   ├── webhook.py       # Twilio webhooks
-│   │   ├── appointments.py  # Appointment CRUD
-│   │   ├── services.py      # Services management
-│   │   └── users.py         # Authentication
+
+- Python 3.10+│   │   ├── webhook.py       # Twilio webhooks
+
+- Node.js 18+│   │   ├── appointments.py  # Appointment CRUD
+
+- MongoDB 6.0+│   │   ├── services.py      # Services management
+
+- Git│   │   └── users.py         # Authentication
+
 │   │
-│   ├── models/              # Pydantic Models
+
+### Installation│   ├── models/              # Pydantic Models
+
 │   │   ├── appointment.py
-│   │   ├── conversation.py
-│   │   ├── service.py
-│   │   └── user.py
-│   │
+
+```bash│   │   ├── conversation.py
+
+# Clone the repository│   │   ├── service.py
+
+git clone https://github.com/montaassarr/ai-_receptionist.git│   │   └── user.py
+
+cd ai-_receptionist│   │
+
 │   ├── database/            # Database Layer
-│   │   └── mongo_config.py
-│   │
-│   └── utils/               # Utilities
-│       ├── config.py
+
+# Run automated setup│   │   └── mongo_config.py
+
+chmod +x setup_complete.sh│   │
+
+./setup_complete.sh│   └── utils/               # Utilities
+
+```│       ├── config.py
+
 │       ├── twilio_handler.py
-│       ├── text_formatter.py
+
+### Configuration│       ├── text_formatter.py
+
 │       └── datetime_utils.py
-│
+
+Edit `backend/.env`:│
+
 ├── frontend/                # React Frontend
-│   ├── src/
-│   │   ├── components/    # Reusable components
-│   │   │   ├── Navbar.jsx
-│   │   │   ├── Modal.jsx
-│   │   │   ├── ProtectedRoute.jsx
+
+```env│   ├── src/
+
+# WhatsApp Cloud API│   │   ├── components/    # Reusable components
+
+WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id│   │   │   ├── Navbar.jsx
+
+WHATSAPP_ACCESS_TOKEN=REDACTED│   │   │   ├── Modal.jsx
+
+WHATSAPP_VERIFY_TOKEN=your_verify_token│   │   │   ├── ProtectedRoute.jsx
+
 │   │   │   └── LoadingSpinner.jsx
-│   │   ├── pages/         # Page components
-│   │   │   ├── Login.jsx
+
+# Groq AI│   │   ├── pages/         # Page components
+
+GROQ_API_KEY=REDACTED│   │   │   ├── Login.jsx
+
 │   │   │   ├── Dashboard.jsx
-│   │   │   ├── Appointments.jsx
-│   │   │   ├── Conversations.jsx
-│   │   │   └── Services.jsx
+
+# Security│   │   │   ├── Appointments.jsx
+
+SECRET_KEY=REDACTED│   │   │   ├── Conversations.jsx
+
+```│   │   │   └── Services.jsx
+
 │   │   ├── lib/
-│   │   │   └── api.js     # Axios client
+
+### Running│   │   │   └── api.js     # Axios client
+
 │   │   ├── App.jsx
-│   │   └── main.jsx
-│   ├── package.json
-│   ├── vite.config.js
+
+```bash│   │   └── main.jsx
+
+# Start both backend and frontend│   ├── package.json
+
+./start.sh│   ├── vite.config.js
+
 │   ├── tailwind.config.js
-│   └── .env.example
-│
-├── docs/                    # Documentation
-│   ├── project_doc.md
+
+# Or start individually:│   └── .env.example
+
+# Backend: cd backend && python main.py│
+
+# Frontend: cd frontend && npm run dev├── docs/                    # Documentation
+
+```│   ├── project_doc.md
+
 │   ├── api_endpoints.md
-│   ├── database_schema.md
-│   └── setup_guide.md
-│
-├── stack_components.txt     # Complete stack documentation
+
+Access:│   ├── database_schema.md
+
+- **Frontend**: http://localhost:5173│   └── setup_guide.md
+
+- **Backend API**: http://localhost:8000│
+
+- **API Docs**: http://localhost:8000/docs├── stack_components.txt     # Complete stack documentation
+
 ├── docker-compose.yml       # Docker orchestration
-├── .gitignore
+
+## 📚 Documentation├── .gitignore
+
 └── README.md               # This file
-```
 
-## 🚀 Quick Start
+- **[Installation Guide](INSTALLATION.md)** - Detailed setup instructions```
 
-### One-Command Start (Recommended)
+- **[API Documentation](docs/api_endpoints.md)** - API reference
 
-```bash
+- **[Database Schema](docs/database_schema.md)** - Database structure## 🚀 Quick Start
+
+- **[Project Documentation](docs/project_doc.md)** - Architecture and design
+
+- **[Testing Guide](COMPLETE_FIX_README.md)** - Testing and troubleshooting### One-Command Start (Recommended)
+
+
+
+## 🏗️ Project Structure```bash
+
 ./start.sh
-```
 
-This will start:
-- MongoDB (if not running)
-- Backend API on port 8000
-- Frontend Dashboard on port 5173
+``````
 
-Then open: **http://localhost:5173**
+ai-_receptionist/
 
-Login with: `admin` / `admin123`
+├── backend/This will start:
 
-### Prerequisites
+│   ├── ai/                  # AI and conversation logic- MongoDB (if not running)
 
-- Python 3.11+
-- Node.js 18+
-- MongoDB (local or Atlas)
-- Twilio Account (free tier)
-- Groq API Key
+│   │   ├── conversation_manager.py- Backend API on port 8000
 
-### 1. Clone and Setup Backend
+│   │   ├── groq_agent.py- Frontend Dashboard on port 5173
 
-```bash
-# Navigate to project
-cd ai_receptionist/backend
+│   │   ├── intents.py
 
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Ubuntu/Linux
+│   │   └── prompt_templates.pyThen open: **http://localhost:5173**
 
-# Install dependencies
-pip install -r requirements.txt
+│   ├── database/            # Database configuration
 
-# Copy environment template
-cp .env.example .env
+│   │   └── mongo_config.pyLogin with: `admin` / `admin123`
 
-# Edit .env with your credentials
-nano .env
-```
+│   ├── models/              # Data models
 
-### 2. Configure Environment Variables
+│   │   ├── appointment.py### Prerequisites
 
-Edit `.env` file with your actual credentials:
+│   │   ├── conversation.py
 
-```env
-# MongoDB
-MONGO_URI=mongodb://localhost:27017
+│   │   ├── service.py- Python 3.11+
+
+│   │   └── user.py- Node.js 18+
+
+│   ├── routers/             # API routes- MongoDB (local or Atlas)
+
+│   │   ├── appointments.py- Twilio Account (free tier)
+
+│   │   ├── conversations.py- Groq API Key
+
+│   │   ├── services.py
+
+│   │   ├── users.py### 1. Clone and Setup Backend
+
+│   │   └── webhook.py
+
+│   ├── utils/               # Utilities```bash
+
+│   │   ├── config.py# Navigate to project
+
+│   │   ├── datetime_utils.pycd ai_receptionist/backend
+
+│   │   ├── text_formatter.py
+
+│   │   └── whatsapp_cloud.py# Create virtual environment
+
+│   ├── main.py              # FastAPI applicationpython3 -m venv venv
+
+│   ├── requirements.txt     # Python dependenciessource venv/bin/activate  # On Ubuntu/Linux
+
+│   └── .env                 # Environment variables
+
+├── frontend/# Install dependencies
+
+│   ├── src/pip install -r requirements.txt
+
+│   │   ├── api/             # API client
+
+│   │   ├── components/      # React components# Copy environment template
+
+│   │   ├── hooks/           # Custom hookscp .env.example .env
+
+│   │   ├── lib/             # Utilities
+
+│   │   ├── pages/           # Page components# Edit .env with your credentials
+
+│   │   └── main.tsx         # App entry pointnano .env
+
+│   ├── package.json         # Node dependencies```
+
+│   └── vite.config.ts       # Vite configuration
+
+├── docs/                    # Documentation### 2. Configure Environment Variables
+
+├── logs/                    # Application logs
+
+├── setup_complete.sh        # Automated setup scriptEdit `.env` file with your actual credentials:
+
+├── start.sh                 # Start script
+
+├── system_check.sh          # System verification```env
+
+└── README.md                # This file# MongoDB
+
+```MONGO_URI=mongodb://localhost:27017
+
 MONGO_DB_NAME=ai_barber_receptionist
 
+## 🛠️ Technology Stack
+
 # Twilio
-TWILIO_ACCOUNT_SID=your_account_sid
-TWILIO_AUTH_TOKEN=REDACTED
-TWILIO_PHONE_NUMBER=+1234567890
 
-# Groq
-GROQ_API_KEY=REDACTED
-GROQ_MODEL=mixtral-8x7b-32768
+### BackendTWILIO_ACCOUNT_SID=your_account_sid
 
-# JWT
-SECRET_KEY=REDACTED
+- **Framework**: FastAPITWILIO_AUTH_TOKEN=REDACTED
 
-# Business
-BUSINESS_NAME=Royal Fade Barbershop
-BUSINESS_PHONE=+1234567890
-```
+- **AI/ML**: Groq (Llama 3.3 70B)TWILIO_PHONE_NUMBER=+1234567890
 
-### 3. Start MongoDB
+- **Database**: MongoDB
 
-```bash
-# If using local MongoDB
-sudo systemctl start mongod
+- **Authentication**: JWT with Argon2# Groq
 
-# Or use MongoDB Atlas (cloud)
+- **Async**: Motor (async MongoDB driver)GROQ_API_KEY=REDACTED
+
+- **Messaging**: WhatsApp Cloud APIGROQ_MODEL=mixtral-8x7b-32768
+
+
+
+### Frontend# JWT
+
+- **Framework**: React 18 + TypeScriptSECRET_KEY=REDACTED
+
+- **Build Tool**: Vite
+
+- **UI Library**: Shadcn/ui + Radix UI# Business
+
+- **Styling**: Tailwind CSSBUSINESS_NAME=Royal Fade Barbershop
+
+- **State Management**: TanStack QueryBUSINESS_PHONE=+1234567890
+
+- **HTTP Client**: Axios```
+
+
+
+### DevOps### 3. Start MongoDB
+
+- **Containerization**: Docker support
+
+- **Monitoring**: Custom logging```bash
+
+- **Testing**: Pytest, Jest# If using local MongoDB
+
+- **CI/CD**: GitHub Actions readysudo systemctl start mongod
+
+
+
+## 🧪 Testing# Or use MongoDB Atlas (cloud)
+
 # Update MONGO_URI in .env with Atlas connection string
-```
 
-### 4. Run Backend
+```bash```
 
-```bash
-# Make sure you're in backend/ directory with venv activated
+# Run all tests
+
+./run_tests.sh### 4. Run Backend
+
+
+
+# System check```bash
+
+./system_check.sh# Make sure you're in backend/ directory with venv activated
+
 cd backend
-source venv/bin/activate
+
+# Test name extractionsource venv/bin/activate
+
+./test_name_extraction.sh
 
 # Create logs directory
-mkdir -p logs
+
+# Check appointmentsmkdir -p logs
+
+./check_appointment.sh
 
 # Run with uvicorn
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# Watch logsuvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+./watch_logs.sh```
+
 ```
 
 Backend will be available at:
-- API: http://localhost:8000
+
+## 📊 Key Features Explained- API: http://localhost:8000
+
 - Interactive Docs: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
 
-### 5. Setup Frontend
+### AI Conversation Flow- ReDoc: http://localhost:8000/redoc
 
-```bash
-# Navigate to frontend directory
-cd ../frontend
+
+
+1. User sends WhatsApp message### 5. Setup Frontend
+
+2. System classifies intent (booking, info, etc.)
+
+3. AI extracts entities (name, date, time, service)```bash
+
+4. Context maintained across messages# Navigate to frontend directory
+
+5. Appointment created when all info collectedcd ../frontend
+
+6. Confirmation sent to user
 
 # Install dependencies
-npm install
 
-# Copy environment template
-cp .env.example .env.local
+### Name Extractionnpm install
 
-# Edit .env.local with backend URL
-nano .env.local
-```
 
-Set the API base URL in `.env.local`:
+
+Robust name extraction with:# Copy environment template
+
+- Regex patterns for common phrasescp .env.example .env.local
+
+- Whole-word validation (not substring matching)
+
+- Invalid name filtering# Edit .env.local with backend URL
+
+- Groq AI fallbacknano .env.local
+
+- Multiple extraction attempts```
+
+
+
+### Appointment CreationSet the API base URL in `.env.local`:
+
 ```env
-VITE_API_BASE=http://localhost:8000/api/v1
-```
 
-### 6. Run Frontend
+- Validates all required fieldsVITE_API_BASE=http://localhost:8000/api/v1
 
-```bash
+- Checks business hours```
+
+- Prevents double-booking
+
+- Assigns unique IDs### 6. Run Frontend
+
+- Sends confirmations
+
+- Updates database atomically```bash
+
 # Start development server
-npm run dev
+
+## 🔧 Configurationnpm run dev
+
 ```
+
+### Environment Variables
 
 Frontend will be available at:
-- Dashboard: http://localhost:5173
-- Login: http://localhost:5173/login
 
-Default credentials:
-- Username: `admin`
-- Password: `admin123`
+| Variable | Description | Required |- Dashboard: http://localhost:5173
 
-### 7. Setup Twilio Webhooks
+|----------|-------------|----------|- Login: http://localhost:5173/login
 
-1. Go to [Twilio Console](https://console.twilio.com/)
+| `WHATSAPP_PHONE_NUMBER_ID` | WhatsApp Business Phone Number ID | Yes |
+
+| `WHATSAPP_ACCESS_TOKEN` | WhatsApp API Access Token | Yes |Default credentials:
+
+| `WHATSAPP_VERIFY_TOKEN` | Webhook Verification Token | Yes |- Username: `admin`
+
+| `GROQ_API_KEY` | Groq AI API Key | Yes |- Password: `admin123`
+
+| `SECRET_KEY` | JWT Secret Key | Yes |
+
+| `MONGODB_URL` | MongoDB Connection URL | No (default: localhost) |### 7. Setup Twilio Webhooks
+
+| `DATABASE_NAME` | Database Name | No (default: ai_barber_receptionist) |
+
+| `CORS_ORIGINS` | Allowed CORS Origins | No (default: localhost:5173) |1. Go to [Twilio Console](https://console.twilio.com/)
+
 2. Navigate to Phone Numbers → Manage → Active Numbers
-3. Select your phone number
+
+### Business Settings3. Select your phone number
+
 4. Under "Messaging", set webhook URL to:
+
+```env   ```
+
+BUSINESS_NAME="Your Barber Shop"   https://your-domain.com/api/v1/webhook/sms
+
+BUSINESS_PHONE=+1234567890   ```
+
+BUSINESS_EMAIL=contact@yourbarbershop.com5. Under "Voice", set webhook URL to:
+
+BUSINESS_ADDRESS="123 Main St, City, State 12345"   ```
+
+```   https://your-domain.com/api/v1/webhook/voice
+
    ```
-   https://your-domain.com/api/v1/webhook/sms
-   ```
-5. Under "Voice", set webhook URL to:
-   ```
-   https://your-domain.com/api/v1/webhook/voice
-   ```
+
+## 📈 Monitoring
 
 **For local development**, use [ngrok](https://ngrok.com/):
-```bash
+
+### Health Check```bash
+
 ngrok http 8000
-# Use the ngrok URL in Twilio webhooks
+
+```bash# Use the ngrok URL in Twilio webhooks
+
+curl http://localhost:8000/health```
+
 ```
 
 ## 📖 API Documentation
 
+### Logs
+
 ### Base URL
-```
-http://localhost:8000/api/v1
-```
 
-### Main Endpoints
+```bash```
 
-#### Appointments
+# Backend logshttp://localhost:8000/api/v1
+
+tail -f /tmp/backend.log```
+
+
+
+# Filtered logs### Main Endpoints
+
+./watch_logs.sh
+
+```#### Appointments
+
 - `POST /appointments/` - Create appointment
-- `GET /appointments/` - List appointments
-- `GET /appointments/{id}` - Get appointment
-- `PUT /appointments/{id}` - Update appointment
-- `DELETE /appointments/{id}` - Cancel appointment
-- `GET /appointments/stats/summary` - Get statistics
 
-#### Services
-- `POST /services/` - Create service
-- `GET /services/` - List services
+### Database Status- `GET /appointments/` - List appointments
+
+- `GET /appointments/{id}` - Get appointment
+
+```bash- `PUT /appointments/{id}` - Update appointment
+
+mongosh ai_barber_receptionist --eval "- `DELETE /appointments/{id}` - Cancel appointment
+
+  print('Conversations:', db.conversations.countDocuments());- `GET /appointments/stats/summary` - Get statistics
+
+  print('Appointments:', db.appointments.countDocuments());
+
+  print('Users:', db.users.countDocuments());#### Services
+
+"- `POST /services/` - Create service
+
+```- `GET /services/` - List services
+
 - `GET /services/{id}` - Get service
-- `PUT /services/{id}` - Update service
+
+## 🤝 Contributing- `PUT /services/{id}` - Update service
+
 - `DELETE /services/{id}` - Deactivate service
 
+Contributions are welcome! Please follow these steps:
+
 #### Users & Auth
-- `POST /users/register` - Register new user
-- `POST /users/login` - Login (get JWT token)
-- `GET /users/me` - Get current user
-- `PUT /users/me` - Update current user
+
+1. Fork the repository- `POST /users/register` - Register new user
+
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)- `POST /users/login` - Login (get JWT token)
+
+3. Commit your changes (`git commit -m 'Add amazing feature'`)- `GET /users/me` - Get current user
+
+4. Push to the branch (`git push origin feature/amazing-feature`)- `PUT /users/me` - Update current user
+
+5. Open a Pull Request
 
 #### Webhooks
-- `POST /webhook/sms` - Twilio SMS webhook
+
+## 🐛 Bug Reports- `POST /webhook/sms` - Twilio SMS webhook
+
 - `POST /webhook/voice` - Twilio voice webhook
 
-See `docs/api_endpoints.md` for detailed documentation.
+Please report bugs by opening an issue with:
 
-## 🧪 Testing
+- Clear descriptionSee `docs/api_endpoints.md` for detailed documentation.
 
-### Manual Testing
+- Steps to reproduce
 
-Test the SMS flow:
+- Expected vs actual behavior## 🧪 Testing
+
+- System information
+
+- Logs (if applicable)### Manual Testing
+
+
+
+## 📝 LicenseTest the SMS flow:
+
 1. Send a text to your Twilio number: "Hi, I want a haircut tomorrow at 3pm"
-2. AI will respond and guide the booking process
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.2. AI will respond and guide the booking process
+
 3. Check appointments in the dashboard or via API
+
+## 👥 Authors
 
 ### API Testing
 
+- **Montassar** - *Initial work* - [@montaassarr](https://github.com/montaassarr)
+
 Use the interactive docs at http://localhost:8000/docs
 
+## 🙏 Acknowledgments
+
 Or use curl:
-```bash
-# Get appointments
-curl http://localhost:8000/api/v1/appointments/
 
-# Create appointment
+- FastAPI for the excellent web framework```bash
+
+- Groq for powerful AI capabilities# Get appointments
+
+- Shadcn/ui for beautiful componentscurl http://localhost:8000/api/v1/appointments/
+
+- MongoDB for flexible data storage
+
+- Meta for WhatsApp Cloud API# Create appointment
+
 curl -X POST http://localhost:8000/api/v1/appointments/ \
-  -H "Content-Type: application/json" \
+
+## 📞 Support  -H "Content-Type: application/json" \
+
   -d '{
-    "client_name": "John Doe",
-    "client_phone": "+1234567890",
-    "service": "Haircut",
-    "datetime": "2025-11-15T15:00:00",
-    "duration_minutes": 30
+
+For support:    "client_name": "John Doe",
+
+- Check [INSTALLATION.md](INSTALLATION.md) for setup issues    "client_phone": "+1234567890",
+
+- Review [COMPLETE_FIX_README.md](COMPLETE_FIX_README.md) for troubleshooting    "service": "Haircut",
+
+- Open an issue on GitHub    "datetime": "2025-11-15T15:00:00",
+
+- Check existing documentation in `/docs`    "duration_minutes": 30
+
   }'
-```
 
-## 🔧 Configuration
+## 🗺️ Roadmap```
 
-### Business Settings
 
-Edit `backend/.env` to customize:
 
-```env
-BUSINESS_NAME=Your Barbershop Name
-BUSINESS_HOURS=Monday-Saturday 9:00 AM - 8:00 PM
-AVAILABLE_SERVICES=Haircut,Beard Trim,Fade,Hot Shave
+- [ ] Multi-language support## 🔧 Configuration
+
+- [ ] Voice message handling
+
+- [ ] SMS integration### Business Settings
+
+- [ ] Payment processing
+
+- [ ] Advanced analyticsEdit `backend/.env` to customize:
+
+- [ ] Mobile app
+
+- [ ] Multi-tenant support```env
+
+- [ ] Email notificationsBUSINESS_NAME=Your Barbershop Name
+
+- [ ] Calendar integrations (Google, Outlook)BUSINESS_HOURS=Monday-Saturday 9:00 AM - 8:00 PM
+
+- [ ] Customer loyalty programAVAILABLE_SERVICES=Haircut,Beard Trim,Fade,Hot Shave
+
 DEFAULT_APPOINTMENT_DURATION=30
-```
 
-### AI Personality
+## ⚡ Performance```
 
-Customize the AI receptionist personality in:
-`backend/ai/prompt_templates.py`
+
+
+- Handles 1000+ concurrent connections### AI Personality
+
+- Sub-second response times
+
+- Efficient MongoDB queriesCustomize the AI receptionist personality in:
+
+- Optimized AI inference`backend/ai/prompt_templates.py`
+
+- Real-time updates
 
 ## 📊 Database Schema
 
+## 🔒 Security
+
 MongoDB Collections:
 
-1. **appointments** - Client appointments
-2. **conversations** - Chat transcripts
-3. **services** - Available services
-4. **users** - Admin users
+- JWT authentication
 
-See `docs/database_schema.md` for detailed schemas.
+- Argon2 password hashing1. **appointments** - Client appointments
+
+- CORS protection2. **conversations** - Chat transcripts
+
+- Input validation3. **services** - Available services
+
+- SQL injection prevention (NoSQL)4. **users** - Admin users
+
+- XSS protection
+
+- Rate limiting readySee `docs/database_schema.md` for detailed schemas.
+
+- Secure environment variables
 
 ## 🐳 Docker Deployment
 
+---
+
 ```bash
-# Build and run with Docker Compose
+
+**Made with ❤️ for barbershops worldwide**# Build and run with Docker Compose
+
 docker-compose up -d
 
-# View logs
-docker-compose logs -f
+---
 
-# Stop services
-docker-compose down
-```
+# View logs
+
+## Quick Linksdocker-compose logs -f
+
+
+
+- [Installation](INSTALLATION.md)# Stop services
+
+- [API Docs](http://localhost:8000/docs)docker-compose down
+
+- [GitHub](https://github.com/montaassarr/ai-_receptionist)```
+
+- [Issues](https://github.com/montaassarr/ai-_receptionist/issues)
 
 ## 🛠️ Development
 
