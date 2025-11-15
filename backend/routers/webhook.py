@@ -1,15 +1,16 @@
 """
-Twilio Webhook Router
-Handles incoming SMS and voice calls from Twilio
+WhatsApp Cloud API Webhook Router
+Handles incoming messages from WhatsApp Cloud API
 """
 
-from fastapi import APIRouter, Request, Form, HTTPException
-from fastapi.responses import Response
+from fastapi import APIRouter, Request, Query, HTTPException
+from fastapi.responses import PlainTextResponse, JSONResponse
+from pydantic import BaseModel
 import logging
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from ai.conversation_manager import conversation_manager
-from utils.twilio_handler import twilio_handler
+from services.whatsapp_cloud import whatsapp_cloud
 from utils.text_formatter import text_formatter
 
 logger = logging.getLogger(__name__)
@@ -17,139 +18,202 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/sms")
-async def webhook_sms(
+class TestWhatsAppMessage(BaseModel):
+    """Test WhatsApp message request model"""
+    to: str
+    message: str
+
+
+@router.get("/sms")
+async def webhook_verify(
     request: Request,
-    From: str = Form(...),
-    Body: str = Form(...),
-    MessageSid: str = Form(...),
-    To: Optional[str] = Form(None)
+    hub_mode: Optional[str] = Query(None, alias="hub.mode"),
+    hub_challenge: Optional[str] = Query(None, alias="hub.challenge"),
+    hub_verify_token: Optional[str] = Query(None, alias="hub.verify_token")
 ):
     """
-    Handle incoming SMS messages from Twilio
+    Verify WhatsApp webhook
+    
+    WhatsApp will call this endpoint with verification parameters
     
     Args:
-        From: Sender's phone number
-        Body: Message text
-        MessageSid: Twilio message ID
-        To: Recipient (our Twilio number)
+        hub_mode: Should be "subscribe"
+        hub_challenge: Challenge string to echo back
+        hub_verify_token: Verification token to validate
+        
+    Returns:
+        Plain text response with challenge if verification succeeds
+    """
+    logger.info(f"📋 Webhook verification request: mode={hub_mode}, token={hub_verify_token}")
+    
+    # Verify the webhook
+    challenge = whatsapp_cloud.verify_webhook(
+        mode=hub_mode or "",
+        token=hub_verify_token or "",
+        challenge=hub_challenge or ""
+    )
+    
+    if challenge:
+        logger.info("✅ Webhook verification successful")
+        return PlainTextResponse(content=challenge, status_code=200)
+    
+    logger.warning("❌ Webhook verification failed")
+    raise HTTPException(status_code=403, detail="Verification failed")
+
+
+@router.post("/sms")
+async def webhook_message(request: Request):
+    """
+    Handle incoming WhatsApp messages
+    
+    WhatsApp Cloud API sends messages in the following format:
+    {
+      "object": "whatsapp_business_account",
+      "entry": [{
+        "id": "WHATSAPP_BUSINESS_ACCOUNT_ID",
+        "changes": [{
+          "value": {
+            "messaging_product": "whatsapp",
+            "metadata": {...},
+            "contacts": [{...}],
+            "messages": [{
+              "from": "PHONE_NUMBER",
+              "id": "MESSAGE_ID",
+              "timestamp": "TIMESTAMP",
+              "text": {
+                "body": "MESSAGE_TEXT"
+              },
+              "type": "text"
+            }]
+          },
+          "field": "messages"
+        }]
+      }]
+    }
     """
     try:
-        logger.info(f"📱 Incoming SMS from {From}: {Body[:50]}...")
+        # Parse incoming webhook payload
+        body = await request.json()
+        logger.info(f"📥 Incoming WhatsApp webhook: {body}")
         
-        # Clean phone number
-        phone_number = text_formatter.clean_phone_number(From)
+        # Extract message data from WhatsApp webhook structure
+        if "entry" not in body:
+            logger.warning("Invalid webhook structure - no 'entry' field")
+            return JSONResponse(content={"status": "error", "message": "Invalid payload"}, status_code=400)
         
-        # Prepare metadata
-        metadata = {
-            "twilio_message_sid": MessageSid,
-            "twilio_from": From,
-            "twilio_to": To
+        for entry in body.get("entry", []):
+            for change in entry.get("changes", []):
+                value = change.get("value", {})
+                
+                # Check if there are messages
+                messages = value.get("messages", [])
+                if not messages:
+                    logger.info("No messages in webhook payload")
+                    continue
+                
+                # Process each message
+                for message in messages:
+                    # Extract message details
+                    from_number = message.get("from")
+                    message_id = message.get("id")
+                    message_type = message.get("type")
+                    timestamp = message.get("timestamp")
+                    
+                    # Only process text messages
+                    if message_type != "text":
+                        logger.info(f"Skipping non-text message type: {message_type}")
+                        continue
+                    
+                    # Extract message text
+                    message_text = message.get("text", {}).get("body", "")
+                    
+                    if not from_number or not message_text:
+                        logger.warning("Missing from_number or message_text")
+                        continue
+                    
+                    logger.info(f"📱 Processing WhatsApp message from {from_number}: {message_text[:50]}...")
+                    
+                    # Clean phone number
+                    phone_number = text_formatter.clean_phone_number(from_number)
+                    
+                    # Prepare metadata
+                    metadata = {
+                        "whatsapp_message_id": message_id,
+                        "whatsapp_from": from_number,
+                        "whatsapp_timestamp": timestamp,
+                        "message_type": message_type
+                    }
+                    
+                    # Process message through conversation manager
+                    result = await conversation_manager.process_message(
+                        phone_number=phone_number,
+                        message_text=message_text,
+                        whatsapp_metadata=metadata
+                    )
+                    
+                    # Get AI response
+                    ai_response = result.get("response", "I'm sorry, I couldn't process that.")
+                    
+                    logger.info(f"🤖 AI Response: {ai_response[:50]}...")
+                    
+                    # Send response back via WhatsApp
+                    send_result = whatsapp_cloud.send_text_message(
+                        to=from_number,
+                        text=ai_response
+                    )
+                    
+                    if "error" in send_result:
+                        logger.error(f"Failed to send WhatsApp response: {send_result['error']}")
+                    else:
+                        logger.info(f"✅ Response sent successfully: {send_result.get('message_id')}")
+        
+        # Return success response (WhatsApp expects 200 OK)
+        return JSONResponse(content={"status": "success"}, status_code=200)
+        
+    except Exception as e:
+        logger.error(f"Error processing WhatsApp webhook: {e}", exc_info=True)
+        # Still return 200 to prevent WhatsApp from retrying
+        return JSONResponse(content={"status": "error", "message": str(e)}, status_code=200)
+
+
+@router.post("/test-whatsapp")
+async def test_whatsapp(message_data: TestWhatsAppMessage):
+    """
+    Test endpoint to send WhatsApp messages
+    
+    Args:
+        message_data: Test message with 'to' and 'message' fields
+        
+    Returns:
+        Result of sending the message
+        
+    Example:
+        POST /api/v1/webhook/test-whatsapp
+        {
+            "to": "+21692034689",
+            "message": "Hello from Cloud API"
+        }
+    """
+    try:
+        logger.info(f"🧪 Test WhatsApp message to {message_data.to}: {message_data.message}")
+        
+        result = whatsapp_cloud.send_text_message(
+            to=message_data.to,
+            text=message_data.message
+        )
+        
+        if "error" in result:
+            raise HTTPException(status_code=500, detail=result["error"])
+        
+        return {
+            "status": "success",
+            "message": "WhatsApp message sent",
+            "result": result
         }
         
-        # Process message through conversation manager
-        result = await conversation_manager.process_message(
-            phone_number=phone_number,
-            message_text=Body,
-            twilio_metadata=metadata
-        )
-        
-        # Get AI response
-        ai_response = result.get("response", "I'm sorry, I couldn't process that.")
-        
-        logger.info(f"🤖 AI Response: {ai_response[:50]}...")
-        
-        # Create TwiML response
-        twiml_response = twilio_handler.create_sms_response(ai_response)
-        
-        return Response(content=twiml_response, media_type="application/xml")
-        
     except Exception as e:
-        logger.error(f"Error processing SMS webhook: {e}", exc_info=True)
-        
-        # Return error response
-        error_response = twilio_handler.create_sms_response(
-            "I apologize, but I'm having trouble right now. Please try again or call us directly."
-        )
-        return Response(content=error_response, media_type="application/xml")
-
-
-@router.post("/voice")
-async def webhook_voice(
-    request: Request,
-    From: str = Form(...),
-    To: Optional[str] = Form(None),
-    CallSid: Optional[str] = Form(None)
-):
-    """
-    Handle incoming voice calls from Twilio
-    
-    Args:
-        From: Caller's phone number
-        To: Recipient (our Twilio number)
-        CallSid: Twilio call ID
-    """
-    try:
-        logger.info(f"📞 Incoming call from {From}")
-        
-        # Create voice greeting
-        greeting = f"""Hello! Thank you for calling {settings.BUSINESS_NAME}. 
-        This is Ava, your virtual receptionist. 
-        To book an appointment, press 1. 
-        To speak with a staff member, press 2. 
-        Or stay on the line and I can help you."""
-        
-        twiml_response = twilio_handler.create_voice_response(greeting)
-        
-        return Response(content=twiml_response, media_type="application/xml")
-        
-    except Exception as e:
-        logger.error(f"Error processing voice webhook: {e}", exc_info=True)
-        
-        error_greeting = "We're sorry, but we're experiencing technical difficulties. Please try again later."
-        error_response = twilio_handler.create_voice_response(error_greeting)
-        
-        return Response(content=error_response, media_type="application/xml")
-
-
-@router.post("/voice/menu")
-async def webhook_voice_menu(
-    request: Request,
-    Digits: str = Form(...),
-    From: str = Form(...),
-    CallSid: str = Form(...)
-):
-    """
-    Handle voice menu selections
-    
-    Args:
-        Digits: Pressed digit
-        From: Caller's phone number
-        CallSid: Twilio call ID
-    """
-    try:
-        logger.info(f"Voice menu selection: {Digits} from {From}")
-        
-        if Digits == "1":
-            # Book appointment flow
-            message = """Great! I can help you book an appointment. 
-            Please send us a text message with your preferred date and time, 
-            or call back during business hours to speak with our team."""
-        elif Digits == "2":
-            # Transfer to staff
-            message = f"""One moment please, I'll connect you with our staff. 
-            If no one is available, please call {settings.BUSINESS_PHONE} during business hours."""
-        else:
-            message = "I didn't understand that selection. Goodbye!"
-        
-        twiml_response = twilio_handler.create_voice_response(message)
-        
-        return Response(content=twiml_response, media_type="application/xml")
-        
-    except Exception as e:
-        logger.error(f"Error processing voice menu: {e}", exc_info=True)
-        error_response = twilio_handler.create_voice_response("Thank you for calling. Goodbye.")
-        return Response(content=error_response, media_type="application/xml")
+        logger.error(f"Error in test endpoint: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/status")
@@ -159,13 +223,11 @@ async def webhook_status():
     """
     return {
         "status": "active",
+        "service": "WhatsApp Cloud API",
         "endpoints": {
-            "sms": "/webhook/sms",
-            "voice": "/webhook/voice",
-            "voice_menu": "/webhook/voice/menu"
+            "webhook_verify": "GET /webhook/sms",
+            "webhook_message": "POST /webhook/sms",
+            "test": "POST /webhook/test-whatsapp",
+            "status": "GET /webhook/status"
         }
     }
-
-
-# Import settings for voice responses
-from utils.config import settings

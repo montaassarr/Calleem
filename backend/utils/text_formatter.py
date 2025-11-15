@@ -151,18 +151,24 @@ class TextFormatter:
             Extracted name or None
         """
         # Look for patterns like "I'm John", "My name is John", "This is John"
+        # Use case-insensitive matching
         patterns = [
-            r"(?:i'?m|name'?s|this is)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)",
-            r"([A-Z][a-z]+\s+[A-Z][a-z]+)",  # Two capitalized words
+            r"(?:i'?m|name'?s|this is|call me)\s+([a-zA-Z][a-zA-Z]+(?:\s+[a-zA-Z]+)?)",
+            r"(?:my name is|i am)\s+([a-zA-Z][a-zA-Z]+(?:\s+[a-zA-Z]+)?)",
         ]
         
+        # First try explicit name patterns (e.g., "My name is John")
         for pattern in patterns:
-            match = re.search(pattern, text)
+            match = re.search(pattern, text, re.IGNORECASE)
             if match:
-                name = match.group(1)
-                # Validate it's a reasonable name length
-                if 2 <= len(name.split()) <= 4:
-                    return TextFormatter.capitalize_name(name)
+                name = match.group(1).strip()
+                # Filter out common words that aren't names (check whole words, not substrings)
+                excluded_words = ['want', 'to', 'book', 'appointment', 'for', 'the', 'get', 'have']
+                name_words = name.lower().split()
+                if not any(word in excluded_words for word in name_words):
+                    # Validate it's a reasonable name length (1-4 words)
+                    if 1 <= len(name_words) <= 4:
+                        return TextFormatter.capitalize_name(name)
         
         return None
     

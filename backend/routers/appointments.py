@@ -18,7 +18,8 @@ from models.appointment import (
 from database.mongo_config import get_database
 from utils.datetime_utils import datetime_utils
 from utils.text_formatter import text_formatter
-from utils.twilio_handler import twilio_handler
+from services.whatsapp_cloud import whatsapp_cloud
+from utils.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -51,17 +52,18 @@ async def create_appointment(appointment: AppointmentCreate):
         
         logger.info(f"✅ Appointment created: {created_appointment['id']}")
         
-        # Send confirmation SMS
-        appointment_details = {
-            "client_name": appointment.client_name,
-            "service": appointment.service,
-            "datetime_formatted": text_formatter.format_datetime_display(appointment.datetime),
-            "duration_minutes": appointment.duration_minutes
-        }
+        # Send confirmation via WhatsApp
+        confirmation_msg = f"""✅ Appointment Confirmed!
+
+{appointment.client_name}, your {appointment.service} appointment is confirmed for:
+📅 {text_formatter.format_datetime_display(appointment.datetime)}
+⏱️ Duration: {appointment.duration_minutes} minutes
+
+Looking forward to seeing you! - {settings.BUSINESS_NAME}"""
         
-        twilio_handler.send_appointment_confirmation(
+        whatsapp_cloud.send_text_message(
             appointment.client_phone,
-            appointment_details
+            confirmation_msg
         )
         
         return AppointmentResponse(**created_appointment)
@@ -261,12 +263,14 @@ async def cancel_appointment(appointment_id: str):
         
         logger.info(f"❌ Appointment cancelled: {appointment_id}")
         
-        # Send cancellation notification
-        cancellation_msg = f"""Your appointment on {text_formatter.format_datetime_display(appointment['datetime'])} has been cancelled.
+        # Send cancellation notification via WhatsApp
+        cancellation_msg = f"""🚫 Appointment Cancelled
 
-Feel free to rebook anytime! - Royal Fade Barbershop"""
+Your appointment on {text_formatter.format_datetime_display(appointment['datetime'])} has been cancelled.
+
+Feel free to rebook anytime! - {settings.BUSINESS_NAME}"""
         
-        twilio_handler.send_sms(appointment["client_phone"], cancellation_msg)
+        whatsapp_cloud.send_text_message(appointment["client_phone"], cancellation_msg)
         
         return AppointmentResponse(**cancelled_appointment)
         

@@ -4,6 +4,7 @@ Groq API Integration for Natural Language Understanding
 
 from groq import Groq
 import logging
+import re
 from typing import List, Dict, Any
 from utils.config import settings
 
@@ -131,15 +132,33 @@ class GroqAgent:
             Extracted booking details
         """
         system_prompt = """Extract booking information from the conversation.
+        
+        IMPORTANT RULES FOR CLIENT NAME:
+        - Only extract a name if the customer explicitly provides it with phrases like:
+          * "My name is [Name]"
+          * "I'm [Name]"
+          * "This is [Name]"
+          * "Call me [Name]"
+        - DO NOT extract words like "want", "to", "book", "appointment" as names
+        - If the customer says "I want to book" - this is NOT a name, return null
+        - If no explicit name is given, return null for client_name
+        
+        CRITICAL: Respond with ONLY a valid JSON object, no other text.
+        
         Return a JSON object with these fields (use null if not mentioned):
         {
-            "client_name": "string",
-            "service": "string",
+            "client_name": "string or null",
+            "service": "string or null",
             "date": "YYYY-MM-DD or description like 'tomorrow'",
             "time": "HH:MM or description like '3pm'",
             "barber": "string or null",
             "notes": "string or null"
         }
+        
+        Example conversations:
+        - "I want to book a haircut" → {"client_name": null, "service": "haircut", ...}
+        - "My name is John" → {"client_name": "John", ...}
+        - "Book me for tomorrow" → {"client_name": null, "date": "tomorrow", ...}
         """
         
         try:
@@ -149,16 +168,39 @@ class GroqAgent:
                 messages=messages,
                 system_prompt=system_prompt,
                 temperature=0.2,
-                max_tokens=200
+                max_tokens=300
             )
             
-            # Parse JSON response
+            # Clean response - sometimes Groq adds extra text
             import json
+            response = response.strip()
+            
+            # Try to extract JSON if there's extra text
+            if not response.startswith('{'):
+                # Look for JSON object in response
+                json_match = re.search(r'\{[^}]+\}', response, re.DOTALL)
+                if json_match:
+                    response = json_match.group(0)
+                else:
+                    logger.error(f"No JSON found in response: {response}")
+                    return {}
+            
             info = json.loads(response)
+            
+            # Additional validation: remove name if it contains booking keywords
+            if info.get("client_name"):
+                name_lower = info["client_name"].lower()
+                invalid_names = ["want", "to", "book", "appointment", "want to", "to book"]
+                if any(word in name_lower for word in invalid_names):
+                    logger.warning(f"Rejected invalid name: {info['client_name']}")
+                    info["client_name"] = None
             
             logger.info(f"Extracted booking info: {info}")
             return info
             
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {e}. Response was: {response[:200] if 'response' in locals() else 'N/A'}")
+            return {}
         except Exception as e:
             logger.error(f"Error extracting booking info: {e}")
             return {}

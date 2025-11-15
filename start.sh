@@ -35,9 +35,9 @@ echo -e "${GREEN}✅ Backend will start at http://localhost:8000${NC}"
 echo -e "${YELLOW}📝 API Docs: http://localhost:8000/docs${NC}"
 echo ""
 
-# Start backend in background with PYTHONPATH
+# Start backend in background with correct venv and PYTHONPATH
 export PYTHONPATH="/home/montassar/Desktop/ai_receptionist/backend:$PYTHONPATH"
-python3 -m uvicorn main:app --reload --host 0.0.0.0 --port 8000 > ../logs/backend.log 2>&1 &
+/home/montassar/Desktop/ai_receptionist/.venv/bin/python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000 > ../logs/backend.log 2>&1 &
 BACKEND_PID=$!
 echo -e "${GREEN}✅ Backend started (PID: $BACKEND_PID)${NC}"
 echo ""

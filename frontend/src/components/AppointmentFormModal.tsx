@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { appointmentsApi, servicesApi } from "@/api";
-import { AppointmentCreate, AppointmentResponse, ServiceResponse } from "@/lib/types";
+import { AppointmentCreate, AppointmentUpdate, AppointmentResponse, ServiceResponse } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,15 @@ interface AppointmentFormModalProps {
   mode: "create" | "edit";
 }
 
+interface FormData {
+  client_name: string;
+  client_phone: string;
+  service: string;
+  datetime: string;
+  duration_minutes: number;
+  notes?: string;
+}
+
 export default function AppointmentFormModal({
   open,
   onOpenChange,
@@ -38,7 +47,7 @@ export default function AppointmentFormModal({
   mode,
 }: AppointmentFormModalProps) {
   const queryClient = useQueryClient();
-  const [formData, setFormData] = useState<AppointmentCreate>({
+  const [formData, setFormData] = useState<FormData>({
     client_name: "",
     client_phone: "",
     service: "",
@@ -56,11 +65,23 @@ export default function AppointmentFormModal({
   // Pre-fill form when editing
   useEffect(() => {
     if (mode === "edit" && appointment) {
+      // Convert ISO datetime to datetime-local format (YYYY-MM-DDTHH:MM)
+      const formatDatetimeForInput = (isoString: string) => {
+        const date = new Date(isoString);
+        // Get local datetime in YYYY-MM-DDTHH:MM format
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      };
+
       setFormData({
         client_name: appointment.client_name,
         client_phone: appointment.client_phone,
         service: appointment.service || "",
-        datetime: appointment.datetime,
+        datetime: formatDatetimeForInput(appointment.datetime),
         duration_minutes: appointment.duration_minutes || 30,
         notes: appointment.notes || "",
       });
@@ -81,11 +102,14 @@ export default function AppointmentFormModal({
   const createMutation = useMutation({
     mutationFn: appointmentsApi.create,
     onSuccess: () => {
+      // Force immediate refresh of appointments list
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.refetchQueries({ queryKey: ["appointments"] });
       toast.success("Appointment created successfully!");
       onOpenChange(false);
     },
     onError: (error: any) => {
+      console.error("Create error:", error);
       // Handle validation errors from FastAPI
       if (error.response?.data?.detail) {
         const detail = error.response.data.detail;
@@ -101,21 +125,24 @@ export default function AppointmentFormModal({
           toast.error("Failed to create appointment");
         }
       } else {
-        toast.error("Failed to create appointment");
+        toast.error(error.message || "Failed to create appointment");
       }
     },
   });
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: AppointmentCreate }) =>
+    mutationFn: ({ id, data }: { id: string; data: AppointmentUpdate }) =>
       appointmentsApi.update(id, data),
     onSuccess: () => {
+      // Force immediate refresh of appointments list
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.refetchQueries({ queryKey: ["appointments"] });
       toast.success("Appointment updated successfully!");
       onOpenChange(false);
     },
     onError: (error: any) => {
+      console.error("Update error:", error);
       // Handle validation errors from FastAPI
       if (error.response?.data?.detail) {
         const detail = error.response.data.detail;
@@ -131,7 +158,7 @@ export default function AppointmentFormModal({
           toast.error("Failed to update appointment");
         }
       } else {
-        toast.error("Failed to update appointment");
+        toast.error(error.message || "Failed to update appointment");
       }
     },
   });
@@ -145,10 +172,55 @@ export default function AppointmentFormModal({
       return;
     }
 
+    // Convert datetime-local format to ISO 8601
+    // datetime-local gives us "2025-11-15T14:30"
+    // We need to convert it to "2025-11-15T14:30:00" (add seconds)
+    const formattedDatetime = formData.datetime.includes(':') 
+      ? formData.datetime.length === 16 
+        ? `${formData.datetime}:00`  // Add seconds if missing
+        : formData.datetime
+      : formData.datetime;
+
     if (mode === "create") {
-      createMutation.mutate(formData);
+      // For create, send all fields as AppointmentCreate
+      const createData: AppointmentCreate = {
+        client_name: formData.client_name,
+        client_phone: formData.client_phone,
+        service: formData.service,
+        datetime: formattedDatetime,
+        duration_minutes: formData.duration_minutes,
+        notes: formData.notes,
+      };
+      createMutation.mutate(createData);
     } else if (appointment?.id) {
-      updateMutation.mutate({ id: appointment.id, data: formData });
+      // For update, build object with only non-empty fields
+      const updateData: AppointmentUpdate = {};
+      
+      // Only include fields that have values
+      if (formData.client_name && formData.client_name !== appointment.client_name) {
+        updateData.client_name = formData.client_name;
+      }
+      if (formData.service && formData.service !== appointment.service) {
+        updateData.service = formData.service;
+      }
+      if (formData.datetime && formattedDatetime !== appointment.datetime) {
+        updateData.datetime = formattedDatetime;
+      }
+      if (formData.duration_minutes && formData.duration_minutes !== appointment.duration_minutes) {
+        updateData.duration_minutes = formData.duration_minutes;
+      }
+      if (formData.notes !== appointment.notes) {
+        updateData.notes = formData.notes || undefined;
+      }
+      
+      // Check if there are any changes
+      if (Object.keys(updateData).length === 0) {
+        toast.info("No changes to save");
+        onOpenChange(false);
+        return;
+      }
+      
+      updateMutation.mutate({ id: appointment.id, data: updateData });
     }
   };
 
