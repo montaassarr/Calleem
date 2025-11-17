@@ -79,9 +79,15 @@ class ConversationManager:
             collected_info = conversation["state"].get("collected_info", {})
             has_booking_data = bool(collected_info.get("service") or collected_info.get("date") or collected_info.get("time"))
             
+            # Check if conversation suggests booking even if not all info collected
+            booking_related_intents = [
+                ConversationIntent.BOOK_APPOINTMENT.value,
+                "check_availability",
+                "reschedule_appointment"
+            ]
+            
             is_in_booking = (
-                current_intent == ConversationIntent.BOOK_APPOINTMENT.value and
-                has_booking_data and  # Has some booking data collected
+                current_intent in booking_related_intents and
                 not conversation["state"].get("completed")  # Not completed yet
             )
             
@@ -89,24 +95,30 @@ class ConversationManager:
                 # Check if user is explicitly changing intent (cancel, update, etc.)
                 message_lower = message_text.lower()
                 intent_changing_keywords = [
-                    'cancel', 'nevermind', 'forget it', 'wait', 'stop', 'no thanks'
+                    'cancel', 'nevermind', 'forget it', 'wait', 'stop', 'no thanks',
+                    'actually no', 'changed my mind'
                 ]
                 if any(keyword in message_lower for keyword in intent_changing_keywords):
                     # User wants to change intent, reclassify
                     intent = await self._classify_intent(message_text, conversation["messages"])
-                    logger.info(f"🔄 Intent changed during booking: {current_intent} → {intent}")
+                    logger.info(f"Intent changed during booking: {current_intent} -> {intent}")
                     conversation["state"]["intent"] = intent
                 else:
                     # Continue with booking intent - DO NOT CHANGE
+                    # This keeps the flow going even for simple responses like "5" or "yes"
                     intent = ConversationIntent.BOOK_APPOINTMENT.value
-                    logger.info(f"📋 Maintaining booking flow intent (has booking data: {has_booking_data})")
+                    logger.info(f"Maintaining booking flow intent (current: {current_intent}, has booking data: {has_booking_data})")
             else:
                 # Not in active booking flow, classify normally
                 intent = await self._classify_intent(message_text, conversation["messages"])
                 old_intent = conversation["state"].get("intent")
                 if intent != old_intent:
-                    logger.info(f"🔄 Intent changed: {old_intent} → {intent}")
+                    logger.info(f"Intent changed: {old_intent} -> {intent}")
                 conversation["state"]["intent"] = intent
+                
+                # If user just classified as booking-related, enable booking mode
+                if intent in booking_related_intents:
+                    logger.info(f"Entering booking flow mode with intent: {intent}")
             
             # Extract entities from message
             entities = intent_classifier.extract_entities(message_text)
@@ -134,33 +146,43 @@ class ConversationManager:
             conversation["messages"].append(ai_message.dict())
             
             # Handle appointment creation or update
-            logger.info(f"🔍 Appointment flow check - intent: {intent}, existing appointment_id: {conversation.get('appointment_id')}")
+            logger.info(f"Appointment flow check - intent: {intent}, existing appointment_id: {conversation.get('appointment_id')}")
             
-            if intent == ConversationIntent.UPDATE_APPOINTMENT.value or (
-                conversation.get("appointment_id") and 
-                intent == ConversationIntent.BOOK_APPOINTMENT.value
-            ):
-                logger.info(f"📝 Taking UPDATE appointment path")
-                # Try to update existing appointment
-                update_result = await self._attempt_appointment_update(conversation)
-                if update_result and update_result.get("confirmation_text"):
-                    ai_response_text = f"{ai_response_text}\n\n{update_result['confirmation_text']}"
-                    conversation["messages"][-1]["text"] = ai_response_text
-                elif update_result and update_result.get("error"):
-                    conversation["state"]["next_question"] = "new time"
-                    ai_response_text = f"{ai_response_text}\n\n{update_result['error']}"
-                    conversation["messages"][-1]["text"] = ai_response_text
-            else:
-                logger.info(f"✨ Taking CREATE appointment path")
-                # Try to create new appointment
-                booking_result = await self._attempt_appointment_creation(conversation)
-                if booking_result and booking_result.get("confirmation_text"):
-                    ai_response_text = f"{ai_response_text}\n\n{booking_result['confirmation_text']}"
-                    conversation["messages"][-1]["text"] = ai_response_text
-                elif booking_result and booking_result.get("error"):
-                    conversation["state"]["next_question"] = "new time"
-                    ai_response_text = f"{ai_response_text}\n\n{booking_result['error']}"
-                    conversation["messages"][-1]["text"] = ai_response_text
+            # Only try to create/update if we're in a booking-related intent
+            booking_intents = [
+                ConversationIntent.BOOK_APPOINTMENT.value,
+                "check_availability",
+                "reschedule_appointment",
+                ConversationIntent.UPDATE_APPOINTMENT.value
+            ]
+            
+            if intent in booking_intents:
+                if intent == ConversationIntent.UPDATE_APPOINTMENT.value or (
+                    conversation.get("appointment_id") and 
+                    intent == ConversationIntent.BOOK_APPOINTMENT.value
+                ):
+                    logger.info(f"Taking UPDATE appointment path")
+                    # Try to update existing appointment
+                    update_result = await self._attempt_appointment_update(conversation)
+                    if update_result and update_result.get("confirmation_text"):
+                        ai_response_text = f"{ai_response_text}\n\n{update_result['confirmation_text']}"
+                        conversation["messages"][-1]["text"] = ai_response_text
+                    elif update_result and update_result.get("error"):
+                        conversation["state"]["next_question"] = "new time"
+                        ai_response_text = f"{ai_response_text}\n\n{update_result['error']}"
+                        conversation["messages"][-1]["text"] = ai_response_text
+                else:
+                    logger.info(f"Taking CREATE appointment path")
+                    # Try to create new appointment
+                    booking_result = await self._attempt_appointment_creation(conversation)
+                    if booking_result and booking_result.get("confirmation_text"):
+                        # Replace AI's generic confirmation with actual confirmation
+                        ai_response_text = booking_result['confirmation_text']
+                        conversation["messages"][-1]["text"] = ai_response_text
+                    elif booking_result and booking_result.get("error"):
+                        conversation["state"]["next_question"] = "new time"
+                        ai_response_text = f"{ai_response_text}\n\n{booking_result['error']}"
+                        conversation["messages"][-1]["text"] = ai_response_text
 
             # Update conversation in database
             conversation["updated_at"] = datetime.utcnow()
@@ -377,10 +399,10 @@ class ConversationManager:
                 logger.info("🔍 AI extraction missed name, trying regex fallback...")
                 extracted_name = text_formatter.extract_name_from_text(transcript)
                 if extracted_name:
-                    logger.info(f"✅ Regex extracted name: {extracted_name}")
+                    logger.info(f"Regex extracted name: {extracted_name}")
                     ai_info["client_name"] = extracted_name
                 else:
-                    logger.warning("❌ Regex also failed to extract name")
+                    logger.warning("Regex also failed to extract name")
             
             mapping = {
                 "client_name": "client_name",
@@ -447,19 +469,19 @@ class ConversationManager:
             name_lower = info["client_name"].lower()
             invalid_names = ["want", "to", "book", "appointment", "want to", "to book", "i want", "looking", "would like"]
             if any(invalid_word in name_lower for invalid_word in invalid_names):
-                logger.warning(f"⚠️ REJECTED invalid client name: '{info['client_name']}' - contains booking keywords")
+                logger.warning(f"REJECTED invalid client name: '{info['client_name']}' - contains booking keywords")
                 info["client_name"] = None
                 if "client_name" not in missing:
                     missing.append("client_name")
         
         if missing:
-            logger.info(f"⚠️ Missing required fields for appointment: {missing}")
+            logger.info(f"Missing required fields for appointment: {missing}")
             if missing:
                 state["next_question"] = missing[0]
             return None
         appointment_dt = datetime_utils.parse_datetime_expression(info.get("date"), info.get("time"))
         if not appointment_dt:
-            logger.warning(f"⚠️ Could not parse date/time: date={info.get('date')}, time={info.get('time')}")
+            logger.warning(f"Could not parse date/time: date={info.get('date')}, time={info.get('time')}")
             state["next_question"] = "clarify appointment time"
             return None
         is_valid, error_msg = datetime_utils.is_valid_appointment_time(appointment_dt)
@@ -495,7 +517,7 @@ class ConversationManager:
             "conversation_id": conversation.get("conversation_id")
         })
         try:
-            logger.info(f"🔄 Attempting to create appointment for {payload.client_name}")
+            logger.info(f"Attempting to create appointment for {payload.client_name}")
             result = await self.db.appointments.insert_one(appointment_doc)
             created = await self.db.appointments.find_one({"_id": result.inserted_id})
             created["id"] = str(created["_id"])
@@ -505,7 +527,7 @@ class ConversationManager:
             state.setdefault("collected_info", {})["datetime_iso"] = appointment_dt.isoformat()
             state["collected_info"]["status"] = AppointmentStatus.CONFIRMED.value
             
-            logger.info(f"✅ Appointment created successfully! ID: {created['id']}")
+            logger.info(f"SUCCESS! Appointment created in database with ID: {created['id']}")
             
             appointment_details = {
                 "client_name": payload.client_name,
@@ -516,21 +538,19 @@ class ConversationManager:
                 "duration_minutes": duration
             }
             
-            # Send confirmation via WhatsApp
-            confirmation_msg = f"""✅ Appointment Confirmed!
+            confirmation_text = f"""✅ Appointment Confirmed!
 
-{appointment_details['client_name']}, your {appointment_details['service']} appointment is confirmed for:
+{appointment_details['client_name']}, your {appointment_details['service']} appointment is booked for:
 📅 {appointment_details['datetime_formatted']}
 ⏱️ Duration: {appointment_details['duration_minutes']} minutes
 
-Looking forward to seeing you! - {settings.BUSINESS_NAME}"""
+We look forward to seeing you at {settings.BUSINESS_NAME}!"""
             
-            whatsapp_cloud.send_text_message(payload.client_phone, confirmation_msg)
+            logger.info(f"Sending confirmation message to {payload.client_phone}")
             
-            confirmation_text = self._format_confirmation_text(created)
             return {"appointment": created, "confirmation_text": confirmation_text}
         except Exception as exc:
-            logger.error(f"❌ Failed to create appointment from conversation: {exc}", exc_info=True)
+            logger.error(f"Failed to create appointment from conversation: {exc}", exc_info=True)
             return {"error": "I couldn't finalize the booking automatically. Let's confirm the time manually."}
 
     async def _attempt_appointment_update(self, conversation: Dict) -> Optional[Dict[str, Any]]:
@@ -586,7 +606,7 @@ Looking forward to seeing you! - {settings.BUSINESS_NAME}"""
             state.setdefault("collected_info", {})["datetime_iso"] = appointment_dt.isoformat()
             state["completed"] = True
             
-            logger.info(f"✅ Appointment {appointment_id} updated to {appointment_dt}")
+            logger.info(f"Appointment {appointment_id} updated to {appointment_dt}")
             
             # Send update confirmation SMS
             appointment_details = {

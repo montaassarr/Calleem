@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     
     # Groq API
     GROQ_API_KEY: str = ""
-    GROQ_MODEL: str = "mixtral-8x7b-32768"
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
     
     # JWT & Security
     SECRET_KEY: str = "REDACTED"

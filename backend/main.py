@@ -48,16 +48,16 @@ async def lifespan(app: FastAPI):
     Handles startup and shutdown events.
     """
     # Startup
-    logger.info("🚀 Starting AI Receptionist application...")
+    logger.info("Starting AI Receptionist application...")
     await connect_to_mongo()
-    logger.info("✅ Application startup complete!")
+    logger.info("Application startup complete!")
     
     yield
     
     # Shutdown
-    logger.info("🛑 Shutting down AI Receptionist application...")
+    logger.info("Shutting down AI Receptionist application...")
     await close_mongo_connection()
-    logger.info("✅ Application shutdown complete!")
+    logger.info("Application shutdown complete!")
 
 
 # Initialize FastAPI app

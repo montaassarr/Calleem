@@ -44,7 +44,7 @@ async def webhook_verify(
     Returns:
         Plain text response with challenge if verification succeeds
     """
-    logger.info(f"📋 Webhook verification request: mode={hub_mode}, token={hub_verify_token}")
+    logger.info(f"Webhook verification request: mode={hub_mode}, token={hub_verify_token}")
     
     # Verify the webhook
     challenge = whatsapp_cloud.verify_webhook(
@@ -54,10 +54,10 @@ async def webhook_verify(
     )
     
     if challenge:
-        logger.info("✅ Webhook verification successful")
+        logger.info("Webhook verification successful")
         return PlainTextResponse(content=challenge, status_code=200)
     
-    logger.warning("❌ Webhook verification failed")
+    logger.warning("Webhook verification failed")
     raise HTTPException(status_code=403, detail="Verification failed")
 
 
@@ -165,7 +165,7 @@ async def webhook_message(request: Request):
                     if "error" in send_result:
                         logger.error(f"Failed to send WhatsApp response: {send_result['error']}")
                     else:
-                        logger.info(f"✅ Response sent successfully: {send_result.get('message_id')}")
+                        logger.info(f"Response sent successfully: {send_result.get('message_id')}")
         
         # Return success response (WhatsApp expects 200 OK)
         return JSONResponse(content={"status": "success"}, status_code=200)

@@ -50,10 +50,10 @@ async def create_appointment(appointment: AppointmentCreate):
         created_appointment = await db.appointments.find_one({"_id": result.inserted_id})
         created_appointment["id"] = str(created_appointment["_id"])
         
-        logger.info(f"✅ Appointment created: {created_appointment['id']}")
+        logger.info(f"Appointment created: {created_appointment['id']}")
         
         # Send confirmation via WhatsApp
-        confirmation_msg = f"""✅ Appointment Confirmed!
+        confirmation_msg = f"""Appointment Confirmed!
 
 {appointment.client_name}, your {appointment.service} appointment is confirmed for:
 📅 {text_formatter.format_datetime_display(appointment.datetime)}
@@ -261,7 +261,7 @@ async def cancel_appointment(appointment_id: str):
         cancelled_appointment = await db.appointments.find_one({"_id": ObjectId(appointment_id)})
         cancelled_appointment["id"] = str(cancelled_appointment["_id"])
         
-        logger.info(f"❌ Appointment cancelled: {appointment_id}")
+        logger.info(f"Appointment cancelled: {appointment_id}")
         
         # Send cancellation notification via WhatsApp
         cancellation_msg = f"""🚫 Appointment Cancelled

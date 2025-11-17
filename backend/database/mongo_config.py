@@ -28,16 +28,16 @@ async def connect_to_mongo():
         await mongodb_client.admin.command('ping')
         
         database = mongodb_client[settings.MONGO_DB_NAME]
-        logger.info(f"✅ Successfully connected to MongoDB database: {settings.MONGO_DB_NAME}")
+        logger.info(f"Successfully connected to MongoDB database: {settings.MONGO_DB_NAME}")
         
         # Create indexes
         await create_indexes()
         
     except ConnectionFailure as e:
-        logger.error(f"❌ Failed to connect to MongoDB: {e}")
+        logger.error(f"Failed to connect to MongoDB: {e}")
         raise
     except Exception as e:
-        logger.error(f"❌ Unexpected error during MongoDB connection: {e}")
+        logger.error(f"Unexpected error during MongoDB connection: {e}")
         raise
 
 
@@ -50,7 +50,7 @@ async def close_mongo_connection():
     if mongodb_client:
         logger.info("Closing MongoDB connection...")
         mongodb_client.close()
-        logger.info("✅ MongoDB connection closed")
+        logger.info("MongoDB connection closed")
 
 
 async def create_indexes():
@@ -77,7 +77,7 @@ async def create_indexes():
         await database.users.create_index("email", unique=True)
         await database.users.create_index("username", unique=True)
         
-        logger.info("✅ Database indexes created successfully")
+        logger.info("Database indexes created successfully")
         
     except Exception as e:
         logger.error(f"Error creating indexes: {e}")

@@ -44,7 +44,7 @@ async def create_service(service: ServiceCreate):
         created_service = await db.services.find_one({"_id": result.inserted_id})
         created_service["id"] = str(created_service["_id"])
         
-        logger.info(f"✅ Service created: {created_service['name']}")
+        logger.info(f"Service created: {created_service['name']}")
         
         return ServiceResponse(**created_service)
         
@@ -171,7 +171,7 @@ async def delete_service(service_id: str):
         if result.matched_count == 0:
             raise HTTPException(status_code=404, detail="Service not found")
         
-        logger.info(f"❌ Service deactivated: {service_id}")
+        logger.info(f"Service deactivated: {service_id}")
         
         return None
         

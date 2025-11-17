@@ -134,7 +134,7 @@ async def register_user(user: UserCreate):
         created_user = await db.users.find_one({"_id": result.inserted_id})
         created_user["id"] = str(created_user["_id"])
         
-        logger.info(f"✅ User registered: {created_user['username']}")
+        logger.info(f"User registered: {created_user['username']}")
         
         return UserResponse(**created_user)
         

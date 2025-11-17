@@ -154,7 +154,7 @@ class WhatsAppCloudAPI:
         # Extract message ID from response
         message_id = result.get("messages", [{}])[0].get("id")
         
-        logger.info(f"✅ Message sent successfully. ID: {message_id}")
+        logger.info(f"Message sent successfully. ID: {message_id}")
         
         return {
             "message_id": message_id,
@@ -229,7 +229,7 @@ class WhatsAppCloudAPI:
         # Extract message ID from response
         message_id = result.get("messages", [{}])[0].get("id")
         
-        logger.info(f"✅ Template sent successfully. ID: {message_id}")
+        logger.info(f"Template sent successfully. ID: {message_id}")
         
         return {
             "message_id": message_id,
@@ -251,10 +251,10 @@ class WhatsAppCloudAPI:
             Challenge string if verification succeeds, None otherwise
         """
         if mode == "subscribe" and token == self.verify_token:
-            logger.info("✅ Webhook verified successfully")
+            logger.info("Webhook verified successfully")
             return challenge
         
-        logger.warning("❌ Webhook verification failed")
+        logger.warning("Webhook verification failed")
         return None
 
 
