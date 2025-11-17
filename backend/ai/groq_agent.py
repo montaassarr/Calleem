@@ -67,9 +67,18 @@ class GroqAgent:
             )
             
             ai_response = response.choices[0].message.content
-            logger.debug(f"Groq API response: {ai_response[:100]}...")
+            logger.debug(f"Groq API RAW response: {ai_response[:200]}...")
             
-            return ai_response
+            # Clean response - remove thinking/reasoning artifacts
+            cleaned_response = self._clean_response(ai_response)
+            
+            # Log if cleaning removed anything
+            if cleaned_response != ai_response:
+                logger.info(f"🧹 Response cleaned - removed {len(ai_response) - len(cleaned_response)} characters of thinking/reasoning")
+                logger.debug(f"Original had: {ai_response[:100]}...")
+                logger.debug(f"Cleaned to: {cleaned_response[:100]}...")
+            
+            return cleaned_response
             
         except Exception as e:
             logger.error(f"Error calling Groq API: {e}")
@@ -204,6 +213,39 @@ class GroqAgent:
         except Exception as e:
             logger.error(f"Error extracting booking info: {e}")
             return {}
+    
+    def _clean_response(self, response: str) -> str:
+        """
+        Remove internal reasoning/thinking artifacts from AI response
+        Only return the actual message to the client
+        """
+        # Remove common thinking patterns
+        patterns_to_remove = [
+            r'\*\*Thinking\*\*:.*?(?=\n\n|\*\*|$)',  # **Thinking**: ...
+            r'\*\*Reasoning\*\*:.*?(?=\n\n|\*\*|$)',  # **Reasoning**: ...
+            r'\*\*Analysis\*\*:.*?(?=\n\n|\*\*|$)',  # **Analysis**: ...
+            r'\*\*Internal\*\*:.*?(?=\n\n|\*\*|$)',  # **Internal**: ...
+            r'<thinking>.*?</thinking>',  # <thinking>...</thinking>
+            r'\[Thinking:.*?\]',  # [Thinking: ...]
+            r'\[Internal:.*?\]',  # [Internal: ...]
+            r'\[Reasoning:.*?\]',  # [Reasoning: ...]
+            r'Internal reasoning:.*?(?=\n\n|$)',  # Internal reasoning: ...
+            r'Let me think.*?(?=\n\n|$)',  # Let me think...
+            r'\(thinking:.*?\)',  # (thinking: ...)
+            r'\(internally:.*?\)',  # (internally: ...)
+        ]
+        
+        cleaned = response
+        for pattern in patterns_to_remove:
+            cleaned = re.sub(pattern, '', cleaned, flags=re.DOTALL | re.IGNORECASE)
+        
+        # Remove multiple newlines
+        cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
+        
+        # Remove leading/trailing whitespace
+        cleaned = cleaned.strip()
+        
+        return cleaned
     
     def _get_fallback_response(self) -> str:
         """

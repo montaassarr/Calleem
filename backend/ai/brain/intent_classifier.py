@@ -78,7 +78,8 @@ class IntentClassifierEngine:
             self.use_instructor = True
             logger.info("Instructor library available - using structured outputs")
         except ImportError:
-            logger.warning("Instructor not available - using JSON parsing fallback")
+            # Silently fall back to JSON parsing - this is expected
+            logger.debug("Using JSON parsing for intent classification (instructor not installed)")
     
     async def classify_intent(
         self,

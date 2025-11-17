@@ -170,12 +170,14 @@ class ConversationManager:
                     # Try to update existing appointment
                     update_result = await self._attempt_appointment_update(conversation)
                     if update_result and update_result.get("confirmation_text"):
-                        ai_response_text = f"{ai_response_text}\n\n{update_result['confirmation_text']}"
+                        # Append update confirmation to AI response
+                        ai_response_text = update_result['confirmation_text']
                         conversation["messages"][-1]["text"] = ai_response_text
                     elif update_result and update_result.get("error"):
+                        # Log error but don't append to AI response - AI already handled it naturally
+                        logger.warning(f"Appointment update issue: {update_result['error']}")
                         conversation["state"]["next_question"] = "new time"
-                        ai_response_text = f"{ai_response_text}\n\n{update_result['error']}"
-                        conversation["messages"][-1]["text"] = ai_response_text
+                        # Don't modify ai_response_text - let AI's natural response stand
                 else:
                     logger.info(f"Taking CREATE appointment path")
                     # Try to create new appointment
@@ -185,9 +187,10 @@ class ConversationManager:
                         ai_response_text = booking_result['confirmation_text']
                         conversation["messages"][-1]["text"] = ai_response_text
                     elif booking_result and booking_result.get("error"):
+                        # Log error but don't append to AI response - AI already handled it naturally
+                        logger.warning(f"Booking creation issue: {booking_result['error']}")
                         conversation["state"]["next_question"] = "new time"
-                        ai_response_text = f"{ai_response_text}\n\n{booking_result['error']}"
-                        conversation["messages"][-1]["text"] = ai_response_text
+                        # Don't modify ai_response_text - let AI's natural response stand
 
             # Update conversation in database
             conversation["updated_at"] = datetime.utcnow()
@@ -559,7 +562,7 @@ We look forward to seeing you at {settings.BUSINESS_NAME}!"""
             return {"appointment": created, "confirmation_text": confirmation_text}
         except Exception as exc:
             logger.error(f"Failed to create appointment from conversation: {exc}", exc_info=True)
-            return {"error": "I couldn't finalize the booking automatically. Let's confirm the time manually."}
+            return {"error": "Database error during appointment creation", "technical_error": str(exc)}
 
     async def _attempt_appointment_update(self, conversation: Dict) -> Optional[Dict[str, Any]]:
         """Update existing appointment when new time/date is provided"""
@@ -641,7 +644,7 @@ Looking forward to seeing you! - {settings.BUSINESS_NAME}"""
             
         except Exception as exc:
             logger.error(f"Failed to update appointment: {exc}", exc_info=True)
-            return {"error": "I had trouble updating the appointment. Please try again."}
+            return {"error": "Database error during appointment update", "technical_error": str(exc)}
 
     def _format_confirmation_text(self, appointment: Dict[str, Any]) -> str:
         """Build a conversational confirmation string"""
