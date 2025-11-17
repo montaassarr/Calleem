@@ -130,21 +130,21 @@ class AppointmentReasoner:
         tz = pytz.timezone(config.get("timezone", "America/New_York"))
         
         # Get business hours for this day
-        day_name = date.strftime("%A").lower()
+        day_of_week = date.weekday()  # 0=Monday, 6=Sunday
         opening_hours = config.get("opening_hours", [])
         
         day_hours = None
         for hours in opening_hours:
-            if hours.get("day", "").lower() == day_name:
+            if hours.get("day_of_week") == day_of_week:
                 day_hours = hours
                 break
         
-        if not day_hours or day_hours.get("closed", False):
+        if not day_hours or not day_hours.get("is_open", False):
             return []
         
         # Parse opening and closing times
-        open_time_str = day_hours.get("open", "09:00")
-        close_time_str = day_hours.get("close", "17:00")
+        open_time_str = day_hours.get("open_time", "09:00")
+        close_time_str = day_hours.get("close_time", "17:00")
         
         open_hour, open_min = map(int, open_time_str.split(":"))
         close_hour, close_min = map(int, close_time_str.split(":"))
@@ -258,24 +258,26 @@ class AppointmentReasoner:
         Returns:
             (is_open, message)
         """
-        day_name = requested_time.strftime("%A").lower()
+        day_of_week = requested_time.weekday()  # 0=Monday, 6=Sunday
+        day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        day_name = day_names[day_of_week]
         
         # Find hours for this day
         day_hours = None
         for hours in opening_hours:
-            if hours.get("day", "").lower() == day_name:
+            if hours.get("day_of_week") == day_of_week:
                 day_hours = hours
                 break
         
         if not day_hours:
-            return False, f"We're not open on {day_name.capitalize()}s. Please choose another day."
+            return False, f"We're not open on {day_name}s. Please choose another day."
         
-        if day_hours.get("closed", False):
-            return False, f"We're closed on {day_name.capitalize()}s. Please choose another day."
+        if not day_hours.get("is_open", False):
+            return False, f"We're closed on {day_name}s. Please choose another day."
         
         # Parse opening and closing times
-        open_time_str = day_hours.get("open", "09:00")
-        close_time_str = day_hours.get("close", "17:00")
+        open_time_str = day_hours.get("open_time", "09:00")
+        close_time_str = day_hours.get("close_time", "17:00")
         
         open_hour, open_min = map(int, open_time_str.split(":"))
         close_hour, close_min = map(int, close_time_str.split(":"))
@@ -361,13 +363,13 @@ class AppointmentReasoner:
         
         for service in available_services:
             if service.get("name", "").lower() == service_name_lower:
-                if service.get("active", True):
+                if service.get("is_active", True):
                     return True, "Service is valid"
                 else:
                     return False, f"{service_name} is currently unavailable. Please choose another service."
         
         # Service not found
-        available_names = [s.get("name") for s in available_services if s.get("active", True)]
+        available_names = [s.get("name") for s in available_services if s.get("is_active", True)]
         return False, f"Service '{service_name}' not found. Available services: {', '.join(available_names)}"
 
 

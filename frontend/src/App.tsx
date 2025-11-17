@@ -19,6 +19,8 @@ import BusinessSettings from "./pages/Settings/Business";
 import TeamSettings from "./pages/Settings/Team";
 import AISettings from "./pages/Settings/AI";
 import IntegrationsSettings from "./pages/Settings/Integrations";
+import ServicesSettings from "./pages/Settings/Services";
+import HoursSettings from "./pages/Settings/Hours";
 import Help from "./pages/Help";
 import ApiTest from "./pages/ApiTest";
 
@@ -175,6 +177,22 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <IntegrationsSettings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings/services"
+            element={
+              <ProtectedRoute>
+                <ServicesSettings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings/hours"
+            element={
+              <ProtectedRoute>
+                <HoursSettings />
               </ProtectedRoute>
             }
           />

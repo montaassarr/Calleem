@@ -15,8 +15,10 @@ from models.conversation import (
 from models.appointment import AppointmentCreate, AppointmentStatus
 from ai.groq_agent import groq_agent
 from ai.prompt_templates import prompt_templates
+from ai.brain.prompt_builder import PromptBuilder
 from ai.intents import intent_classifier
 from database.mongo_config import get_database
+from services.config_loader import config_loader
 from utils.datetime_utils import datetime_utils
 from utils.text_formatter import text_formatter
 from services.whatsapp_cloud import whatsapp_cloud
@@ -144,6 +146,9 @@ class ConversationManager:
                 timestamp=datetime.utcnow()
             )
             conversation["messages"].append(ai_message.dict())
+            
+            # **UPDATE STATE INTENT** before booking attempt
+            conversation["state"]["intent"] = intent
             
             # Handle appointment creation or update
             logger.info(f"Appointment flow check - intent: {intent}, existing appointment_id: {conversation.get('appointment_id')}")
@@ -277,8 +282,11 @@ class ConversationManager:
                     "content": msg["text"]
                 })
             
-            # Get appropriate system prompt based on intent
-            system_prompt = prompt_templates.get_system_prompt()
+            # 🔥 USE DYNAMIC PROMPT FROM DATABASE CONFIG
+            config = await config_loader.get_config(self.db)
+            system_prompt = PromptBuilder.build_system_prompt(config)
+            
+            logger.info(f"Using dynamic system prompt (length: {len(system_prompt)} chars)")
             
             # Special handling for first message (greeting)
             if len(conversation["messages"]) == 1:

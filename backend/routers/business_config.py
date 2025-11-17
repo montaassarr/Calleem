@@ -217,7 +217,7 @@ async def get_services_config(
         return {
             "services": services,
             "count": len(services),
-            "active_count": len([s for s in services if s.get("active", True)])
+            "active_count": len([s for s in services if s.get("is_active", True)])
         }
         
     except Exception as e:

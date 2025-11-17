@@ -1,6 +1,6 @@
 import { Sidebar } from "@/components/Sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
-import { Building, Users, Bot, Key, Clock } from "lucide-react";
+import { Building, Users, Bot, Key, Clock, Briefcase } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 const Settings = () => {
@@ -10,17 +10,24 @@ const Settings = () => {
   const sections = [
     {
       title: "Business Profile",
-      description: "Manage your business information and hours",
+      description: "Manage your business information and contact details",
       icon: Building,
       path: "/settings/business",
       color: "from-blue-500 to-cyan-500",
     },
     {
-      title: "Team Members",
-      description: "Add and manage dashboard users",
-      icon: Users,
-      path: "/settings/team",
-      color: "from-purple-500 to-pink-500",
+      title: "Business Hours",
+      description: "Set your weekly operating hours and schedule",
+      icon: Clock,
+      path: "/settings/hours",
+      color: "from-amber-500 to-yellow-500",
+    },
+    {
+      title: "Services & Pricing",
+      description: "Configure your services, durations, and pricing",
+      icon: Briefcase,
+      path: "/settings/services",
+      color: "from-violet-500 to-purple-500",
     },
     {
       title: "AI Configuration",
@@ -30,11 +37,18 @@ const Settings = () => {
       color: "from-green-500 to-emerald-500",
     },
     {
-      title: "Integrations",
-      description: "API keys and third-party services",
+      title: "WhatsApp Integration",
+      description: "WhatsApp Cloud API configuration",
       icon: Key,
       path: "/settings/integrations",
       color: "from-orange-500 to-red-500",
+    },
+    {
+      title: "Team Members",
+      description: "Add and manage dashboard users",
+      icon: Users,
+      path: "/settings/team",
+      color: "from-pink-500 to-rose-500",
     },
   ];
 

@@ -71,7 +71,7 @@ async def create_indexes():
         
         # Services indexes
         await database.services.create_index("name", unique=True)
-        await database.services.create_index("active")
+        await database.services.create_index("is_active")
         
         # Users indexes
         await database.users.create_index("email", unique=True)

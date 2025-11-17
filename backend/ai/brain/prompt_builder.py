@@ -69,7 +69,7 @@ class PromptBuilder:
         
         # Get services list
         services = config.get("services", [])
-        service_names = ", ".join([s.get("name", "") for s in services if s.get("active", True)])
+        service_names = ", ".join([s.get("name", "") for s in services if s.get("is_active", True)])
         
         # Get opening hours summary
         opening_hours = PromptBuilder._format_opening_hours(config.get("opening_hours", []))
@@ -100,35 +100,36 @@ class PromptBuilder:
         day_groups = []
         current_group = None
         
-        day_order = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-        hours_dict = {h.get("day", "").lower(): h for h in hours_list}
+        day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         
-        for day in day_order:
-            if day not in hours_dict:
-                continue
+        # Sort hours by day_of_week
+        sorted_hours = sorted(hours_list, key=lambda h: h.get("day_of_week", 0))
+        
+        for hours in sorted_hours:
+            day_of_week = hours.get("day_of_week", 0)
+            day_name = day_names[day_of_week]
             
-            hours = hours_dict[day]
-            if hours.get("closed", False):
+            if not hours.get("is_open", False):
                 if current_group:
                     day_groups.append(current_group)
                     current_group = None
                 continue
             
-            hours_str = f"{hours.get('open', '09:00')} - {hours.get('close', '17:00')}"
+            hours_str = f"{hours.get('open_time', '09:00')} - {hours.get('close_time', '17:00')}"
             
             if current_group is None:
                 current_group = {
-                    "start_day": day,
-                    "end_day": day,
+                    "start_day": day_name,
+                    "end_day": day_name,
                     "hours": hours_str
                 }
             elif current_group["hours"] == hours_str:
-                current_group["end_day"] = day
+                current_group["end_day"] = day_name
             else:
                 day_groups.append(current_group)
                 current_group = {
-                    "start_day": day,
-                    "end_day": day,
+                    "start_day": day_name,
+                    "end_day": day_name,
                     "hours": hours_str
                 }
         
@@ -138,8 +139,8 @@ class PromptBuilder:
         # Format groups
         parts = []
         for group in day_groups:
-            start = group["start_day"].capitalize()
-            end = group["end_day"].capitalize()
+            start = group["start_day"]
+            end = group["end_day"]
             hours = group["hours"]
             
             if start == end:
@@ -165,7 +166,7 @@ class PromptBuilder:
         services = config.get("services", [])
         service_list = ", ".join([
             f"{s.get('name')} ({s.get('duration_minutes', 30)} min)"
-            for s in services if s.get("active", True)
+            for s in services if s.get("is_active", True)
         ])
         
         opening_hours = PromptBuilder._format_opening_hours(config.get("opening_hours", []))
