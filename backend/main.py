@@ -20,7 +20,7 @@ import logging
 from datetime import datetime
 
 # Import routers
-from routers import webhook, appointments, services, users, conversations
+from routers import webhook, appointments, services, users, conversations, business_config
 
 # Import database connection
 from database.mongo_config import connect_to_mongo, close_mongo_connection
@@ -111,6 +111,12 @@ app.include_router(
     conversations.router,
     prefix=f"{settings.API_V1_PREFIX}/conversations",
     tags=["Conversations"]
+)
+
+app.include_router(
+    business_config.router,
+    prefix=f"{settings.API_V1_PREFIX}/business",
+    tags=["Business Configuration"]
 )
 
 

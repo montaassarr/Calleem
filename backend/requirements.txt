@@ -30,10 +30,16 @@ argon2-cffi==25.1.0
 # WebSockets
 websockets==12.0
 
-# AI & LLM
-groq==0.4.1
-langchain==0.1.0
-langchain-community==0.0.10
+# AI & LLM - Enhanced Reasoning Engine
+groq==0.11.0
+langchain==0.3.13
+langchain-community==0.3.13
+langchain-groq==0.2.1
+crewai==0.86.0
+crewai-tools==0.17.0
+litellm==1.55.8
+instructor==1.7.0
+openai==1.59.3
 
 # Background Tasks (Optional)
 celery==5.3.4
