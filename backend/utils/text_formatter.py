@@ -23,8 +23,13 @@ class TextFormatter:
         Returns:
             Cleaned phone number with + prefix
         """
+        if not phone:
+            return ""
+
         # Remove all non-digit characters
-        digits = re.sub(r'\D', '', phone)
+        digits = re.sub(r'\D', '', str(phone))
+        if not digits:
+            return ""
         
         # Add country code if not present
         if len(digits) == 10:
@@ -54,6 +59,12 @@ class TextFormatter:
         return phone
     
     @staticmethod
+    def _format_hour_component(dt: datetime) -> str:
+        """Return hour without leading zero for cross-platform strftime"""
+        hour = dt.strftime("%I").lstrip("0")
+        return hour or "0"
+
+    @staticmethod
     def format_datetime_display(dt: datetime) -> str:
         """
         Format datetime for user-friendly display
@@ -64,7 +75,11 @@ class TextFormatter:
         Returns:
             Formatted string like "Monday, Nov 14 at 3:00 PM"
         """
-        return dt.strftime("%A, %b %d at %-I:%M %p")
+        date_part = dt.strftime("%A, %b %d")
+        hour = TextFormatter._format_hour_component(dt)
+        minute = dt.strftime("%M")
+        am_pm = dt.strftime("%p")
+        return f"{date_part} at {hour}:{minute} {am_pm}"
     
     @staticmethod
     def format_date_display(dt: datetime) -> str:
@@ -90,7 +105,10 @@ class TextFormatter:
         Returns:
             Formatted string like "3:00 PM"
         """
-        return dt.strftime("%-I:%M %p")
+        hour = TextFormatter._format_hour_component(dt)
+        minute = dt.strftime("%M")
+        am_pm = dt.strftime("%p")
+        return f"{hour}:{minute} {am_pm}"
     
     @staticmethod
     def truncate_text(text: str, max_length: int = 100, suffix: str = "...") -> str:
