@@ -2,7 +2,7 @@
 Conversation Data Model
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -35,8 +35,8 @@ class Message(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     metadata: Optional[Dict[str, Any]] = None
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "role": "client",
                 "text": "Hi, I want to book a haircut",
@@ -44,6 +44,7 @@ class Message(BaseModel):
                 "metadata": {"twilio_message_sid": "SM123456"}
             }
         }
+    )
 
 
 class ConversationState(BaseModel):
@@ -53,8 +54,8 @@ class ConversationState(BaseModel):
     next_question: Optional[str] = None
     completed: bool = False
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "intent": "book_appointment",
                 "collected_info": {
@@ -66,6 +67,7 @@ class ConversationState(BaseModel):
                 "completed": False
             }
         }
+    )
 
 
 class ConversationBase(BaseModel):
@@ -88,9 +90,9 @@ class ConversationInDB(ConversationBase):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     appointment_id: Optional[str] = None
     
-    class Config:
-        populate_by_name = True
-        json_schema_extra = {
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra={
             "example": {
                 "_id": "507f1f77bcf86cd799439011",
                 "conversation_id": "conv_123456",
@@ -116,6 +118,7 @@ class ConversationInDB(ConversationBase):
                 "updated_at": "2025-11-13T10:01:00"
             }
         }
+    )
 
 
 class ConversationResponse(BaseModel):
@@ -129,8 +132,8 @@ class ConversationResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "id": "507f1f77bcf86cd799439011",
                 "conversation_id": "conv_123456",
@@ -141,6 +144,7 @@ class ConversationResponse(BaseModel):
                 "updated_at": "2025-11-13T10:00:00"
             }
         }
+    )
 
 
 class ConversationSummary(BaseModel):

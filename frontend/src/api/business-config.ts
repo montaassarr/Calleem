@@ -25,6 +25,16 @@ export interface AIConfiguration {
   temperature?: number;
   max_tokens?: number;
   system_prompt?: string;
+  voice_enabled?: boolean;
+  voice_model?: string;
+}
+
+export interface FeatureFlags {
+  voice_agent?: boolean;
+  email_notifications?: boolean;
+  sms_reminders?: boolean;
+  online_booking?: boolean;
+  [key: string]: boolean | undefined;
 }
 
 export interface WhatsAppConfiguration {
@@ -45,6 +55,7 @@ export interface BusinessConfig {
   services: ServiceDefinition[];
   ai_config: AIConfiguration;
   whatsapp_config: WhatsAppConfiguration;
+  features_enabled?: FeatureFlags;
   created_at?: string;
   updated_at?: string;
 }
@@ -59,6 +70,7 @@ export interface BusinessConfigUpdate {
   services?: ServiceDefinition[];
   ai_config?: AIConfiguration;
   whatsapp_config?: WhatsAppConfiguration;
+  features_enabled?: FeatureFlags;
 }
 
 export const businessConfigApi = {
@@ -82,6 +94,20 @@ export const businessConfigApi = {
     const response = await api.put<BusinessConfig>('/business/config', data, {
       headers: { 'X-Business-ID': businessId }
     });
+    return response.data;
+  },
+
+  updateFeatureFlags: async (
+    features: FeatureFlags,
+    businessId: string = 'default'
+  ): Promise<BusinessConfig> => {
+    const response = await api.put<BusinessConfig>(
+      '/business/config',
+      { features_enabled: features },
+      {
+        headers: { 'X-Business-ID': businessId }
+      }
+    );
     return response.data;
   },
 

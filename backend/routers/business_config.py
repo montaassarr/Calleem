@@ -74,7 +74,7 @@ async def update_business_config(
     """
     try:
         # Only include non-None fields
-        update_dict = updates.dict(exclude_none=True)
+        update_dict = updates.model_dump(exclude_none=True)
         
         if not update_dict:
             raise HTTPException(status_code=400, detail="No updates provided")

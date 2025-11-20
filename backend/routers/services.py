@@ -33,7 +33,7 @@ async def create_service(service: ServiceCreate):
             raise HTTPException(status_code=400, detail="Service with this name already exists")
         
         # Prepare service document
-        service_dict = service.dict()
+        service_dict = service.model_dump()
         service_dict["created_at"] = datetime.utcnow()
         service_dict["updated_at"] = datetime.utcnow()
         
@@ -72,13 +72,23 @@ async def list_services(
         cursor = db.services.find(query).skip(skip).limit(limit)
         services = await cursor.to_list(length=limit)
         
-        # Format response
+        # Format response - convert normalized schema to legacy API format
+        formatted_services = []
         for service in services:
-            service["id"] = str(service["_id"])
+            formatted_services.append({
+                "id": str(service["_id"]),
+                "name": service.get("name", ""),
+                "description": service.get("description"),
+                "duration_minutes": service.get("durationMinutes", 30),
+                "price": service.get("price"),
+                "active": service.get("isActive", True),
+                "created_at": service.get("createdAt", service.get("_id").generation_time),
+                "updated_at": service.get("updatedAt", service.get("_id").generation_time)
+            })
         
-        logger.info(f"Retrieved {len(services)} services")
+        logger.info(f"Retrieved {len(formatted_services)} services")
         
-        return [ServiceResponse(**svc) for svc in services]
+        return [ServiceResponse(**svc) for svc in formatted_services]
         
     except Exception as e:
         logger.error(f"Error listing services: {e}", exc_info=True)
@@ -125,7 +135,11 @@ async def update_service(service_id: str, update: ServiceUpdate):
             raise HTTPException(status_code=404, detail="Service not found")
         
         # Prepare update
-        update_data = {k: v for k, v in update.dict(exclude_unset=True).items() if v is not None}
+        update_data = {
+            k: v
+            for k, v in update.model_dump(exclude_unset=True).items()
+            if v is not None
+        }
         
         if not update_data:
             raise HTTPException(status_code=400, detail="No fields to update")

@@ -2,7 +2,7 @@
 Service Data Model
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -36,9 +36,9 @@ class ServiceInDB(ServiceBase):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
-    class Config:
-        populate_by_name = True
-        json_schema_extra = {
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra={
             "example": {
                 "_id": "507f1f77bcf86cd799439011",
                 "name": "Haircut",
@@ -50,6 +50,7 @@ class ServiceInDB(ServiceBase):
                 "updated_at": "2025-11-13T10:00:00"
             }
         }
+    )
 
 
 class ServiceResponse(BaseModel):
@@ -63,8 +64,8 @@ class ServiceResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "id": "507f1f77bcf86cd799439011",
                 "name": "Haircut",
@@ -74,3 +75,4 @@ class ServiceResponse(BaseModel):
                 "active": True
             }
         }
+    )

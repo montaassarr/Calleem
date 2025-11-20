@@ -7,6 +7,7 @@ import logging
 from typing import Dict, Any, Optional
 from datetime import datetime
 import pytz
+from utils.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -42,10 +43,12 @@ class PromptBuilder:
         
         # If custom prompt exists, use it
         if custom_prompt:
-            return PromptBuilder._inject_variables(custom_prompt, config, current_time)
+            prompt = PromptBuilder._inject_variables(custom_prompt, config, current_time)
+            return PromptBuilder._ensure_business_name(prompt, config)
         
         # Otherwise, use default barber shop prompt
-        return PromptBuilder._build_default_barbershop_prompt(config, current_time)
+        prompt = PromptBuilder._build_default_barbershop_prompt(config, current_time)
+        return PromptBuilder._ensure_business_name(prompt, config)
     
     @staticmethod
     def _inject_variables(
@@ -88,6 +91,14 @@ class PromptBuilder:
         for placeholder, value in replacements.items():
             prompt = prompt.replace(placeholder, value)
         
+        return prompt
+
+    @staticmethod
+    def _ensure_business_name(prompt: str, config: Dict[str, Any]) -> str:
+        """Guarantee that the rendered prompt includes the active business name."""
+        business_name = config.get("business_name") or settings.BUSINESS_NAME
+        if business_name and business_name.lower() not in prompt.lower():
+            prompt += f"\n\nBusiness: {business_name}"
         return prompt
     
     @staticmethod

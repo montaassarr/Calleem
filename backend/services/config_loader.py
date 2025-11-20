@@ -57,7 +57,9 @@ class ConfigLoader:
         if not config_doc:
             logger.warning(f"No config found for {business_id}, creating default")
             config_doc = await self._create_default_config(db, business_id)
-        
+        else:
+            config_doc = self._normalize_config_doc(config_doc)
+
         # Update cache
         self._cache[business_id] = config_doc
         self._cache_timestamp[business_id] = datetime.utcnow()
@@ -154,7 +156,9 @@ class ConfigLoader:
             }
         )
         
-        config_dict = config.dict()
+        config_dict = config.model_dump()
+        config_dict["opening_hours"] = self._normalize_opening_hours(config_dict.get("opening_hours", []))
+        config_dict["services"] = self._normalize_services(config_dict.get("services", []))
         config_dict["created_at"] = datetime.utcnow()
         config_dict["updated_at"] = datetime.utcnow()
         
@@ -170,18 +174,22 @@ class ConfigLoader:
         
         Example: "Monday-Saturday 9:00 AM - 8:00 PM"
         """
-        # Default hours for common barbershop schedule
-        default_hours = [
-            OpeningHours(day="monday", open="09:00", close="20:00"),
-            OpeningHours(day="tuesday", open="09:00", close="20:00"),
-            OpeningHours(day="wednesday", open="09:00", close="20:00"),
-            OpeningHours(day="thursday", open="09:00", close="20:00"),
-            OpeningHours(day="friday", open="09:00", close="20:00"),
-            OpeningHours(day="saturday", open="09:00", close="20:00"),
-            OpeningHours(day="sunday", closed=True)
-        ]
-        
-        # TODO: Parse actual hours_string format
+        # Default hours for common barbershop schedule (Mon-Sat 9a-8p)
+        default_hours: list[OpeningHours] = []
+        for idx in range(7):
+            if idx == 6:  # Sunday closed
+                default_hours.append(OpeningHours(day_of_week=idx, is_open=False))
+            else:
+                default_hours.append(
+                    OpeningHours(
+                        day_of_week=idx,
+                        is_open=True,
+                        open_time="09:00",
+                        close_time="20:00",
+                    )
+                )
+
+        # TODO: Parse actual hours_string format for custom schedules
         return default_hours
     
     def _parse_services(self, services_string: str) -> list[ServiceDefinition]:
@@ -250,6 +258,36 @@ Phone: {settings.BUSINESS_PHONE}
         else:
             self._cache.clear()
             self._cache_timestamp.clear()
+
+    def _normalize_config_doc(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """Ensure legacy records include the latest schema conventions."""
+        config["opening_hours"] = self._normalize_opening_hours(config.get("opening_hours") or [])
+        config["services"] = self._normalize_services(config.get("services") or [])
+
+        return config
+
+    def _normalize_opening_hours(self, opening_hours: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Ensure opening hours cover all days with normalized schema."""
+
+        normalized = [OpeningHours(**hours).model_dump() for hours in opening_hours]
+        seen_days = {entry["day_of_week"] for entry in normalized}
+
+        # Fill any missing days so downstream prompts always have seven entries.
+        for idx in range(7):
+            if idx not in seen_days:
+                normalized.append(OpeningHours(day_of_week=idx, is_open=False).model_dump())
+
+        normalized.sort(key=lambda entry: entry["day_of_week"])
+        return normalized
+
+    def _normalize_services(self, services: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Normalize service definitions and enforce consistent ordering."""
+
+        normalized = [ServiceDefinition(**svc).model_dump() for svc in services]
+
+        # Guarantee deterministic ordering for prompts/clients.
+        normalized.sort(key=lambda entry: entry.get("name", "").lower())
+        return normalized
 
 
 # Singleton instance

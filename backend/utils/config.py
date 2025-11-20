@@ -2,7 +2,7 @@
 Configuration settings using Pydantic Settings
 """
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
 import os
 
@@ -28,6 +28,19 @@ class Settings(BaseSettings):
     # Groq API
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
+
+    # Vapi Voice Agent
+    VAPI_API_KEY: str = ""
+    VAPI_PUBLIC_KEY: str = ""
+    VAPI_WEBHOOK_URL: str = ""
+    VAPI_ASSISTANT_ID: str | None = None
+    VOICE_AGENT_ENABLED: bool = False
+    VOICE_AGENT_TEMPERATURE: float = 0.6
+    VOICE_AGENT_WEBRTC_PUBLIC_KEY: str | None = None
+    VOICE_AGENT_WEBRTC_ASSISTANT_ID: str | None = None
+    VOICE_AGENT_WEBRTC_SESSION_TTL_MINUTES: int = 10
+    ELEVENLABS_API_KEY: str = ""
+    ELEVENLABS_DEFAULT_VOICE: str = "alloy"
     
     # JWT & Security
     SECRET_KEY: str = "REDACTED"
@@ -68,10 +81,21 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_FILE: str = "logs/app.log"
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
-        extra = "allow"  # Allow extra fields from .env
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra="allow",  # Allow extra fields from .env
+    )
+
+    @property
+    def MONGODB_URL(self) -> str:
+        """Backward-compatible alias for scripts expecting MONGODB_URL."""
+        return self.MONGO_URI
+
+    @property
+    def MONGODB_DB_NAME(self) -> str:
+        """Backward-compatible alias for scripts expecting MONGODB_DB_NAME."""
+        return self.MONGO_DB_NAME
 
 
 # Create global settings instance

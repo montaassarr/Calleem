@@ -72,7 +72,7 @@ class ConversationManager:
                 timestamp=datetime.utcnow(),
                 metadata=whatsapp_metadata
             )
-            conversation["messages"].append(client_message.dict())
+            conversation["messages"].append(client_message.model_dump())
             
             # Determine intent
             # If already in an active booking flow, maintain book_appointment intent
@@ -145,7 +145,7 @@ class ConversationManager:
                 text=ai_response_text,
                 timestamp=datetime.utcnow()
             )
-            conversation["messages"].append(ai_message.dict())
+            conversation["messages"].append(ai_message.model_dump())
             
             # **UPDATE STATE INTENT** before booking attempt
             conversation["state"]["intent"] = intent
@@ -360,7 +360,7 @@ class ConversationManager:
         message_text: str
     ):
         """Normalize and store extracted booking information"""
-        state = conversation.setdefault("state", ConversationState().dict())
+        state = conversation.setdefault("state", ConversationState().model_dump())
         info = state.setdefault("collected_info", {})
         if phone_number and not info.get("client_phone"):
             info["client_phone"] = phone_number
@@ -520,7 +520,7 @@ class ConversationManager:
             barber_preference=info.get("barber_preference"),
             notes=info.get("notes")
         )
-        appointment_doc = payload.dict()
+        appointment_doc = payload.model_dump()
         appointment_doc.update({
             "status": AppointmentStatus.CONFIRMED,
             "created_at": datetime.utcnow(),

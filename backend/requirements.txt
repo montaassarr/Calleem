@@ -41,6 +41,8 @@ litellm==1.55.8
 instructor==1.7.0
 openai==1.59.3
 
+# Voice Agent (no official async SDK, using httpx directly)
+
 # Background Tasks (Optional)
 celery==5.3.4
 redis==5.0.1

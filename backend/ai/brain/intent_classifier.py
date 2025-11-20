@@ -5,7 +5,7 @@ Uses Instructor + Pydantic for structured LLM outputs
 
 import logging
 from typing import Dict, Any, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from enum import Enum
 import json
 
@@ -30,15 +30,16 @@ class IntentClassification(BaseModel):
     intent: IntentType
     confidence: float = Field(ge=0.0, le=1.0)
     reasoning: str = Field(min_length=1)
-    
-    class Config:
-        json_schema_extra = {
+
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "intent": "book_appointment",
                 "confidence": 0.95,
-                "reasoning": "User explicitly mentioned wanting to schedule a haircut"
+                "reasoning": "User explicitly mentioned wanting to schedule a haircut",
             }
         }
+    )
 
 
 class EntityExtraction(BaseModel):
@@ -52,17 +53,26 @@ class EntityExtraction(BaseModel):
     barber_preference: Optional[str] = None
     notes: Optional[str] = None
     duration_minutes: Optional[int] = None
-    
-    class Config:
-        json_schema_extra = {
+
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "client_name": "John Smith",
                 "service": "Haircut",
                 "date": "tomorrow",
                 "time": "2pm",
-                "duration_minutes": 30
+                "duration_minutes": 30,
             }
         }
+    )
+
+    @property
+    def customer_name(self) -> Optional[str]:
+        return self.client_name
+
+    @customer_name.setter
+    def customer_name(self, value: Optional[str]) -> None:
+        self.client_name = value
 
 
 class IntentClassifierEngine:

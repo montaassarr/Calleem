@@ -23,6 +23,10 @@ import ServicesSettings from "./pages/Settings/Services";
 import HoursSettings from "./pages/Settings/Hours";
 import Help from "./pages/Help";
 import ApiTest from "./pages/ApiTest";
+import VoiceAgent from "./pages/VoiceAgent/Index";
+import VoiceTest from "./pages/VoiceAgent/Test";
+import VoiceSettings from "./pages/VoiceAgent/Settings";
+import VoiceChat from "./pages/VoiceAgent/VoiceChatVapi";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -138,7 +142,41 @@ const App = () => (
               </ProtectedRoute>
             }
           />
-          
+
+          {/* Voice Agent */}
+          <Route
+            path="/voice-agent"
+            element={
+              <ProtectedRoute>
+                <VoiceAgent />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/voice-agent/test"
+            element={
+              <ProtectedRoute>
+                <VoiceTest />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/voice-agent/settings"
+            element={
+              <ProtectedRoute>
+                <VoiceSettings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/voice-agent/chat"
+            element={
+              <ProtectedRoute>
+                <VoiceChat />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Settings */}
           <Route
             path="/settings"

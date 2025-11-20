@@ -28,12 +28,14 @@ class BackendTester:
         self.db = None
         self.client = None
         self.test_results = []
+        self.memory_engine = MemoryEngine()
+        self.reasoner = AppointmentReasoner()
     
     async def setup(self):
         """Initialize database connection"""
         print("🔧 Setting up test environment...\n")
-        self.client = AsyncIOMotorClient(settings.MONGODB_URL)
-        self.db = self.client[settings.MONGODB_DB_NAME]
+        self.client = AsyncIOMotorClient(settings.MONGO_URI)
+        self.db = self.client[settings.MONGO_DB_NAME]
     
     async def cleanup(self):
         """Close database connection"""
@@ -82,7 +84,8 @@ class BackendTester:
             )
             
             # Test 4: Reload config
-            await config_loader.reload_config("default")
+            config_loader.invalidate_cache("default")
+            await config_loader.get_config(self.db, "default")
             self.log_test(
                 "Config Loader - Cache Reload",
                 True,
@@ -125,7 +128,7 @@ class BackendTester:
             custom_prompt = PromptBuilder.build_system_prompt(custom_config)
             self.log_test(
                 "Prompt Builder - Custom Prompt Override",
-                "custom AI assistant" in custom_prompt.lower(),
+                "custom ai assistant" in custom_prompt.lower(),
                 "Custom prompt template used"
             )
             
@@ -140,7 +143,7 @@ class BackendTester:
             test_phone = "+1234567890"
             
             # Test 1: Create new memory
-            memory = await MemoryEngine.get_or_create_memory(self.db, test_phone, "default")
+            memory = await self.memory_engine.get_or_create_memory(self.db, test_phone)
             self.log_test(
                 "Memory Engine - Create Memory",
                 memory.phone_number == test_phone,
@@ -148,47 +151,33 @@ class BackendTester:
             )
             
             # Test 2: Add conversation turn
-            await MemoryEngine.add_conversation_turn(
-                self.db,
-                test_phone,
-                "default",
-                "user",
-                "I want to book a haircut"
-            )
+            memory.add_message("user", "I want to book a haircut")
+            await self.memory_engine.save_memory(self.db, memory)
             self.log_test(
                 "Memory Engine - Add Conversation Turn",
                 True,
                 "User message added to history"
             )
             
-            await MemoryEngine.add_conversation_turn(
-                self.db,
-                test_phone,
-                "default",
-                "assistant",
-                "Great! What time works for you?"
-            )
+            memory.add_message("assistant", "Great! What time works for you?")
+            await self.memory_engine.save_memory(self.db, memory)
             
             # Test 3: Retrieve updated memory
-            updated_memory = await MemoryEngine.get_or_create_memory(self.db, test_phone, "default")
+            updated_memory = await self.memory_engine.get_or_create_memory(self.db, test_phone)
             self.log_test(
                 "Memory Engine - Conversation History",
-                len(updated_memory.conversation_history) >= 2,
-                f"History has {len(updated_memory.conversation_history)} messages"
+                len(updated_memory.messages) >= 2,
+                f"History has {len(updated_memory.messages)} messages"
             )
             
             # Test 4: Update collected info
-            await MemoryEngine.update_collected_info(
-                self.db,
-                test_phone,
-                "default",
-                {"service": "haircut", "preferred_time": "afternoon"}
-            )
-            updated_memory = await MemoryEngine.get_or_create_memory(self.db, test_phone, "default")
+            updated_memory.update_collected_info({"service": "haircut", "preferred_time": "afternoon"})
+            await self.memory_engine.save_memory(self.db, updated_memory)
+            refreshed_memory = await self.memory_engine.get_or_create_memory(self.db, test_phone)
             self.log_test(
                 "Memory Engine - Collected Info",
-                updated_memory.collected_info.get("service") == "haircut",
-                f"Collected: {updated_memory.collected_info}"
+                refreshed_memory.collected_info.get("service") == "haircut",
+                f"Collected: {refreshed_memory.collected_info}"
             )
             
         except Exception as e:
@@ -206,18 +195,17 @@ class BackendTester:
             tomorrow_2pm = tomorrow_2pm.replace(hour=14, minute=0, second=0, microsecond=0)
             
             valid_request = BookingRequest(
-                service="Haircut",
-                datetime=tomorrow_2pm,
+                service="Classic Haircut",
+                requested_datetime=tomorrow_2pm,
                 duration_minutes=30,
-                customer_name="John Doe",
-                customer_phone="+1234567890"
+                client_name="John Doe",
+                client_phone="+1234567890"
             )
             
-            is_valid, message, result = await AppointmentReasoner.validate_booking_request(
+            is_valid, message = await self.reasoner.validate_booking_request(
                 self.db,
-                valid_request,
                 config,
-                "default"
+                valid_request
             )
             self.log_test(
                 "Appointment Reasoner - Valid Booking",
@@ -228,18 +216,17 @@ class BackendTester:
             # Test 2: Past date validation
             yesterday = datetime.now() - timedelta(days=1)
             past_request = BookingRequest(
-                service="Haircut",
-                datetime=yesterday,
+                service="Classic Haircut",
+                requested_datetime=yesterday,
                 duration_minutes=30,
-                customer_name="Jane Doe",
-                customer_phone="+1234567891"
+                client_name="Jane Doe",
+                client_phone="+1234567891"
             )
             
-            is_valid, message, result = await AppointmentReasoner.validate_booking_request(
+            is_valid, message = await self.reasoner.validate_booking_request(
                 self.db,
-                past_request,
                 config,
-                "default"
+                past_request
             )
             self.log_test(
                 "Appointment Reasoner - Past Date Rejection",
@@ -249,12 +236,11 @@ class BackendTester:
             
             # Test 3: Find available slots
             target_date = datetime.now() + timedelta(days=2)
-            slots = await AppointmentReasoner.find_available_slots(
+            slots = await self.reasoner.find_available_slots(
                 self.db,
-                target_date,
-                30,
                 config,
-                "default"
+                target_date,
+                30
             )
             self.log_test(
                 "Appointment Reasoner - Find Available Slots",
@@ -300,8 +286,8 @@ class BackendTester:
             )
             self.log_test(
                 "Intent Classifier - Entity Extraction",
-                entities.service is not None or entities.datetime is not None,
-                f"Extracted: service={entities.service}, time={entities.datetime}, name={entities.customer_name}"
+                entities.service is not None or entities.time is not None,
+                f"Extracted: service={entities.service}, time={entities.time}, name={entities.client_name}"
             )
             
         except Exception as e:
@@ -316,10 +302,12 @@ class BackendTester:
             config_data = BusinessConfigCreate(
                 business_id="test_tenant",
                 business_name="Test Barber Shop",
+                business_phone="+15555550123",
+                business_email="owner@testbarber.com",
                 timezone="America/New_York",
                 opening_hours=[
                     OpeningHours(
-                        day_of_week=1,
+                        day_of_week=0,
                         open_time="09:00",
                         close_time="18:00",
                         is_open=True
@@ -390,13 +378,13 @@ class BackendTester:
             prompt = PromptBuilder.build_system_prompt(config)
             
             # Step 3: Get/create memory
-            memory = await MemoryEngine.get_or_create_memory(self.db, phone, business_id)
+            memory = await self.memory_engine.get_or_create_memory(self.db, phone)
             
             # Step 4: Classify intent
             classifier = IntentClassifierEngine()
             intent_result = await classifier.classify_intent(
                 "I need a haircut tomorrow at 2pm",
-                memory.conversation_history
+                memory.messages
             )
             
             # Step 5: Extract entities
@@ -405,23 +393,21 @@ class BackendTester:
             )
             
             # Step 6: Validate appointment (if booking intent)
-            if intent_result.intent == "book_appointment" and entities.datetime:
+            if intent_result.intent == "book_appointment" and entities.time:
                 booking = BookingRequest(
                     service=entities.service or "Haircut",
-                    datetime=entities.datetime,
+                    requested_datetime=datetime.now() + timedelta(days=1),
                     duration_minutes=30,
-                    customer_name=entities.customer_name or "Customer",
-                    customer_phone=phone
+                    client_name=entities.client_name or "Customer",
+                    client_phone=phone
                 )
-                is_valid, msg, result = await AppointmentReasoner.validate_booking_request(
-                    self.db, booking, config, business_id
+                is_valid, msg = await self.reasoner.validate_booking_request(
+                    self.db, config, booking
                 )
             
             # Step 7: Save conversation
-            await MemoryEngine.add_conversation_turn(
-                self.db, phone, business_id, "user",
-                "I need a haircut tomorrow at 2pm"
-            )
+            memory.add_message("user", "I need a haircut tomorrow at 2pm")
+            await self.memory_engine.save_memory(self.db, memory)
             
             self.log_test(
                 "Integration Flow - Complete Flow",

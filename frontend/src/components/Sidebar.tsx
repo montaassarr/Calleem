@@ -2,6 +2,8 @@ import { useState } from "react";
 import { 
   LayoutDashboard, 
   Phone, 
+  PhoneCall,
+  Mic,
   Calendar, 
   BarChart3, 
   Users, 
@@ -19,7 +21,8 @@ import {
   UserCog,
   Brain,
   Plug,
-  CalendarDays
+  CalendarDays,
+  Waves,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavLink } from "./NavLink";
@@ -41,6 +44,17 @@ const menuItems = [
   { icon: Scissors, label: "Services", path: "/services" },
   { icon: CalendarDays, label: "Schedule", path: "/schedule" },
   { icon: Smartphone, label: "WhatsApp", path: "/whatsapp" },
+  { 
+    icon: Phone, 
+    label: "Voice Agent", 
+    path: "/voice-agent",
+    subItems: [
+      { icon: PhoneCall, label: "Control Room", path: "/voice-agent" },
+      { icon: Mic, label: "Voice Chat", path: "/voice-agent/chat" },
+      { icon: Waves, label: "WebRTC Test", path: "/voice-agent/test" },
+      { icon: Settings, label: "Voice Settings", path: "/voice-agent/settings" },
+    ]
+  },
 ];
 
 const generalItems = [

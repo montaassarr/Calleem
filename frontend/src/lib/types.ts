@@ -196,6 +196,14 @@ export interface BusinessSettings {
   available_services: string;
 }
 
+export interface FeatureFlags {
+  voice_agent?: boolean;
+  email_notifications?: boolean;
+  sms_reminders?: boolean;
+  online_booking?: boolean;
+  [key: string]: boolean | undefined;
+}
+
 // ============================================
 // AI CONFIGURATION
 // ============================================
@@ -278,3 +286,111 @@ export interface CalendarEvent {
     notes?: string;
   };
 }
+
+// ============================================
+// VOICE AGENT
+// ============================================
+
+export interface VoiceStartCallRequest {
+  customer_number: string;
+  customer_name?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface VoiceStartCallResponse {
+  status: string;
+  call_id: string;
+  assistant_id: string;
+}
+
+export interface VoiceTestResponse {
+  status: string;
+  assistant_id: string | null;
+  groq_model: string;
+}
+
+export interface VoiceCallHistoryItem {
+  id: string;
+  call_id?: string;
+  status: string;
+  customer?: {
+    number?: string;
+    name?: string;
+  };
+  cost?: number;
+  created_at?: string;
+  metadata?: Record<string, any>;
+  business_id?: string;
+  assistant_id?: string;
+}
+
+export interface VoiceCallHistoryResponse {
+  items: VoiceCallHistoryItem[];
+  count: number;
+}
+
+export interface VoiceWebRTCResponse {
+  status: string;
+  mode: string;
+  config?: {
+    model?: string;
+    voice?: string;
+    first_message?: string;
+    system_prompt?: string;
+  };
+  assistant_id?: string;
+  public_key?: string;
+  session_token?: string;
+  expires_at?: string;
+  business_id?: string;
+  session?: Record<string, any> | null;
+}
+
+// Voice Configuration Types
+export interface VoiceConfiguration {
+  model_provider: string;
+  model_name: string;
+  temperature: number;
+  max_tokens: number;
+  voice_provider: string;
+  voice_id: string;
+  first_message: string;
+  system_prompt: string;
+  enabled_tools: string[];
+  end_call_on_goodbye: boolean;
+  record_calls: boolean;
+  silence_timeout_seconds: number;
+}
+
+export interface VoiceModel {
+  id: string;
+  name: string;
+  provider: string;
+}
+
+export interface VoiceOption {
+  voice_id: string;
+  name: string;
+  category: string;
+  description?: string;
+  provider?: string;
+  accent?: string;
+  gender?: string;
+  age?: string;
+  preview_url?: string;
+  use_case?: string;
+}
+
+export interface VoiceTool {
+  type: string;
+  function: {
+    name: string;
+    description: string;
+    parameters: {
+      type: string;
+      properties: Record<string, any>;
+      required: string[];
+    };
+  };
+}
+

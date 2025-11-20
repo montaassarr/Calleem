@@ -2,7 +2,7 @@
 User/Admin Data Model
 """
 
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from typing import Optional
 from datetime import datetime
 from enum import Enum
@@ -47,9 +47,9 @@ class UserInDB(UserBase):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     last_login: Optional[datetime] = None
     
-    class Config:
-        populate_by_name = True
-        json_schema_extra = {
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra={
             "example": {
                 "_id": "507f1f77bcf86cd799439011",
                 "email": "admin@barbershop.com",
@@ -62,6 +62,7 @@ class UserInDB(UserBase):
                 "updated_at": "2025-11-13T10:00:00"
             }
         }
+    )
 
 
 class UserResponse(BaseModel):
@@ -75,8 +76,8 @@ class UserResponse(BaseModel):
     created_at: datetime
     last_login: Optional[datetime] = None
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "id": "507f1f77bcf86cd799439011",
                 "email": "admin@barbershop.com",
@@ -87,6 +88,7 @@ class UserResponse(BaseModel):
                 "created_at": "2025-11-13T10:00:00"
             }
         }
+    )
 
 
 class Token(BaseModel):

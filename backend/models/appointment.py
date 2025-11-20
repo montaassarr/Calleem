@@ -2,7 +2,7 @@
 Appointment Data Model
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 from datetime import datetime
 from enum import Enum
@@ -55,9 +55,9 @@ class AppointmentInDB(AppointmentBase):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
-    class Config:
-        populate_by_name = True
-        json_schema_extra = {
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra={
             "example": {
                 "_id": "507f1f77bcf86cd799439011",
                 "client_name": "John Doe",
@@ -74,6 +74,7 @@ class AppointmentInDB(AppointmentBase):
                 "updated_at": "2025-11-13T10:00:00"
             }
         }
+    )
 
 
 class AppointmentResponse(BaseModel):
@@ -92,8 +93,8 @@ class AppointmentResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "id": "507f1f77bcf86cd799439011",
                 "client_name": "John Doe",
@@ -104,3 +105,4 @@ class AppointmentResponse(BaseModel):
                 "status": "confirmed"
             }
         }
+    )

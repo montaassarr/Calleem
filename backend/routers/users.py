@@ -121,7 +121,7 @@ async def register_user(user: UserCreate):
             raise HTTPException(status_code=400, detail="Username already taken")
         
         # Hash password
-        user_dict = user.dict(exclude={"password"})
+        user_dict = user.model_dump(exclude={"password"})
         user_dict["hashed_password"] = hash_password(user.password)
         user_dict["created_at"] = datetime.utcnow()
         user_dict["updated_at"] = datetime.utcnow()
@@ -212,7 +212,11 @@ async def update_current_user(
         db = get_database()
         
         # Prepare update data
-        update_data = {k: v for k, v in update.dict(exclude_unset=True).items() if v is not None}
+        update_data = {
+            k: v
+            for k, v in update.model_dump(exclude_unset=True).items()
+            if v is not None
+        }
         
         # Hash password if being updated
         if "password" in update_data:

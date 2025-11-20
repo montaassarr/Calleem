@@ -38,7 +38,7 @@ async def create_appointment(appointment: AppointmentCreate):
             raise HTTPException(status_code=400, detail=error_msg)
         
         # Prepare appointment document
-        appointment_dict = appointment.dict()
+        appointment_dict = appointment.model_dump()
         appointment_dict["status"] = AppointmentStatus.CONFIRMED
         appointment_dict["created_at"] = datetime.utcnow()
         appointment_dict["updated_at"] = datetime.utcnow()
@@ -108,13 +108,28 @@ async def list_appointments(
         cursor = db.appointments.find(query).sort("datetime", 1).skip(skip).limit(limit)
         appointments = await cursor.to_list(length=limit)
         
-        # Format response
+        # Format response - convert normalized schema to legacy API format
+        formatted_appointments = []
         for appointment in appointments:
-            appointment["id"] = str(appointment["_id"])
+            formatted_appointments.append({
+                "id": str(appointment["_id"]),
+                "client_name": appointment.get("name", ""),
+                "client_phone": appointment.get("phone", ""),
+                "client_email": appointment.get("email"),
+                "service": appointment.get("service", ""),
+                "datetime": appointment.get("start"),
+                "duration_minutes": appointment.get("durationMinutes", 30),
+                "barber_preference": appointment.get("barberPreference"),
+                "status": appointment.get("status", "confirmed"),
+                "conversation_id": appointment.get("conversationId"),
+                "notes": appointment.get("notes"),
+                "created_at": appointment.get("createdAt", appointment.get("_id").generation_time),
+                "updated_at": appointment.get("updatedAt", appointment.get("_id").generation_time)
+            })
         
-        logger.info(f"Retrieved {len(appointments)} appointments")
+        logger.info(f"Retrieved {len(formatted_appointments)} appointments")
         
-        return [AppointmentResponse(**apt) for apt in appointments]
+        return [AppointmentResponse(**apt) for apt in formatted_appointments]
         
     except Exception as e:
         logger.error(f"Error listing appointments: {e}", exc_info=True)
@@ -163,7 +178,11 @@ async def update_appointment(appointment_id: str, update: AppointmentUpdate):
             raise HTTPException(status_code=404, detail="Appointment not found")
         
         # Prepare update data
-        update_data = {k: v for k, v in update.dict(exclude_unset=True).items() if v is not None}
+        update_data = {
+            k: v
+            for k, v in update.model_dump(exclude_unset=True).items()
+            if v is not None
+        }
         
         if not update_data:
             raise HTTPException(status_code=400, detail="No fields to update")
