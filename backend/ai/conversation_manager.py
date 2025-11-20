@@ -7,7 +7,7 @@ import uuid
 import json
 import logging
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timedelta
 from models.conversation import (
     Message, MessageRole, ConversationIntent,
     ConversationState, ConversationInDB
@@ -560,9 +560,10 @@ class ConversationManager:
             return None
 
         # Determine business_id and source type
-        metadata = conversation.get("messages", [{}])[-1].get("metadata", {})
-        business_id = metadata.get("business_id", "default")
-        is_voice = metadata.get("source") == "voice_agent"
+        messages = conversation.get("messages", [])
+        metadata = messages[-1].get("metadata", {}) if messages else {}
+        business_id = metadata.get("business_id", "default") if metadata else "default"
+        is_voice = metadata.get("source") == "voice_agent" if metadata else False
         source = "voice" if is_voice else "text"
         
         # Calculate start and end times
