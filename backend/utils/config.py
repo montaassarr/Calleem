@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     VAPI_PUBLIC_KEY: str = ""
     VAPI_WEBHOOK_URL: str = ""
     VAPI_ASSISTANT_ID: str | None = None
+    VAPI_SERVER_SECRET: str = ""
     VOICE_AGENT_ENABLED: bool = False
     VOICE_AGENT_TEMPERATURE: float = 0.6
     VOICE_AGENT_WEBRTC_PUBLIC_KEY: str | None = None

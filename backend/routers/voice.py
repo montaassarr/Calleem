@@ -11,6 +11,7 @@ from models.business_config import VoiceConfiguration
 from routers.users import get_current_user
 from database.mongo_config import get_database
 from services.elevenlabs_service import elevenlabs_service
+from utils.config import settings
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -243,11 +244,14 @@ async def update_voice_config(
 		
 		# First, ensure business config exists
 		existing = await db.business_configs.find_one({"business_id": business_id})
+		voice_payload = config_update.model_dump()
+		features_update = {"features_enabled.voice_agent": True}
 		if not existing:
 			# Create new config document
 			await db.business_configs.insert_one({
 				"business_id": business_id,
-				"voice_config": config_update.model_dump(),
+				"voice_config": voice_payload,
+				"features_enabled": {"voice_agent": True},
 				"created_at": datetime.utcnow(),
 				"updated_at": datetime.utcnow()
 			})
@@ -257,11 +261,14 @@ async def update_voice_config(
 				{"business_id": business_id},
 				{
 					"$set": {
-						"voice_config": config_update.model_dump(),
-						"updated_at": datetime.utcnow()
+						"voice_config": voice_payload,
+						"updated_at": datetime.utcnow(),
+						**features_update,
 					}
 				}
 			)
+
+		await voice_agent_service.reset_assistant(business_id)
 		
 		return {"status": "success", "message": "Voice configuration updated"}
 	except HTTPException:
@@ -323,77 +330,28 @@ async def get_vapi_config(
 	business_id: str = Depends(get_business_id),
 	current_user: dict = Depends(get_current_user)
 ):
-	"""Get Vapi configuration for client-side initialization"""
+	"""Return assistant + client key so dashboard can start local WebRTC calls."""
+	if not settings.VAPI_PUBLIC_KEY:
+		raise HTTPException(
+			status_code=503,
+			detail="VAPI_PUBLIC_KEY not configured. Set it in .env to enable browser calls."
+		)
+
 	try:
-		from services.vapi_service import vapi_service
-		
-		if not vapi_service.is_configured():
-			raise HTTPException(
-				status_code=503,
-				detail="Vapi is not configured. Please set VAPI_API_KEY and VAPI_PUBLIC_KEY in .env"
-			)
-		
-		# Get or create assistant based on voice configuration
-		db = get_database()
-		if db is None:
-			raise HTTPException(status_code=500, detail="Database unavailable")
-		
-		voice_config_doc = await db.business_config.find_one({"business_id": business_id})
-		
-		if not voice_config_doc or "voice_config" not in voice_config_doc:
-			# Return default configuration
-			voice_config = {
-				"model": "groq:llama-3.3-70b-versatile",
-				"voice": "elevenlabs:Rachel",
-				"first_message": "Hello! Welcome to our service. How can I help you today?",
-				"system_prompt": "You are a helpful AI receptionist. Be friendly, professional, and concise.",
-				"temperature": 0.7
-			}
-		else:
-			voice_config = voice_config_doc["voice_config"]
-		
-		# Get enabled tools
-		enabled_tools = voice_config.get("enabled_tools", [])
-		tools = [tool for tool in voice_tools if tool["name"] in enabled_tools] if enabled_tools else []
-		
-		# Check if we already have an assistant ID stored
-		assistant_id = voice_config.get("vapi_assistant_id")
-		
-		# If no assistant ID or it doesn't exist, create one
-		if not assistant_id:
-			assistant_id = vapi_service.create_or_update_assistant(voice_config, tools)
-			
-			if assistant_id:
-				# Store the assistant ID in the database
-				await db.business_config.update_one(
-					{"business_id": business_id},
-					{"$set": {"voice_config.vapi_assistant_id": assistant_id}},
-					upsert=True
-				)
-			else:
-				raise HTTPException(
-					status_code=500,
-					detail="Failed to create Vapi assistant"
-				)
-		
-		public_key = vapi_service.get_public_key()
-		
-		if not public_key:
-			raise HTTPException(
-				status_code=503,
-				detail="VAPI_PUBLIC_KEY not configured in .env"
-			)
-		
-		return {
-			"publicKey": public_key,
-			"assistantId": assistant_id
-		}
-		
-	except HTTPException:
-		raise
+		agent_status = await voice_agent_service.test_agent(business_id)
 	except Exception as exc:
-		logger.error("Failed to get Vapi config: %s", exc, exc_info=True)
-		raise HTTPException(status_code=500, detail=str(exc))
+		logger.error("Failed to resolve voice assistant: %s", exc, exc_info=True)
+		raise HTTPException(status_code=500, detail="Unable to prepare voice assistant")
+
+	assistant_id = agent_status.get("assistant_id")
+	if not assistant_id:
+		raise HTTPException(status_code=500, detail="Assistant ID unavailable")
+
+	return {
+		"publicKey": settings.VAPI_PUBLIC_KEY,
+		"assistantId": assistant_id,
+		"voiceProvider": agent_status.get("voice_provider"),
+	}
 
 
 @router.post("/webhook", include_in_schema=False)

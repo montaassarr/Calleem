@@ -13,6 +13,10 @@ from models.conversation import (
     ConversationState, ConversationInDB
 )
 from models.appointment import AppointmentCreate, AppointmentStatus
+from models.normalized_schemas import (
+    AppointmentNormalized,
+    ConversationHistoryNormalized
+)
 from ai.groq_agent import groq_agent
 from ai.prompt_templates import prompt_templates
 from ai.brain.prompt_builder import PromptBuilder
@@ -40,6 +44,28 @@ class ConversationManager:
         """Initialize database connection"""
         self.db = get_database()
     
+    async def _log_to_conversation_history(
+        self,
+        business_id: str,
+        conv_type: str,
+        sender: str,
+        message: str,
+        metadata: Dict[str, Any] = None
+    ):
+        """Log message to conversation_history collection with normalized schema"""
+        try:
+            history_entry = {
+                "businessId": business_id,
+                "type": conv_type,  # "voice" or "text"
+                "sender": sender,   # "client" or "agent"
+                "message": message,
+                "timestamp": datetime.utcnow(),
+                "metadata": metadata or {}
+            }
+            await self.db.conversation_history.insert_one(history_entry)
+        except Exception as e:
+            logger.error(f"Failed to log to conversation_history: {e}")
+    
     async def process_message(
         self,
         phone_number: str,
@@ -62,6 +88,11 @@ class ConversationManager:
             if self.db is None:
                 await self.initialize()
             
+            # Determine conversation type (voice or text)
+            is_voice = whatsapp_metadata and whatsapp_metadata.get("source") == "voice_agent"
+            conv_type = "voice" if is_voice else "text"
+            business_id = whatsapp_metadata.get("business_id", "default") if whatsapp_metadata else "default"
+            
             # Get or create conversation
             conversation = await self._get_or_create_conversation(phone_number)
             
@@ -73,6 +104,15 @@ class ConversationManager:
                 metadata=whatsapp_metadata
             )
             conversation["messages"].append(client_message.model_dump())
+            
+            # Log client message to conversation_history
+            await self._log_to_conversation_history(
+                business_id=business_id,
+                conv_type=conv_type,
+                sender="client",
+                message=message_text,
+                metadata={"phone": phone_number, **(whatsapp_metadata or {})}
+            )
             
             # Determine intent
             # If already in an active booking flow, maintain book_appointment intent
@@ -146,6 +186,15 @@ class ConversationManager:
                 timestamp=datetime.utcnow()
             )
             conversation["messages"].append(ai_message.model_dump())
+            
+            # Log AI response to conversation_history
+            await self._log_to_conversation_history(
+                business_id=business_id,
+                conv_type=conv_type,
+                sender="agent",
+                message=ai_response_text,
+                metadata={"phone": phone_number, "intent": intent}
+            )
             
             # **UPDATE STATE INTENT** before booking attempt
             conversation["state"]["intent"] = intent
@@ -510,41 +559,62 @@ class ConversationManager:
             state["next_question"] = "client phone number"
             return None
 
-        payload = AppointmentCreate(
-            client_name=text_formatter.capitalize_name(info["client_name"]),
-            client_phone=client_phone,
-            client_email=info.get("client_email"),
-            service=text_formatter.format_service_name(info["service"]),
-            datetime=appointment_dt,
-            duration_minutes=duration,
-            barber_preference=info.get("barber_preference"),
-            notes=info.get("notes")
-        )
-        appointment_doc = payload.model_dump()
-        appointment_doc.update({
-            "status": AppointmentStatus.CONFIRMED,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow(),
-            "conversation_id": conversation.get("conversation_id")
-        })
+        # Determine business_id and source type
+        metadata = conversation.get("messages", [{}])[-1].get("metadata", {})
+        business_id = metadata.get("business_id", "default")
+        is_voice = metadata.get("source") == "voice_agent"
+        source = "voice" if is_voice else "text"
+        
+        # Calculate start and end times
+        start_time = appointment_dt
+        end_time = appointment_dt + timedelta(minutes=duration)
+        
+        # Create appointment using NORMALIZED schema
+        appointment_doc = {
+            "businessId": business_id,
+            "name": text_formatter.capitalize_name(info["client_name"]),
+            "phone": client_phone,
+            "service": text_formatter.format_service_name(info["service"]),
+            "start": start_time,
+            "end": end_time,
+            "notes": info.get("notes", ""),
+            "source": source,
+            "status": "confirmed",
+            "createdAt": datetime.utcnow(),
+            "updatedAt": datetime.utcnow(),
+            "conversationId": conversation.get("conversation_id")
+        }
         try:
-            logger.info(f"Attempting to create appointment for {payload.client_name}")
+            logger.info(f"Attempting to create appointment for {appointment_doc['name']}")
             result = await self.db.appointments.insert_one(appointment_doc)
             created = await self.db.appointments.find_one({"_id": result.inserted_id})
             created["id"] = str(created["_id"])
             conversation["appointment_id"] = created["id"]
             state["completed"] = True
             state["next_question"] = None
-            state.setdefault("collected_info", {})["datetime_iso"] = appointment_dt.isoformat()
-            state["collected_info"]["status"] = AppointmentStatus.CONFIRMED.value
+            state.setdefault("collected_info", {})["datetime_iso"] = start_time.isoformat()
+            state["collected_info"]["status"] = "confirmed"
             
             logger.info(f"SUCCESS! Appointment created in database with ID: {created['id']}")
             
+            # Log to conversation_history
+            await self._log_to_conversation_history(
+                business_id=business_id,
+                conv_type=source,
+                sender="agent",
+                message=f"Appointment created for {appointment_doc['name']}",
+                metadata={
+                    "appointmentId": created["id"],
+                    "service": appointment_doc["service"],
+                    "phone": client_phone
+                }
+            )
+            
             appointment_details = {
-                "client_name": payload.client_name,
-                "service": payload.service,
+                "client_name": appointment_doc["name"],
+                "service": appointment_doc["service"],
                 "datetime_formatted": text_formatter.format_datetime_display(
-                    appointment_dt.astimezone(datetime_utils.get_timezone())
+                    start_time.astimezone(datetime_utils.get_timezone())
                 ),
                 "duration_minutes": duration
             }
@@ -557,7 +627,7 @@ class ConversationManager:
 
 We look forward to seeing you at {settings.BUSINESS_NAME}!"""
             
-            logger.info(f"Sending confirmation message to {payload.client_phone}")
+            logger.info(f"Sending confirmation message to {client_phone}")
             
             return {"appointment": created, "confirmation_text": confirmation_text}
         except Exception as exc:
@@ -592,12 +662,18 @@ We look forward to seeing you at {settings.BUSINESS_NAME}!"""
         if not is_valid:
             return {"error": error_msg}
         
-        # Update the appointment in database
+        # Update the appointment in database using NORMALIZED schema
         try:
             from bson import ObjectId
+            
+            # Calculate new end time based on original duration
+            original_duration = (appointment["end"] - appointment["start"]).total_seconds() / 60
+            new_end = appointment_dt + timedelta(minutes=original_duration)
+            
             update_data = {
-                "datetime": appointment_dt,
-                "updated_at": datetime.utcnow()
+                "start": appointment_dt,
+                "end": new_end,
+                "updatedAt": datetime.utcnow()
             }
             
             result = await self.db.appointments.update_one(
@@ -618,6 +694,22 @@ We look forward to seeing you at {settings.BUSINESS_NAME}!"""
             state["completed"] = True
             
             logger.info(f"Appointment {appointment_id} updated to {appointment_dt}")
+            
+            # Log to conversation_history
+            metadata = conversation.get("messages", [{}])[-1].get("metadata", {})
+            business_id = metadata.get("business_id", "default")
+            is_voice = metadata.get("source") == "voice_agent"
+            
+            await self._log_to_conversation_history(
+                business_id=business_id,
+                conv_type="voice" if is_voice else "text",
+                sender="agent",
+                message=f"Appointment updated to {appointment_dt}",
+                metadata={
+                    "appointmentId": appointment_id,
+                    "phone": updated.get("phone")
+                }
+            )
             
             # Send update confirmation SMS
             appointment_details = {
