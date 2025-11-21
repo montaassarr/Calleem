@@ -1,18 +1,18 @@
 import { useState } from "react";
-import { 
-  LayoutDashboard, 
-  Phone, 
+import {
+  LayoutDashboard,
+  Phone,
   PhoneCall,
   Mic,
-  Calendar, 
-  BarChart3, 
-  Users, 
-  Settings, 
-  HelpCircle, 
-  LogOut, 
-  Scissors, 
-  MessageSquare, 
-  Bot, 
+  Calendar,
+  BarChart3,
+  Users,
+  Settings,
+  HelpCircle,
+  LogOut,
+  Scissors,
+  MessageSquare,
+  Bot,
   Smartphone,
   ChevronDown,
   ChevronRight,
@@ -30,9 +30,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-  { 
-    icon: Bot, 
-    label: "AI Receptionist", 
+  {
+    icon: Bot,
+    label: "AI Receptionist",
     path: "/ai-receptionist",
     subItems: [
       { icon: BarChart3, label: "Overview", path: "/ai-receptionist" },
@@ -44,9 +44,9 @@ const menuItems = [
   { icon: Scissors, label: "Services", path: "/services" },
   { icon: CalendarDays, label: "Schedule", path: "/schedule" },
   { icon: Smartphone, label: "WhatsApp", path: "/whatsapp" },
-  { 
-    icon: Phone, 
-    label: "Voice Agent", 
+  {
+    icon: Phone,
+    label: "Voice Agent",
     path: "/voice-agent",
     subItems: [
       { icon: PhoneCall, label: "Control Room", path: "/voice-agent" },
@@ -58,9 +58,9 @@ const menuItems = [
 ];
 
 const generalItems = [
-  { 
-    icon: Settings, 
-    label: "Settings", 
+  {
+    icon: Settings,
+    label: "Settings",
     path: "/settings",
     subItems: [
       { icon: Settings, label: "Settings Hub", path: "/settings" },
@@ -79,8 +79,8 @@ export const Sidebar = () => {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const toggleExpand = (path: string) => {
-    setExpandedItems(prev => 
-      prev.includes(path) 
+    setExpandedItems(prev =>
+      prev.includes(path)
         ? prev.filter(p => p !== path)
         : [...prev, path]
     );
@@ -110,8 +110,8 @@ export const Sidebar = () => {
               toggleExpand(item.path);
             }
           }}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all hover:bg-white/50 hover:shadow-md group"
-          activeClassName={!hasSubItems ? "bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/30" : ""}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all hover:bg-white/50 hover:text-primary hover:shadow-md group"
+          activeClassName={!hasSubItems ? "bg-primary text-white shadow-lg shadow-primary/30" : ""}
         >
           <item.icon className="w-5 h-5" />
           <span className="flex-1">{item.label}</span>
@@ -126,8 +126,8 @@ export const Sidebar = () => {
               <NavLink
                 key={subItem.path}
                 to={subItem.path}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all hover:bg-white/50 hover:shadow-md"
-                activeClassName="bg-gradient-to-r from-primary/80 to-accent/80 text-white shadow-lg shadow-primary/20"
+                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all hover:bg-white/50 hover:text-primary hover:shadow-md"
+                activeClassName="bg-primary/80 text-white shadow-lg shadow-primary/20"
               >
                 <subItem.icon className="w-4 h-4" />
                 <span className="text-xs">{subItem.label}</span>
@@ -143,10 +143,10 @@ export const Sidebar = () => {
     <aside className="fixed left-0 top-0 h-screen w-64 glass-strong flex flex-col z-50 overflow-y-auto">
       <div className="p-6">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
             <Scissors className="w-5 h-5 text-white" />
           </div>
-          <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <span className="text-xl font-bold text-primary">
             Royal Fade
           </span>
         </div>
@@ -166,7 +166,7 @@ export const Sidebar = () => {
             {generalItems.map((item) => renderMenuItem(item, true))}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all hover:bg-white/50 hover:shadow-md w-full text-left"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all hover:bg-white/50 hover:text-primary hover:shadow-md w-full text-left"
             >
               <LogOut className="w-5 h-5" />
               <span>Logout</span>
@@ -175,7 +175,7 @@ export const Sidebar = () => {
         </div>
       </nav>
 
-      <div className="p-4 m-4 bg-gradient-to-br from-primary via-accent to-primary/90 rounded-2xl text-white shadow-xl shadow-primary/20 shine">
+      <div className="p-4 m-4 bg-primary rounded-2xl text-white shadow-xl shadow-primary/20 shine">
         <div className="flex items-center gap-2 mb-2">
           <Phone className="w-5 h-5" />
           <p className="font-semibold text-sm">AI Receptionist</p>
