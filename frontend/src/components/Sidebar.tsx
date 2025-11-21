@@ -27,6 +27,7 @@ import {
 import { cn } from "@/lib/utils";
 import { NavLink } from "./NavLink";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useConfig } from "@/contexts/ConfigContext";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -74,6 +75,7 @@ const generalItems = [
 ];
 
 export const Sidebar = () => {
+  const { config } = useConfig();
   const navigate = useNavigate();
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
@@ -143,11 +145,15 @@ export const Sidebar = () => {
     <aside className="fixed left-0 top-0 h-screen w-64 glass-strong flex flex-col z-50 overflow-y-auto">
       <div className="p-6">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-            <Scissors className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-xl font-bold text-primary">
-            Royal Fade
+          {config?.logo_url ? (
+            <img src={config.logo_url} alt="Logo" className="w-10 h-10 rounded-full object-cover" />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+              <Scissors className="w-5 h-5 text-white" />
+            </div>
+          )}
+          <span className="text-xl font-bold text-primary truncate">
+            {config?.business_name || 'Donezo'}
           </span>
         </div>
       </div>

@@ -24,10 +24,12 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { voiceApi } from "@/api";
 import type { VoiceConfiguration, VoiceModel, VoiceOption, VoiceTool } from "@/lib/types";
+import { useConfig } from "@/contexts/ConfigContext";
 
 const VoiceSettingsPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { refreshConfig } = useConfig();
 
   // Fetch current config
   const { data: config, isLoading: isConfigLoading } = useQuery({
@@ -59,8 +61,9 @@ const VoiceSettingsPage = () => {
   // Update mutation
   const updateMutation = useMutation({
     mutationFn: (data: VoiceConfiguration) => voiceApi.updateConfig(data),
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["voice-config"] });
+      await refreshConfig(); // Refresh global config
       toast({ title: "Voice configuration saved successfully" });
     },
     onError: (error: any) => {
@@ -296,11 +299,10 @@ const VoiceSettingsPage = () => {
                         .map((voice) => (
                           <Card
                             key={voice.voice_id}
-                            className={`cursor-pointer transition-colors ${
-                              formData.voice_id === voice.voice_id
-                                ? "border-primary bg-primary/5"
-                                : "hover:border-primary/50"
-                            }`}
+                            className={`cursor-pointer transition-colors ${formData.voice_id === voice.voice_id
+                              ? "border-primary bg-primary/5"
+                              : "hover:border-primary/50"
+                              }`}
                             onClick={() => updateField("voice_id", voice.voice_id)}
                           >
                             <CardContent className="p-4">

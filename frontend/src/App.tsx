@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { DataRefreshProvider } from "./contexts/DataRefreshContext";
+import { ConfigProvider } from "./contexts/ConfigContext";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
@@ -53,213 +54,215 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
     <QueryClientProvider client={queryClient}>
         <DataRefreshProvider>
-            <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <BrowserRouter
-                    future={{
-                        v7_startTransition: true,
-                        v7_relativeSplatPath: true,
-                    }}
-                >
-                    <Routes>
-                        <Route path="/login" element={<Login />} />
+            <ConfigProvider>
+                <TooltipProvider>
+                    <Toaster />
+                    <Sonner />
+                    <BrowserRouter
+                        future={{
+                            v7_startTransition: true,
+                            v7_relativeSplatPath: true,
+                        }}
+                    >
+                        <Routes>
+                            <Route path="/login" element={<Login />} />
 
-                        {/* Dashboard */}
-                        <Route
-                            path="/"
-                            element={
-                                <ProtectedRoute>
-                                    <Index />
-                                </ProtectedRoute>
-                            }
-                        />
+                            {/* Dashboard */}
+                            <Route
+                                path="/"
+                                element={
+                                    <ProtectedRoute>
+                                        <Index />
+                                    </ProtectedRoute>
+                                }
+                            />
 
-                        {/* Appointments */}
-                        <Route
-                            path="/appointments"
-                            element={
-                                <ProtectedRoute>
-                                    <Appointments />
-                                </ProtectedRoute>
-                            }
-                        />
+                            {/* Appointments */}
+                            <Route
+                                path="/appointments"
+                                element={
+                                    <ProtectedRoute>
+                                        <Appointments />
+                                    </ProtectedRoute>
+                                }
+                            />
 
-                        {/* Conversations */}
-                        <Route
-                            path="/conversations"
-                            element={
-                                <ProtectedRoute>
-                                    <Conversations />
-                                </ProtectedRoute>
-                            }
-                        />
+                            {/* Conversations */}
+                            <Route
+                                path="/conversations"
+                                element={
+                                    <ProtectedRoute>
+                                        <Conversations />
+                                    </ProtectedRoute>
+                                }
+                            />
 
-                        {/* Services */}
-                        <Route
-                            path="/services"
-                            element={
-                                <ProtectedRoute>
-                                    <Services />
-                                </ProtectedRoute>
-                            }
-                        />
+                            {/* Services */}
+                            <Route
+                                path="/services"
+                                element={
+                                    <ProtectedRoute>
+                                        <Services />
+                                    </ProtectedRoute>
+                                }
+                            />
 
-                        {/* AI Receptionist */}
-                        <Route
-                            path="/ai-receptionist"
-                            element={
-                                <ProtectedRoute>
-                                    <AIReceptionist />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/ai-receptionist/test"
-                            element={
-                                <ProtectedRoute>
-                                    <AIReceptionistTest />
-                                </ProtectedRoute>
-                            }
-                        />
+                            {/* AI Receptionist */}
+                            <Route
+                                path="/ai-receptionist"
+                                element={
+                                    <ProtectedRoute>
+                                        <AIReceptionist />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/ai-receptionist/test"
+                                element={
+                                    <ProtectedRoute>
+                                        <AIReceptionistTest />
+                                    </ProtectedRoute>
+                                }
+                            />
 
-                        {/* Schedule/Calendar */}
-                        <Route
-                            path="/schedule"
-                            element={
-                                <ProtectedRoute>
-                                    <Schedule />
-                                </ProtectedRoute>
-                            }
-                        />
+                            {/* Schedule/Calendar */}
+                            <Route
+                                path="/schedule"
+                                element={
+                                    <ProtectedRoute>
+                                        <Schedule />
+                                    </ProtectedRoute>
+                                }
+                            />
 
-                        {/* WhatsApp */}
-                        <Route
-                            path="/whatsapp"
-                            element={
-                                <ProtectedRoute>
-                                    <WhatsApp />
-                                </ProtectedRoute>
-                            }
-                        />
+                            {/* WhatsApp */}
+                            <Route
+                                path="/whatsapp"
+                                element={
+                                    <ProtectedRoute>
+                                        <WhatsApp />
+                                    </ProtectedRoute>
+                                }
+                            />
 
-                        {/* Voice Agent */}
-                        <Route
-                            path="/voice-agent"
-                            element={
-                                <ProtectedRoute>
-                                    <VoiceAgent />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/voice-agent/test"
-                            element={
-                                <ProtectedRoute>
-                                    <VoiceTest />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/voice-agent/settings"
-                            element={
-                                <ProtectedRoute>
-                                    <VoiceSettings />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/voice-agent/chat"
-                            element={
-                                <ProtectedRoute>
-                                    <VoiceChat />
-                                </ProtectedRoute>
-                            }
-                        />
+                            {/* Voice Agent */}
+                            <Route
+                                path="/voice-agent"
+                                element={
+                                    <ProtectedRoute>
+                                        <VoiceAgent />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/voice-agent/test"
+                                element={
+                                    <ProtectedRoute>
+                                        <VoiceTest />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/voice-agent/settings"
+                                element={
+                                    <ProtectedRoute>
+                                        <VoiceSettings />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/voice-agent/chat"
+                                element={
+                                    <ProtectedRoute>
+                                        <VoiceChat />
+                                    </ProtectedRoute>
+                                }
+                            />
 
-                        {/* Settings */}
-                        <Route
-                            path="/settings"
-                            element={
-                                <ProtectedRoute>
-                                    <Settings />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/settings/business"
-                            element={
-                                <ProtectedRoute>
-                                    <BusinessSettings />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/settings/team"
-                            element={
-                                <ProtectedRoute>
-                                    <TeamSettings />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/settings/ai"
-                            element={
-                                <ProtectedRoute>
-                                    <AISettings />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/settings/integrations"
-                            element={
-                                <ProtectedRoute>
-                                    <IntegrationsSettings />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/settings/services"
-                            element={
-                                <ProtectedRoute>
-                                    <ServicesSettings />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/settings/hours"
-                            element={
-                                <ProtectedRoute>
-                                    <HoursSettings />
-                                </ProtectedRoute>
-                            }
-                        />
+                            {/* Settings */}
+                            <Route
+                                path="/settings"
+                                element={
+                                    <ProtectedRoute>
+                                        <Settings />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/settings/business"
+                                element={
+                                    <ProtectedRoute>
+                                        <BusinessSettings />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/settings/team"
+                                element={
+                                    <ProtectedRoute>
+                                        <TeamSettings />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/settings/ai"
+                                element={
+                                    <ProtectedRoute>
+                                        <AISettings />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/settings/integrations"
+                                element={
+                                    <ProtectedRoute>
+                                        <IntegrationsSettings />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/settings/services"
+                                element={
+                                    <ProtectedRoute>
+                                        <ServicesSettings />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/settings/hours"
+                                element={
+                                    <ProtectedRoute>
+                                        <HoursSettings />
+                                    </ProtectedRoute>
+                                }
+                            />
 
-                        {/* Help */}
-                        <Route
-                            path="/help"
-                            element={
-                                <ProtectedRoute>
-                                    <Help />
-                                </ProtectedRoute>
-                            }
-                        />
+                            {/* Help */}
+                            <Route
+                                path="/help"
+                                element={
+                                    <ProtectedRoute>
+                                        <Help />
+                                    </ProtectedRoute>
+                                }
+                            />
 
-                        {/* API Testing */}
-                        <Route
-                            path="/api-test"
-                            element={
-                                <ProtectedRoute>
-                                    <ApiTest />
-                                </ProtectedRoute>
-                            }
-                        />
+                            {/* API Testing */}
+                            <Route
+                                path="/api-test"
+                                element={
+                                    <ProtectedRoute>
+                                        <ApiTest />
+                                    </ProtectedRoute>
+                                }
+                            />
 
-                        {/* Catch-all 404 */}
-                        <Route path="*" element={<NotFound />} />
-                    </Routes>
-                </BrowserRouter>
-            </TooltipProvider>
+                            {/* Catch-all 404 */}
+                            <Route path="*" element={<NotFound />} />
+                        </Routes>
+                    </BrowserRouter>
+                </TooltipProvider>
+            </ConfigProvider>
         </DataRefreshProvider>
     </QueryClientProvider>
 );

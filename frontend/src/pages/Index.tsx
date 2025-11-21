@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { appointmentsApi, conversationsApi, servicesApi, webhookApi } from "@/api";
 import { useNavigate } from "react-router-dom";
+import { useConfig } from "@/contexts/ConfigContext";
 
 const Index = () => {
+  const { config } = useConfig();
   const navigate = useNavigate();
 
   // Fetch appointments
@@ -40,29 +42,29 @@ const Index = () => {
   const upcomingAppointments = appointments.filter(
     (apt: any) => new Date(apt.datetime) > now && apt.status === 'confirmed'
   ).length;
-  
+
   const completedToday = appointments.filter((apt: any) => {
     const aptDate = new Date(apt.datetime);
     return aptDate.toDateString() === now.toDateString() && apt.status === 'completed';
   }).length;
-  
+
   const activeServices = services.filter((s: any) => s.active !== false).length;
 
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      
+
       <main className="flex-1 ml-64">
         <DashboardHeader />
-        
+
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Royal Fade Dashboard</h1>
+              <h1 className="text-3xl font-bold mb-2">{config?.business_name || 'Donezo'} Dashboard</h1>
               <p className="text-muted-foreground">Monitor your AI receptionist and business operations.</p>
             </div>
             <div className="flex gap-3">
-              <Button 
+              <Button
                 className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90"
                 onClick={() => navigate('/appointments/new')}
               >
@@ -121,12 +123,11 @@ const Index = () => {
                       </div>
                       <div className="text-right">
                         <p className="text-sm">{new Date(apt.datetime).toLocaleDateString()}</p>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          apt.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                          apt.status === 'completed' ? 'bg-blue-100 text-blue-700' :
-                          apt.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
+                        <span className={`text-xs px-2 py-1 rounded-full ${apt.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                            apt.status === 'completed' ? 'bg-blue-100 text-blue-700' :
+                              apt.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                                'bg-gray-100 text-gray-700'
+                          }`}>
                           {apt.status}
                         </span>
                       </div>
@@ -144,11 +145,10 @@ const Index = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Webhook Status</span>
-                  <span className={`px-3 py-1 rounded-full text-sm ${
-                    webhookStatus?.status === 'active' 
-                      ? 'bg-green-100 text-green-700' 
+                  <span className={`px-3 py-1 rounded-full text-sm ${webhookStatus?.status === 'active'
+                      ? 'bg-green-100 text-green-700'
                       : 'bg-red-100 text-red-700'
-                  }`}>
+                    }`}>
                     {webhookStatus?.status || 'Unknown'}
                   </span>
                 </div>
@@ -156,7 +156,7 @@ const Index = () => {
                   <span className="text-muted-foreground">Conversations Handled</span>
                   <span className="font-semibold">{conversations.length}</span>
                 </div>
-                <Button 
+                <Button
                   className="w-full gap-2"
                   onClick={() => navigate('/ai-receptionist/test')}
                 >
@@ -167,9 +167,9 @@ const Index = () => {
             </div>
             <LiveCallStatus />
           </div>
-        </div>
-      </main>
-    </div>
+        </div >
+      </main >
+    </div >
   );
 };
 

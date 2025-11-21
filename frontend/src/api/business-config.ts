@@ -58,6 +58,9 @@ export interface BusinessConfig {
   features_enabled?: FeatureFlags;
   created_at?: string;
   updated_at?: string;
+  logo_url?: string;
+  primary_color?: string;
+  secondary_color?: string;
 }
 
 export interface BusinessConfigUpdate {

@@ -15,7 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const BusinessSettings = () => {
   const navigate = useNavigate();
   const { config, isLoading, error, updateConfig, isUpdating, reloadConfig, isReloading } = useConfig();
-  
+
   const [formData, setFormData] = useState({
     business_name: "",
     business_phone: "",
@@ -48,10 +48,10 @@ const BusinessSettings = () => {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      
+
       <main className="flex-1 ml-64">
         <DashboardHeader />
-        
+
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
@@ -92,106 +92,144 @@ const BusinessSettings = () => {
             </Alert>
           )}
 
-          {/* Form */}
-          <div className="glass rounded-2xl p-6 max-w-3xl">
-            {isLoading ? (
-              <div className="space-y-6">
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-32 w-full" />
-                <Skeleton className="h-20 w-full" />
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div>
-                  <Label htmlFor="business_name">Business Name *</Label>
-                  <Input
-                    id="business_name"
-                    value={formData.business_name}
-                    onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
-                    className="glass-strong mt-2"
-                    placeholder="Enter your business name"
-                  />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Form */}
+            <div className="glass rounded-2xl p-6">
+              {isLoading ? (
+                <div className="space-y-6">
+                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-32 w-full" />
+                  <Skeleton className="h-20 w-full" />
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              ) : (
+                <div className="space-y-6">
                   <div>
-                    <Label htmlFor="business_phone">Phone Number</Label>
+                    <Label htmlFor="business_name">Business Name *</Label>
                     <Input
-                      id="business_phone"
-                      value={formData.business_phone}
-                      onChange={(e) => setFormData({ ...formData, business_phone: e.target.value })}
+                      id="business_name"
+                      value={formData.business_name}
+                      onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
                       className="glass-strong mt-2"
-                      placeholder="+1 (555) 123-4567"
+                      placeholder="Enter your business name"
                     />
                   </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="business_phone">Phone Number</Label>
+                      <Input
+                        id="business_phone"
+                        value={formData.business_phone}
+                        onChange={(e) => setFormData({ ...formData, business_phone: e.target.value })}
+                        className="glass-strong mt-2"
+                        placeholder="+1 (555) 123-4567"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="business_email">Email</Label>
+                      <Input
+                        id="business_email"
+                        type="email"
+                        value={formData.business_email}
+                        onChange={(e) => setFormData({ ...formData, business_email: e.target.value })}
+                        className="glass-strong mt-2"
+                        placeholder="contact@business.com"
+                      />
+                    </div>
+                  </div>
+
                   <div>
-                    <Label htmlFor="business_email">Email</Label>
-                    <Input
-                      id="business_email"
-                      type="email"
-                      value={formData.business_email}
-                      onChange={(e) => setFormData({ ...formData, business_email: e.target.value })}
+                    <Label htmlFor="business_address">Address</Label>
+                    <Textarea
+                      id="business_address"
+                      value={formData.business_address}
+                      onChange={(e) => setFormData({ ...formData, business_address: e.target.value })}
                       className="glass-strong mt-2"
-                      placeholder="contact@business.com"
+                      rows={3}
+                      placeholder="123 Main St, City, State 12345"
                     />
                   </div>
-                </div>
 
-                <div>
-                  <Label htmlFor="business_address">Address</Label>
-                  <Textarea
-                    id="business_address"
-                    value={formData.business_address}
-                    onChange={(e) => setFormData({ ...formData, business_address: e.target.value })}
-                    className="glass-strong mt-2"
-                    rows={3}
-                    placeholder="123 Main St, City, State 12345"
-                  />
-                </div>
+                  <div>
+                    <Label htmlFor="timezone">Timezone *</Label>
+                    <Input
+                      id="timezone"
+                      value={formData.timezone}
+                      onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
+                      className="glass-strong mt-2"
+                      placeholder="America/New_York"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Use IANA timezone format (e.g., America/New_York, Europe/London)
+                    </p>
+                  </div>
 
-                <div>
-                  <Label htmlFor="timezone">Timezone *</Label>
-                  <Input
-                    id="timezone"
-                    value={formData.timezone}
-                    onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-                    className="glass-strong mt-2"
-                    placeholder="America/New_York"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Use IANA timezone format (e.g., America/New_York, Europe/London)
-                  </p>
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      className="gap-2 bg-gradient-to-r from-primary to-accent"
+                      onClick={handleSave}
+                      disabled={isUpdating || !formData.business_name}
+                    >
+                      {isUpdating ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4" />
+                          Save Changes
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => navigate('/settings')}
+                      disabled={isUpdating}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
+              )}
+            </div>
 
-                <div className="flex gap-3 pt-4">
-                  <Button 
-                    className="gap-2 bg-gradient-to-r from-primary to-accent"
-                    onClick={handleSave}
-                    disabled={isUpdating || !formData.business_name}
-                  >
-                    {isUpdating ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-4 h-4" />
-                        Save Changes
-                      </>
-                    )}
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => navigate('/settings')}
-                    disabled={isUpdating}
-                  >
-                    Cancel
-                  </Button>
+            {/* Preview */}
+            <div className="space-y-6">
+              <div className="glass rounded-2xl p-6">
+                <h3 className="text-lg font-semibold mb-4">Live Preview</h3>
+                <div className="space-y-6">
+                  {/* Sidebar Preview */}
+                  <div className="space-y-2">
+                    <Label>Sidebar Branding</Label>
+                    <div className="p-4 rounded-lg glass-strong border border-white/10 bg-black/20">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                          <span className="text-white text-xs">Logo</span>
+                        </div>
+                        <span className="text-lg font-bold text-primary truncate">
+                          {formData.business_name || 'Business Name'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dashboard Header Preview */}
+                  <div className="space-y-2">
+                    <Label>Dashboard Header</Label>
+                    <div className="p-4 rounded-lg glass-strong border border-white/10">
+                      <h1 className="text-2xl font-bold mb-1">
+                        {formData.business_name || 'Business Name'} Dashboard
+                      </h1>
+                      <p className="text-sm text-muted-foreground">
+                        Monitor your AI receptionist and business operations.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </main>
