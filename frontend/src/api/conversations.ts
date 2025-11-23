@@ -37,4 +37,11 @@ export const conversationsApi = {
   getRecent: async (limit: number = 50): Promise<ConversationResponse[]> => {
     return conversationsApi.list({ limit });
   },
+
+  /**
+   * Delete a conversation by ID
+   */
+  delete: async (conversationId: string): Promise<void> => {
+    await api.delete(`/conversations/${conversationId}`);
+  },
 };

@@ -1,8 +1,8 @@
 # Core FastAPI dependencies
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
-pydantic==2.5.3
-pydantic-settings==2.1.0
+pydantic>=2.8.0
+pydantic-settings>=2.4.0
 python-multipart==0.0.6
 email-validator==2.3.0
 
@@ -14,8 +14,9 @@ pytz==2024.1
 dateparser==1.2.0
 
 # HTTP Clients
-requests==2.31.0
+requests>=2.32.3
 aiohttp==3.9.1
+httpx>=0.27.0,<0.28.0
 
 # Database - MongoDB
 pymongo==4.6.1
@@ -30,29 +31,13 @@ argon2-cffi==25.1.0
 # WebSockets
 websockets==12.0
 
-# AI & LLM - Enhanced Reasoning Engine
-groq==0.11.0
-langchain==0.3.13
-langchain-community==0.3.13
-langchain-groq==0.2.1
-crewai==0.86.0
-crewai-tools==0.17.0
-litellm==1.55.8
-instructor==1.7.0
+# AI & LLM
+groq>=0.5.0
 openai==1.59.3
+instructor==1.7.0
 
-# Voice Agent (no official async SDK, using httpx directly)
-
-# Background Tasks (Optional)
-celery==5.3.4
-redis==5.0.1
-
-# Development & Testing
-pytest==7.4.3
-pytest-asyncio==0.21.1
-black==23.12.1
-flake8==7.0.0
-httpx==0.26.0
-
-# Production Server
-gunicorn==21.2.0
+# Development (Optional - kept for local dev if needed, but could be removed for pure prod)
+# pytest==7.4.3
+# pytest-asyncio==0.21.1
+# black==23.12.1
+# flake8==7.0.0

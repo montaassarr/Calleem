@@ -60,3 +60,28 @@ async def get_conversation(conversation_ref: str):
         raise HTTPException(status_code=404, detail="Conversation not found")
 
     return ConversationResponse(**_with_id(conversation))
+
+
+@router.delete("/{conversation_ref}", status_code=204)
+async def delete_conversation(conversation_ref: str):
+    """Delete a conversation by Mongo _id or conversation_id"""
+    db = get_database()
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database connection not initialized")
+
+    query = {"conversation_id": conversation_ref}
+    if ObjectId.is_valid(conversation_ref):
+        query = {"_id": ObjectId(conversation_ref)}
+
+    # Delete the conversation
+    result = await db.conversations.delete_one(query)
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # Also delete related conversation history entries
+    await db.conversation_history.delete_many({"conversationId": conversation_ref})
+    
+    logger.info(f"Deleted conversation: {conversation_ref}")
+    
+    return None

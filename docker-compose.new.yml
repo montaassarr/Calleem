@@ -1,0 +1,313 @@
+# ============================================================================
+# AI Receptionist - Docker Compose Configuration
+# ============================================================================
+# 5-Container Architecture:
+#   1. MongoDB - Database
+#   2. Backend - FastAPI application
+#   3. Frontend - React/Vite application
+#   4. Gateway - Traefik reverse proxy
+#   5. Setup - One-time initialization
+#
+# Usage:
+#   Development: docker-compose --profile dev up
+#   Production:  docker-compose --profile prod up -d
+# ============================================================================
+
+version: '3.8'
+
+# ============================================================================
+# NETWORKS
+# ============================================================================
+networks:
+  ai-receptionist-network:
+    driver: bridge
+    name: ai-receptionist-network
+
+# ============================================================================
+# VOLUMES
+# ============================================================================
+volumes:
+  mongodb_data:
+    name: ai-receptionist-mongodb-data
+    driver: local
+  mongodb_config:
+    name: ai-receptionist-mongodb-config
+    driver: local
+  traefik_certs:
+    name: ai-receptionist-traefik-certs
+    driver: local
+
+# ============================================================================
+# SERVICES
+# ============================================================================
+services:
+  # ==========================================================================
+  # MongoDB Database
+  # ==========================================================================
+  mongodb:
+    image: mongo:6.0
+    container_name: ai-receptionist-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-SecurePassword123}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-ai_receptionist}
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - ai-receptionist-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    profiles:
+      - dev
+      - prod
+
+  # ==========================================================================
+  # Setup Container (One-time initialization)
+  # ==========================================================================
+  setup:
+    build:
+      context: .
+      dockerfile: Dockerfile.setup
+    container_name: ai-receptionist-setup
+    environment:
+      MONGO_URI: mongodb://REDACTED:REDACTED@mongodb:27017/${MONGO_DB_NAME:-ai_receptionist}?authSource=admin
+      MONGO_DB_NAME: ${MONGO_DB_NAME:-ai_receptionist}
+      BUSINESS_NAME: ${BUSINESS_NAME:-Royal Fade Barbershop}
+      BUSINESS_EMAIL: ${BUSINESS_EMAIL:-info@royalfade.com}
+      BUSINESS_PHONE: ${BUSINESS_PHONE:-+1234567890}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - ai-receptionist-network
+    restart: "no" # Run once and exit
+    profiles:
+      - dev
+      - prod
+
+  # ==========================================================================
+  # Backend API (FastAPI)
+  # ==========================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../Dockerfile.backend
+    container_name: ai-receptionist-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      # Database
+      MONGO_URI: mongodb://REDACTED:REDACTED@mongodb:27017/${MONGO_DB_NAME:-ai_receptionist}?authSource=admin
+      MONGO_DB_NAME: ${MONGO_DB_NAME:-ai_receptionist}
+
+      # Application
+      DEBUG: "${DEBUG:-False}"
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      SECRET_KEY: ${SECRET_KEY}
+
+      # API Keys
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      VAPI_API_KEY: ${VAPI_API_KEY}
+
+      # WhatsApp
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN}
+
+      # Business Config
+      BUSINESS_NAME: ${BUSINESS_NAME:-Royal Fade Barbershop}
+      BUSINESS_EMAIL: ${BUSINESS_EMAIL:-info@royalfade.com}
+      BUSINESS_PHONE: ${BUSINESS_PHONE:-+1234567890}
+
+      # CORS
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000","http://localhost:5173"]}
+    env_file:
+      - .env
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      setup:
+        condition: service_completed_successfully
+    volumes:
+      - ./backend/logs:/app/logs
+    networks:
+      - ai-receptionist-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    profiles:
+      - prod
+
+  # Backend - Development Mode (with hot reload)
+  backend-dev:
+    build:
+      context: ./backend
+      dockerfile: ../Dockerfile.backend
+    container_name: ai-receptionist-backend-dev
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      # Database
+      MONGO_URI: mongodb://REDACTED:REDACTED@mongodb:27017/${MONGO_DB_NAME:-ai_receptionist}?authSource=admin
+      MONGO_DB_NAME: ${MONGO_DB_NAME:-ai_receptionist}
+
+      # Application
+      DEBUG: "True"
+      ENVIRONMENT: development
+      SECRET_KEY: ${SECRET_KEY:REDACTED}
+
+      # API Keys
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      VAPI_API_KEY: ${VAPI_API_KEY}
+
+      # WhatsApp
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN}
+
+      # Business Config
+      BUSINESS_NAME: ${BUSINESS_NAME:-Royal Fade Barbershop}
+      BUSINESS_EMAIL: ${BUSINESS_EMAIL:-info@royalfade.com}
+      BUSINESS_PHONE: ${BUSINESS_PHONE:-+1234567890}
+
+      # CORS
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000","http://localhost:5173"]}
+    env_file:
+      - .env
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      setup:
+        condition: service_completed_successfully
+    volumes:
+      - ./backend:/app # Mount source code for hot reload
+      - ./backend/logs:/app/logs
+    networks:
+      - ai-receptionist-network
+    command: [ "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload" ]
+    user: root # Override non-root user for dev mode
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    profiles:
+      - dev
+
+  # ==========================================================================
+  # Frontend (React/Vite)
+  # ==========================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../Dockerfile.frontend
+      target: production
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api/v1}
+    container_name: ai-receptionist-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - ai-receptionist-network
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/" ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    profiles:
+      - prod
+
+  # Frontend - Development Mode (with hot reload)
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: ../Dockerfile.frontend
+      target: development
+    container_name: ai-receptionist-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api/v1}
+    depends_on:
+      backend-dev:
+        condition: service_healthy
+    volumes:
+      - ./frontend:/app # Mount source code for hot reload
+      - /app/node_modules # Prevent overwriting node_modules
+    networks:
+      - ai-receptionist-network
+    profiles:
+      - dev
+
+  # ==========================================================================
+  # Gateway (Traefik Reverse Proxy)
+  # ==========================================================================
+  gateway:
+    image: traefik:v2.10
+    container_name: ai-receptionist-gateway
+    restart: unless-stopped
+    command:
+      # API and Dashboard
+      - "--api.dashboard=true"
+      - "--api.insecure=true" # Set to false in production
+
+      # Entry Points
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+
+      # Docker provider
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=ai-receptionist-network"
+
+      # Let's Encrypt (uncomment for production with domain)
+      # - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      # - "--certificatesresolvers.letsencrypt.acme.storage=/certs/acme.json"
+      # - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+
+      # Logging
+      - "--log.level=INFO"
+      - "--accesslog=true"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080" # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_certs:/certs
+    networks:
+      - ai-receptionist-network
+    labels:
+      - "traefik.enable=true"
+
+      # Dashboard
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+    profiles:
+      - prod
+  # Note: In development mode, we expose ports directly without Traefik
+  # In production mode, Traefik routes all traffic

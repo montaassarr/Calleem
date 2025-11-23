@@ -1,0 +1,34 @@
+# ============================================================================
+# AI Receptionist Setup Container - Dockerfile
+# ============================================================================
+# One-time initialization container for database setup and seeding
+# This container runs once and exits
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install required Python packages
+RUN pip install --no-cache-dir \
+    pymongo==4.6.1 \
+    motor==3.3.2 \
+    dnspython==2.4.2 \
+    python-dotenv==1.0.0 \
+    pydantic>=2.8.0
+
+# Copy setup scripts
+COPY setup/ ./setup/
+
+# Copy models (needed for schema validation)
+COPY backend/models/ ./models/
+
+# Make setup script executable
+RUN chmod +x setup/init.py
+
+# Run the setup script
+CMD ["python", "setup/init.py"]

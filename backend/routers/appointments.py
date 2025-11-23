@@ -113,18 +113,18 @@ async def list_appointments(
         for appointment in appointments:
             formatted_appointments.append({
                 "id": str(appointment["_id"]),
-                "client_name": appointment.get("name", ""),
-                "client_phone": appointment.get("phone", ""),
-                "client_email": appointment.get("email"),
+                "client_name": appointment.get("client_name") or appointment.get("name", ""),
+                "client_phone": appointment.get("client_phone") or appointment.get("phone", ""),
+                "client_email": appointment.get("client_email") or appointment.get("email"),
                 "service": appointment.get("service", ""),
-                "datetime": appointment.get("start"),
-                "duration_minutes": appointment.get("durationMinutes", 30),
-                "barber_preference": appointment.get("barberPreference"),
+                "datetime": appointment.get("datetime") or appointment.get("start"),
+                "duration_minutes": appointment.get("duration_minutes") or appointment.get("durationMinutes", 30),
+                "barber_preference": appointment.get("barber_preference") or appointment.get("barberPreference"),
                 "status": appointment.get("status", "confirmed"),
-                "conversation_id": appointment.get("conversationId"),
+                "conversation_id": appointment.get("conversation_id") or appointment.get("conversationId"),
                 "notes": appointment.get("notes"),
-                "created_at": appointment.get("createdAt", appointment.get("_id").generation_time),
-                "updated_at": appointment.get("updatedAt", appointment.get("_id").generation_time)
+                "created_at": appointment.get("created_at") or appointment.get("createdAt") or appointment.get("_id").generation_time,
+                "updated_at": appointment.get("updated_at") or appointment.get("updatedAt") or appointment.get("_id").generation_time
             })
         
         logger.info(f"Retrieved {len(formatted_appointments)} appointments")

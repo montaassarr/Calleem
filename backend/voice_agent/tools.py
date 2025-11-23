@@ -342,7 +342,7 @@ class VoiceTools:
     async def _get_services(business_id: str) -> Dict[str, Any]:
         """Get available services using NORMALIZED schema"""
         db = get_database()
-        if not db:
+        if db is None:
             return {"success": False, "error": "Database unavailable"}
         
         try:

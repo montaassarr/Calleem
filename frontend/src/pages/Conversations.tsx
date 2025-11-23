@@ -2,26 +2,54 @@ import { Sidebar } from "@/components/Sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MessageSquare, User, Clock } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Search, MessageSquare, User, Clock, Trash2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { conversationsApi } from "@/api";
 import { useNavigate } from "react-router-dom";
 import type { ConversationResponse } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
 
 const Conversations = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: conversations = [], isLoading } = useQuery({
     queryKey: ["conversations"],
     queryFn: () => conversationsApi.list({ limit: 100 }),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (conversationId: string) => conversationsApi.delete(conversationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      toast({
+        title: "Conversation deleted",
+        description: "The conversation has been successfully removed.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete conversation. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDelete = (e: React.MouseEvent, conversationId: string) => {
+    e.stopPropagation();
+    if (confirm("Are you sure you want to delete this conversation?")) {
+      deleteMutation.mutate(conversationId);
+    }
+  };
+
   const formatDate = (datetime: string) => {
     const date = new Date(datetime);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
+
     if (days === 0) {
       return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     } else if (days === 1) {
@@ -51,10 +79,10 @@ const Conversations = () => {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      
+
       <main className="flex-1 ml-64">
         <DashboardHeader />
-        
+
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
@@ -93,7 +121,7 @@ const Conversations = () => {
               conversations.map((conversation: ConversationResponse) => {
                 const lastMessage = conversation.messages[conversation.messages.length - 1];
                 const messageCount = conversation.messages.length;
-                
+
                 return (
                   <div
                     key={conversation.id}
@@ -119,6 +147,15 @@ const Conversations = () => {
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getIntentColor(conversation.state.intent)}`}>
                         {conversation.state.intent?.replace('_', ' ') || 'unknown'}
                       </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        onClick={(e) => handleDelete(e, conversation.id)}
+                        disabled={deleteMutation.isPending}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
 
                     {/* Last Message */}
@@ -132,11 +169,10 @@ const Conversations = () => {
                     {/* Footer */}
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>{messageCount} messages</span>
-                      <span className={`px-2 py-1 rounded-full ${
-                        conversation.status === 'active' ? 'bg-green-100 text-green-700' :
+                      <span className={`px-2 py-1 rounded-full ${conversation.status === 'active' ? 'bg-green-100 text-green-700' :
                         conversation.status === 'completed' ? 'bg-blue-100 text-blue-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
+                          'bg-gray-100 text-gray-700'
+                        }`}>
                         {conversation.status}
                       </span>
                     </div>
