@@ -51,19 +51,32 @@ export default function HoursSettingsPage() {
     );
 
     useEffect(() => {
-        if (config?.opening_hours && config.opening_hours.length > 0) {
-            setHours(config.opening_hours.map(h => ({
-                day_of_week: h.day_of_week,
-                open_time: h.open_time,
-                close_time: h.close_time,
-                is_open: h.is_open
-            })));
+        if (config?.business_hours) {
+            setHours(DAYS.map((day, index) => {
+                const dayConfig = config.business_hours[day];
+                return {
+                    day_of_week: index,
+                    open_time: dayConfig?.start || '09:00',
+                    close_time: dayConfig?.end || '17:00',
+                    is_open: dayConfig?.enabled ?? false
+                };
+            }));
         }
     }, [config]);
 
     const handleSave = () => {
+        const business_hours: any = {};
+        hours.forEach(h => {
+            const dayName = DAYS[h.day_of_week];
+            business_hours[dayName] = {
+                start: h.open_time,
+                end: h.close_time,
+                enabled: h.is_open
+            };
+        });
+
         updateConfig({
-            opening_hours: hours
+            business_hours
         }, {
             onSuccess: () => toast.success("Business hours updated successfully"),
             onError: () => toast.error("Failed to update business hours"),

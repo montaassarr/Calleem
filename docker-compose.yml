@@ -78,27 +78,35 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-  # Nginx Reverse Proxy (optional - for production)
-  # nginx:
-  #   image: nginx:alpine
-  #   container_name: ai-receptionist-nginx
-  #   restart: unless-stopped
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-  #     - ./nginx/ssl:/etc/nginx/ssl:ro
-  #   depends_on:
-  #     - backend
-  #     - frontend
-  #   networks:
-  #     - ai-receptionist-network
+
+  # n8n Workflow Automation
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: ai-receptionist-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD:-password}
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - WEBHOOK_URL=http://${N8N_HOST:-localhost}:5678/
+      - GENERIC_TIMEZONE=${TIMEZONE:-America/New_York}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - ai-receptionist-network
 
 volumes:
   mongodb_data:
     driver: local
   mongodb_config:
+    driver: local
+  n8n_data:
     driver: local
 
 networks:

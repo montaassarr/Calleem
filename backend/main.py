@@ -70,16 +70,30 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Configure CORS - Allow all origins for development
+# 🔒 RATE LIMITING (FIX #3)
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development
+    allow_origins=[
+        os.getenv("FRONTEND_URL", "http://localhost:3000"),
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        # Add production URL when deploying
+    ],
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods
-    allow_headers=["*"],  # Allow all headers
-    expose_headers=["*"],
-    max_age=3600,  # Cache preflight for 1 hour
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+
+logger.info(f"✅ CORS configured for: {os.getenv('FRONTEND_URL', 'http://localhost:3000')}")
 
 
 # Include routers
@@ -117,6 +131,20 @@ app.include_router(
     admin.router,
     prefix=f"{settings.API_V1_PREFIX}/admin",
     tags=["Admin"]
+)
+
+from routers import voice_agent
+app.include_router(
+    voice_agent.router,
+    prefix=f"{settings.API_V1_PREFIX}/voice-agent",
+    tags=["Voice Agent"]
+)
+
+from routers import automations
+app.include_router(
+    automations.router,
+    prefix=f"{settings.API_V1_PREFIX}/automations",
+    tags=["Smart Automations"]
 )
 
 

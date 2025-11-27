@@ -1,6 +1,6 @@
 "use client";
 
-import { Building, Users, Bot, Key, Clock, Briefcase } from "lucide-react";
+import { Building, Users, Bot, Key, Clock, Briefcase, CreditCard } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
@@ -48,6 +48,13 @@ export default function SettingsPage() {
             icon: Users,
             path: "/dashboard/settings/team",
             color: "from-pink-500 to-rose-500",
+        },
+        {
+            title: "Billing & Plans",
+            description: "Manage subscription and payment methods",
+            icon: CreditCard,
+            path: "/dashboard/settings/billing",
+            color: "from-emerald-500 to-green-500",
         },
     ];
 
