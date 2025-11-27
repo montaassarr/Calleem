@@ -1,0 +1,47 @@
+import api from '@/lib/api';
+import type { LoginCredentials, Token, UserResponse, UserCreate } from '@/lib/types';
+
+export const authApi = {
+    /**
+     * Login user and get JWT token
+     */
+    login: async (credentials: LoginCredentials): Promise<Token> => {
+        const formData = new FormData();
+        formData.append('username', credentials.username);
+        formData.append('password', credentials.password);
+
+        const response = await api.post<Token>('/users/token', formData, {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+        });
+
+        return response.data;
+    },
+
+    /**
+     * Register a new user
+     */
+    register: async (userData: UserCreate): Promise<UserResponse> => {
+        const response = await api.post<UserResponse>('/users/register', userData);
+        return response.data;
+    },
+
+    /**
+     * Get current authenticated user
+     */
+    getCurrentUser: async (): Promise<UserResponse> => {
+        const response = await api.get<UserResponse>('/users/me');
+        return response.data;
+    },
+
+    /**
+     * Logout user (client-side only)
+     */
+    logout: (): void => {
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('username');
+        }
+    },
+};

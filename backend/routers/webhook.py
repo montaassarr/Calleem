@@ -11,7 +11,9 @@ from typing import Optional, Dict, Any
 
 from ai.conversation_manager import conversation_manager
 from services.whatsapp_cloud import whatsapp_cloud
+from services.whatsapp_cloud import whatsapp_cloud
 from utils.text_formatter import text_formatter
+from database.mongo_config import get_database
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +113,20 @@ async def webhook_message(request: Request):
                     logger.info("No messages in webhook payload")
                     continue
                 
+                # Resolve tenant from phone_number_id
+                metadata_obj = value.get("metadata", {})
+                phone_number_id = metadata_obj.get("phone_number_id")
+                tenant_id = None
+                
+                if phone_number_id:
+                    db = get_database()
+                    tenant = await db.tenants.find_one({"whatsapp_phone_number_id": phone_number_id})
+                    if tenant:
+                        tenant_id = str(tenant["_id"])
+                        logger.info(f"🏢 Resolved tenant: {tenant.get('name')} ({tenant_id})")
+                    else:
+                        logger.warning(f"⚠️ No tenant found for phone_number_id: {phone_number_id}")
+                
                 # Process each message
                 for message in messages:
                     # Extract message details
@@ -141,14 +157,16 @@ async def webhook_message(request: Request):
                         "whatsapp_message_id": message_id,
                         "whatsapp_from": from_number,
                         "whatsapp_timestamp": timestamp,
-                        "message_type": message_type
+                        "message_type": message_type,
+                        "phone_number_id": phone_number_id
                     }
                     
                     # Process message through conversation manager
                     result = await conversation_manager.process_message(
                         phone_number=phone_number,
                         message_text=message_text,
-                        whatsapp_metadata=metadata
+                        whatsapp_metadata=metadata,
+                        tenant_id=tenant_id
                     )
                     
                     # Get AI response

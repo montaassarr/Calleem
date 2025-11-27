@@ -12,14 +12,17 @@ from typing import Optional
 from bson import ObjectId
 import logging
 
-from models.user import (
-    UserCreate,
-    UserUpdate,
-    UserResponse,
-    Token,
-    TokenData,
-    LoginRequest
+from models.core.users import (
+    User, 
+    UserCreate, 
+    UserUpdate, 
+    UserResponse, 
+    Token, 
+    TokenData, 
+    LoginRequest,
+    UserRole
 )
+from models.core.tenants import Tenant, TenantCreate, TenantStatus
 from database.mongo_config import get_database
 from utils.config import settings
 
@@ -90,6 +93,26 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 
+async def get_current_admin(current_user: dict = Depends(get_current_user)):
+    """Get current user and verify they are an admin"""
+    if current_user.get("role") not in [UserRole.ADMIN.value, UserRole.OWNER.value, UserRole.SUPER_ADMIN.value]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    return current_user
+
+
+async def get_super_admin(current_user: dict = Depends(get_current_user)):
+    """Get current user and verify they are a super admin"""
+    if current_user.get("role") != UserRole.SUPER_ADMIN.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Super Admin access required"
+        )
+    return current_user
+
+
 @router.post("/register", response_model=UserResponse, status_code=201)
 async def register_user(user: UserCreate):
     """Register a new user"""
@@ -127,14 +150,44 @@ async def register_user(user: UserCreate):
         user_dict["updated_at"] = datetime.utcnow()
         user_dict["last_login"] = None
         
-        # Insert user
+        # Insert user first to get ID
         result = await db.users.insert_one(user_dict)
+        user_id = str(result.inserted_id)
         
-        # Retrieve created user
+        # Create a new tenant for this user
+        # Default business name is "User's Business" until configured
+        tenant_dict = {
+            "owner_id": user_id,
+            "name": f"{user.full_name}'s Business",
+            "status": TenantStatus.ACTIVE,
+            "plan": "free",
+            "is_configured": False,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "total_calls": 0,
+            "total_minutes": 0.0
+        }
+        
+        tenant_result = await db.tenants.insert_one(tenant_dict)
+        tenant_id = str(tenant_result.inserted_id)
+        
+        # Update user with tenant_id
+        await db.users.update_one(
+            {"_id": result.inserted_id},
+            {
+                "$set": {
+                    "tenant_id": tenant_id,
+                    "business_id": tenant_id, # Legacy support
+                    "role": UserRole.OWNER # First user is always owner
+                }
+            }
+        )
+        
+        # Retrieve created user with updated fields
         created_user = await db.users.find_one({"_id": result.inserted_id})
         created_user["id"] = str(created_user["_id"])
         
-        logger.info(f"✅ User registered: {created_user['username']}")
+        logger.info(f"✅ User registered and tenant created: {created_user['username']} (Tenant: {tenant_id})")
         
         return UserResponse(**created_user)
         

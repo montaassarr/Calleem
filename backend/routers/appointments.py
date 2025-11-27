@@ -9,17 +9,20 @@ from datetime import datetime
 from bson import ObjectId
 import logging
 
-from models.appointment import (
-    AppointmentCreate,
-    AppointmentUpdate,
-    AppointmentResponse,
+from models.appointments.appointments import (
+    Appointment, 
+    AppointmentCreate, 
+    AppointmentUpdate, 
+    AppointmentResponse, 
     AppointmentStatus
 )
 from database.mongo_config import get_database
 from utils.datetime_utils import datetime_utils
 from utils.text_formatter import text_formatter
 from services.whatsapp_cloud import whatsapp_cloud
+from services.whatsapp_cloud import whatsapp_cloud
 from utils.config import settings
+from routers.users import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +30,24 @@ router = APIRouter()
 
 
 @router.post("/", response_model=AppointmentResponse, status_code=201)
-async def create_appointment(appointment: AppointmentCreate):
+async def create_appointment(
+    appointment: AppointmentCreate,
+    current_user: dict = Depends(get_current_user)
+):
     """Create a new appointment"""
     try:
         db = get_database()
+        
+        # Get tenant_id from current user
+        tenant_id = current_user.get("tenant_id")
+        if not tenant_id:
+            # Fallback for legacy users or admin
+            tenant_id = current_user.get("business_id")
+            
+        if not tenant_id and current_user.get("role") != "admin":
+             # If still no tenant_id and not admin, this is an issue
+             # But for now let's allow it or log warning
+             pass
         
         # Validate appointment time
         is_valid, error_msg = datetime_utils.is_valid_appointment_time(appointment.datetime)
@@ -39,6 +56,8 @@ async def create_appointment(appointment: AppointmentCreate):
         
         # Prepare appointment document
         appointment_dict = appointment.dict()
+        appointment_dict["tenant_id"] = tenant_id
+        appointment_dict["business_id"] = tenant_id # Legacy support
         appointment_dict["status"] = AppointmentStatus.CONFIRMED
         appointment_dict["created_at"] = datetime.utcnow()
         appointment_dict["updated_at"] = datetime.utcnow()
@@ -82,7 +101,8 @@ async def list_appointments(
     date_to: Optional[datetime] = None,
     client_phone: Optional[str] = None,
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=500)
+    limit: int = Query(100, ge=1, le=500),
+    current_user: dict = Depends(get_current_user)
 ):
     """List appointments with optional filters"""
     try:
@@ -90,6 +110,11 @@ async def list_appointments(
         
         # Build query filter
         query = {}
+        
+        # Filter by tenant_id
+        tenant_id = current_user.get("tenant_id") or current_user.get("business_id")
+        if tenant_id:
+            query["tenant_id"] = tenant_id
         
         if status:
             query["status"] = status
@@ -122,7 +147,10 @@ async def list_appointments(
 
 
 @router.get("/{appointment_id}", response_model=AppointmentResponse)
-async def get_appointment(appointment_id: str):
+async def get_appointment(
+    appointment_id: str,
+    current_user: dict = Depends(get_current_user)
+):
     """Get a specific appointment by ID"""
     try:
         db = get_database()
@@ -131,7 +159,13 @@ async def get_appointment(appointment_id: str):
         if not ObjectId.is_valid(appointment_id):
             raise HTTPException(status_code=400, detail="Invalid appointment ID")
         
-        appointment = await db.appointments.find_one({"_id": ObjectId(appointment_id)})
+        # Filter by tenant_id
+        tenant_id = current_user.get("tenant_id") or current_user.get("business_id")
+        query = {"_id": ObjectId(appointment_id)}
+        if tenant_id:
+            query["tenant_id"] = tenant_id
+            
+        appointment = await db.appointments.find_one(query)
         
         if not appointment:
             raise HTTPException(status_code=404, detail="Appointment not found")
@@ -148,7 +182,11 @@ async def get_appointment(appointment_id: str):
 
 
 @router.put("/{appointment_id}", response_model=AppointmentResponse)
-async def update_appointment(appointment_id: str, update: AppointmentUpdate):
+async def update_appointment(
+    appointment_id: str, 
+    update: AppointmentUpdate,
+    current_user: dict = Depends(get_current_user)
+):
     """Update an appointment"""
     try:
         db = get_database()
@@ -158,7 +196,13 @@ async def update_appointment(appointment_id: str, update: AppointmentUpdate):
             raise HTTPException(status_code=400, detail="Invalid appointment ID")
         
         # Check if appointment exists
-        existing = await db.appointments.find_one({"_id": ObjectId(appointment_id)})
+        # Check if appointment exists and belongs to tenant
+        tenant_id = current_user.get("tenant_id") or current_user.get("business_id")
+        query = {"_id": ObjectId(appointment_id)}
+        if tenant_id:
+            query["tenant_id"] = tenant_id
+            
+        existing = await db.appointments.find_one(query)
         if not existing:
             raise HTTPException(status_code=404, detail="Appointment not found")
         
@@ -198,7 +242,10 @@ async def update_appointment(appointment_id: str, update: AppointmentUpdate):
 
 
 @router.delete("/{appointment_id}", status_code=204)
-async def delete_appointment(appointment_id: str):
+async def delete_appointment(
+    appointment_id: str,
+    current_user: dict = Depends(get_current_user)
+):
     """Permanently delete an appointment from database"""
     try:
         db = get_database()
@@ -208,7 +255,13 @@ async def delete_appointment(appointment_id: str):
             raise HTTPException(status_code=400, detail="Invalid appointment ID")
         
         # Get appointment before deletion (for logging)
-        appointment = await db.appointments.find_one({"_id": ObjectId(appointment_id)})
+        # Filter by tenant_id
+        tenant_id = current_user.get("tenant_id") or current_user.get("business_id")
+        query = {"_id": ObjectId(appointment_id)}
+        if tenant_id:
+            query["tenant_id"] = tenant_id
+            
+        appointment = await db.appointments.find_one(query)
         
         if not appointment:
             raise HTTPException(status_code=404, detail="Appointment not found")
@@ -231,7 +284,10 @@ async def delete_appointment(appointment_id: str):
 
 
 @router.post("/{appointment_id}/cancel", response_model=AppointmentResponse)
-async def cancel_appointment(appointment_id: str):
+async def cancel_appointment(
+    appointment_id: str,
+    current_user: dict = Depends(get_current_user)
+):
     """Cancel an appointment (updates status to cancelled)"""
     try:
         db = get_database()
@@ -241,7 +297,13 @@ async def cancel_appointment(appointment_id: str):
             raise HTTPException(status_code=400, detail="Invalid appointment ID")
         
         # Get appointment before cancellation
-        appointment = await db.appointments.find_one({"_id": ObjectId(appointment_id)})
+        # Filter by tenant_id
+        tenant_id = current_user.get("tenant_id") or current_user.get("business_id")
+        query = {"_id": ObjectId(appointment_id)}
+        if tenant_id:
+            query["tenant_id"] = tenant_id
+            
+        appointment = await db.appointments.find_one(query)
         
         if not appointment:
             raise HTTPException(status_code=404, detail="Appointment not found")
@@ -285,7 +347,8 @@ Feel free to rebook anytime! - {settings.BUSINESS_NAME}"""
 async def check_availability(
     date: Optional[str] = Query(None, description="Date in YYYY-MM-DD format"),
     time: Optional[str] = Query(None, description="Time in HH:MM format"),
-    duration_minutes: int = Query(30, ge=15, le=240, description="Duration in minutes")
+    duration_minutes: int = Query(30, ge=15, le=240, description="Duration in minutes"),
+    current_user: dict = Depends(get_current_user)
 ):
     """Check if a time slot is available"""
     try:
@@ -312,7 +375,9 @@ async def check_availability(
             minute=requested_datetime.minute + duration_minutes
         )
         
-        overlapping = await db.appointments.count_documents({
+        # Filter by tenant_id
+        tenant_id = current_user.get("tenant_id") or current_user.get("business_id")
+        query = {
             "status": {"$in": [AppointmentStatus.CONFIRMED, AppointmentStatus.PENDING]},
             "$or": [
                 # Existing appointment starts during requested slot
@@ -337,7 +402,12 @@ async def check_availability(
                     }
                 }
             ]
-        })
+        }
+        
+        if tenant_id:
+            query["tenant_id"] = tenant_id
+            
+        overlapping = await db.appointments.count_documents(query)
         
         is_available = overlapping == 0
         
@@ -356,13 +426,20 @@ async def check_availability(
 
 
 @router.get("/stats/summary")
-async def get_appointment_stats():
+async def get_appointment_stats(current_user: dict = Depends(get_current_user)):
     """Get appointment statistics"""
     try:
         db = get_database()
         
+        # Filter by tenant_id
+        tenant_id = current_user.get("tenant_id") or current_user.get("business_id")
+        match_stage = {}
+        if tenant_id:
+            match_stage["tenant_id"] = tenant_id
+            
         # Count by status
         pipeline = [
+            {"$match": match_stage},
             {"$group": {"_id": "$status", "count": {"$sum": 1}}}
         ]
         
@@ -371,13 +448,15 @@ async def get_appointment_stats():
             status_counts[result["_id"]] = result["count"]
         
         # Total appointments
-        total = await db.appointments.count_documents({})
+        total = await db.appointments.count_documents(match_stage)
         
         # Upcoming appointments
-        upcoming = await db.appointments.count_documents({
+        upcoming_query = match_stage.copy()
+        upcoming_query.update({
             "datetime": {"$gte": datetime.utcnow()},
             "status": AppointmentStatus.CONFIRMED
         })
+        upcoming = await db.appointments.count_documents(upcoming_query)
         
         return {
             "total": total,

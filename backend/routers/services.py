@@ -3,18 +3,20 @@ Services API Router
 CRUD operations for barber shop services
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import List, Optional
 from datetime import datetime
 from bson import ObjectId
 import logging
 
-from models.service import (
-    ServiceCreate,
-    ServiceUpdate,
+from models.business.services import (
+    Service, 
+    ServiceCreate, 
+    ServiceUpdate, 
     ServiceResponse
 )
 from database.mongo_config import get_database
+from routers.users import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -22,18 +24,26 @@ router = APIRouter()
 
 
 @router.post("/", response_model=ServiceResponse, status_code=201)
-async def create_service(service: ServiceCreate):
+async def create_service(
+    service: ServiceCreate,
+    current_user: dict = Depends(get_current_user)
+):
     """Create a new service"""
     try:
         db = get_database()
         
-        # Check if service with same name exists
-        existing = await db.services.find_one({"name": service.name})
+        # Get tenant_id
+        tenant_id = current_user.get("tenant_id") or current_user.get("business_id")
+        
+        # Check if service with same name exists for this tenant
+        existing = await db.services.find_one({"name": service.name, "tenant_id": tenant_id})
         if existing:
             raise HTTPException(status_code=400, detail="Service with this name already exists")
         
         # Prepare service document
         service_dict = service.dict()
+        service_dict["tenant_id"] = tenant_id
+        service_dict["business_id"] = tenant_id # Legacy support
         service_dict["created_at"] = datetime.utcnow()
         service_dict["updated_at"] = datetime.utcnow()
         
@@ -43,6 +53,8 @@ async def create_service(service: ServiceCreate):
         # Retrieve created service
         created_service = await db.services.find_one({"_id": result.inserted_id})
         created_service["id"] = str(created_service["_id"])
+        if "_id" in created_service:
+            del created_service["_id"]
         
         logger.info(f"✅ Service created: {created_service['name']}")
         
@@ -59,14 +71,18 @@ async def create_service(service: ServiceCreate):
 async def list_services(
     active_only: bool = Query(True),
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=500)
+    limit: int = Query(100, ge=1, le=500),
+    current_user: dict = Depends(get_current_user)
 ):
     """List all services"""
     try:
         db = get_database()
         
         # Build query
-        query = {"active": True} if active_only else {}
+        tenant_id = current_user.get("tenant_id") or current_user.get("business_id")
+        query = {"tenant_id": tenant_id}
+        if active_only:
+            query["active"] = True
         
         # Fetch services
         cursor = db.services.find(query).skip(skip).limit(limit)
@@ -75,6 +91,8 @@ async def list_services(
         # Format response
         for service in services:
             service["id"] = str(service["_id"])
+            if "_id" in service:
+                del service["_id"]
         
         logger.info(f"Retrieved {len(services)} services")
         
@@ -86,7 +104,10 @@ async def list_services(
 
 
 @router.get("/{service_id}", response_model=ServiceResponse)
-async def get_service(service_id: str):
+async def get_service(
+    service_id: str,
+    current_user: dict = Depends(get_current_user)
+):
     """Get a specific service by ID"""
     try:
         db = get_database()
@@ -94,12 +115,20 @@ async def get_service(service_id: str):
         if not ObjectId.is_valid(service_id):
             raise HTTPException(status_code=400, detail="Invalid service ID")
         
-        service = await db.services.find_one({"_id": ObjectId(service_id)})
+        # Filter by tenant_id
+        tenant_id = current_user.get("tenant_id") or current_user.get("business_id")
+        query = {"_id": ObjectId(service_id)}
+        if tenant_id:
+            query["tenant_id"] = tenant_id
+            
+        service = await db.services.find_one(query)
         
         if not service:
             raise HTTPException(status_code=404, detail="Service not found")
         
         service["id"] = str(service["_id"])
+        if "_id" in service:
+            del service["_id"]
         
         return ServiceResponse(**service)
         
@@ -111,7 +140,11 @@ async def get_service(service_id: str):
 
 
 @router.put("/{service_id}", response_model=ServiceResponse)
-async def update_service(service_id: str, update: ServiceUpdate):
+async def update_service(
+    service_id: str, 
+    update: ServiceUpdate,
+    current_user: dict = Depends(get_current_user)
+):
     """Update a service"""
     try:
         db = get_database()
@@ -120,7 +153,13 @@ async def update_service(service_id: str, update: ServiceUpdate):
             raise HTTPException(status_code=400, detail="Invalid service ID")
         
         # Check if exists
-        existing = await db.services.find_one({"_id": ObjectId(service_id)})
+        # Check if exists and belongs to tenant
+        tenant_id = current_user.get("tenant_id") or current_user.get("business_id")
+        query = {"_id": ObjectId(service_id)}
+        if tenant_id:
+            query["tenant_id"] = tenant_id
+            
+        existing = await db.services.find_one(query)
         if not existing:
             raise HTTPException(status_code=404, detail="Service not found")
         
@@ -141,6 +180,8 @@ async def update_service(service_id: str, update: ServiceUpdate):
         # Retrieve updated service
         updated_service = await db.services.find_one({"_id": ObjectId(service_id)})
         updated_service["id"] = str(updated_service["_id"])
+        if "_id" in updated_service:
+            del updated_service["_id"]
         
         logger.info(f"✏️ Service updated: {service_id}")
         
@@ -154,7 +195,10 @@ async def update_service(service_id: str, update: ServiceUpdate):
 
 
 @router.delete("/{service_id}", status_code=204)
-async def delete_service(service_id: str):
+async def delete_service(
+    service_id: str,
+    current_user: dict = Depends(get_current_user)
+):
     """Delete a service (soft delete by marking as inactive)"""
     try:
         db = get_database()
@@ -163,8 +207,14 @@ async def delete_service(service_id: str):
             raise HTTPException(status_code=400, detail="Invalid service ID")
         
         # Mark as inactive instead of deleting
+        # Mark as inactive instead of deleting (verify tenant)
+        tenant_id = current_user.get("tenant_id") or current_user.get("business_id")
+        query = {"_id": ObjectId(service_id)}
+        if tenant_id:
+            query["tenant_id"] = tenant_id
+            
         result = await db.services.update_one(
-            {"_id": ObjectId(service_id)},
+            query,
             {"$set": {"active": False, "updated_at": datetime.utcnow()}}
         )
         

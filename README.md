@@ -728,30 +728,61 @@ MongoDB Collections:
 
 - Secure environment variables
 
+
 ## 🐳 Docker Deployment
 
----
+### Quick Start with Docker
+
+The easiest way to run the entire application:
 
 ```bash
+# Start all services with Docker
+./docker-start.sh
+```
 
-**Made with ❤️ for barbershops worldwide**# Build and run with Docker Compose
+This will:
+- Start MongoDB, Backend, and Frontend in Docker containers
+- Wait for all services to be healthy
+- Display service URLs and helpful information
 
+Access the application at:
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
+
+### Stop Services
+
+```bash
+./docker-stop.sh
+```
+
+### Manual Docker Commands
+
+```bash
+# Build and run
 docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
+📖 **For detailed Docker documentation, see [DOCKER.md](DOCKER.md)**
 
 ---
 
-# View logs
+**Made with ❤️ for barbershops worldwide**
 
-## Quick Linksdocker-compose logs -f
+---
 
+## Quick Links
 
-
-- [Installation](INSTALLATION.md)# Stop services
-
-- [API Docs](http://localhost:8000/docs)docker-compose down
-
-- [GitHub](https://github.com/montaassarr/ai-_receptionist)```
-
+- [Installation](INSTALLATION.md)
+- [Docker Guide](DOCKER.md)
+- [API Docs](http://localhost:8000/docs)
+- [GitHub](https://github.com/montaassarr/ai-_receptionist)
 - [Issues](https://github.com/montaassarr/ai-_receptionist/issues)
 
 ## 🛠️ Development

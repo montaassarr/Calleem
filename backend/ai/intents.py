@@ -5,7 +5,7 @@ Intent Classification and Recognition
 from enum import Enum
 from typing import Dict, List, Optional
 import re
-from models.conversation import ConversationIntent
+from models.communication.conversations import ConversationIntent
 
 
 class IntentKeywords:

@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
     
     # Database
-    MONGO_URI: str = "mongodb://localhost:27017"
+    MONGO_URI: str = "mongodb://REDACTED:REDACTED@localhost:27017/ai_barber_receptionist?authSource=admin"
     MONGO_DB_NAME: str = "ai_barber_receptionist"
     
     # WhatsApp Cloud API
@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     
     # CORS
     CORS_ORIGINS: List[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
         "http://localhost:5173",
         "http://127.0.0.1:5173"
     ]
@@ -53,16 +55,6 @@ class Settings(BaseSettings):
     TIMEZONE: str = "America/New_York"
     AVAILABLE_SERVICES: str = "Haircut,Beard Trim,Fade,Hot Shave,Hair & Beard Combo"
     DEFAULT_APPOINTMENT_DURATION: int = 30
-    
-    # Redis (Optional)
-    REDIS_HOST: str = "localhost"
-    REDIS_PORT: int = 6379
-    REDIS_DB: int = 0
-    REDIS_PASSWORD: str = ""
-    
-    # Celery (Optional)
-    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
-    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
     
     # Logging
     LOG_LEVEL: str = "INFO"
