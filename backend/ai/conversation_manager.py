@@ -8,11 +8,11 @@ import json
 import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime
-from models.conversation import (
+from models.communication.conversations import (
     Message, MessageRole, ConversationIntent,
     ConversationState, ConversationInDB
 )
-from models.appointment import AppointmentCreate, AppointmentStatus
+from models.appointments.appointments import AppointmentCreate, AppointmentStatus
 from ai.groq_agent import groq_agent
 from ai.prompt_templates import prompt_templates
 from ai.intents import intent_classifier
@@ -42,7 +42,8 @@ class ConversationManager:
         self,
         phone_number: str,
         message_text: str,
-        whatsapp_metadata: Dict = None
+        whatsapp_metadata: Dict = None,
+        tenant_id: str = None
     ) -> Dict[str, Any]:
         """
         Process incoming message and generate response
@@ -51,6 +52,7 @@ class ConversationManager:
             phone_number: Client's phone number
             message_text: The message text
             whatsapp_metadata: Optional WhatsApp message metadata
+            tenant_id: Optional tenant ID for multi-tenancy
             
         Returns:
             Dictionary with AI response and updated state
@@ -61,7 +63,7 @@ class ConversationManager:
                 await self.initialize()
             
             # Get or create conversation
-            conversation = await self._get_or_create_conversation(phone_number)
+            conversation = await self._get_or_create_conversation(phone_number, tenant_id)
             
             # Add client message to conversation
             client_message = Message(
@@ -180,14 +182,18 @@ class ConversationManager:
                 "error": str(e)
             }
     
-    async def _get_or_create_conversation(self, phone_number: str) -> Dict:
+    async def _get_or_create_conversation(self, phone_number: str, tenant_id: str = None) -> Dict:
         """Get existing conversation or create new one"""
         
         # Try to find recent conversation (within last 24 hours)
-        recent_conversation = await self.db.conversations.find_one({
+        query = {
             "phone_number": phone_number,
             "created_at": {"$gte": datetime.utcnow().replace(hour=0, minute=0, second=0)}
-        }, sort=[("created_at", -1)])
+        }
+        if tenant_id:
+            query["tenant_id"] = tenant_id
+            
+        recent_conversation = await self.db.conversations.find_one(query, sort=[("created_at", -1)])
         
         if recent_conversation:
             logger.info(f"Found existing conversation: {recent_conversation['conversation_id']}")
@@ -198,6 +204,8 @@ class ConversationManager:
         conversation = {
             "conversation_id": conversation_id,
             "phone_number": phone_number,
+            "tenant_id": tenant_id,
+            "business_id": tenant_id or "default", # Legacy support
             "messages": [],
             "state": {
                 "intent": "unknown",
@@ -492,7 +500,9 @@ class ConversationManager:
             "status": AppointmentStatus.CONFIRMED,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
-            "conversation_id": conversation.get("conversation_id")
+            "conversation_id": conversation.get("conversation_id"),
+            "tenant_id": conversation.get("tenant_id"),
+            "business_id": conversation.get("business_id") or conversation.get("tenant_id")
         })
         try:
             logger.info(f"🔄 Attempting to create appointment for {payload.client_name}")

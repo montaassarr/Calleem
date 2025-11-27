@@ -20,7 +20,7 @@ import logging
 from datetime import datetime
 
 # Import routers
-from routers import webhook, appointments, services, users, conversations
+from routers import webhook, appointments, services, users, conversations, admin
 
 # Import database connection
 from database.mongo_config import connect_to_mongo, close_mongo_connection
@@ -70,13 +70,13 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Configure CORS - CRITICAL: Must be permissive for preflight requests
+# Configure CORS - Allow all origins for development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=["*"],  # Allow all origins for development
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
     expose_headers=["*"],
     max_age=3600,  # Cache preflight for 1 hour
 )
@@ -111,6 +111,12 @@ app.include_router(
     conversations.router,
     prefix=f"{settings.API_V1_PREFIX}/conversations",
     tags=["Conversations"]
+)
+
+app.include_router(
+    admin.router,
+    prefix=f"{settings.API_V1_PREFIX}/admin",
+    tags=["Admin"]
 )
 
 

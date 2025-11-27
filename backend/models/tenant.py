@@ -1,0 +1,112 @@
+"""
+Tenant Data Model
+"""
+
+from pydantic import BaseModel, Field, EmailStr, ConfigDict
+from typing import Optional, List, Dict, Any
+from datetime import datetime
+from enum import Enum
+
+class PlanTier(str, Enum):
+    FREE = "free"
+    PRO = "pro"
+    ENTERPRISE = "enterprise"
+
+class TenantStatus(str, Enum):
+    ACTIVE = "active"
+    SUSPENDED = "suspended"
+    PENDING = "pending"
+
+class TenantSettings(BaseModel):
+    """Tenant-specific configuration"""
+    business_name: str
+    timezone: str = "UTC"
+    currency: str = "USD"
+    vapi_api_key: Optional[str] = None
+    twilio_account_sid: Optional[str] = None
+    twilio_auth_token: Optional[str] = None
+    twilio_phone_number: Optional[str] = None
+    
+    # Custom prompts
+    system_prompt: Optional[str] = None
+    
+    model_config = ConfigDict(extra="allow")
+
+class TenantBase(BaseModel):
+    """Base tenant model"""
+    name: str = Field(..., min_length=2, max_length=100)
+    email: EmailStr
+    plan: PlanTier = PlanTier.FREE
+    status: TenantStatus = TenantStatus.ACTIVE
+    settings: TenantSettings
+
+class TenantCreate(TenantBase):
+    """Model for creating a new tenant"""
+    pass
+
+class TenantUpdate(BaseModel):
+    """Model for updating a tenant"""
+    name: Optional[str] = Field(None, min_length=2, max_length=100)
+    email: Optional[EmailStr] = None
+    plan: Optional[PlanTier] = None
+    status: Optional[TenantStatus] = None
+    settings: Optional[TenantSettings] = None
+
+class TenantInDB(TenantBase):
+    """Model for tenant stored in database"""
+    id: str = Field(alias="_id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Usage metrics (simple counters for now)
+    total_calls: int = 0
+    total_minutes: float = 0.0
+    
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra={
+            "example": {
+                "_id": "tenant_123",
+                "name": "Cool Barber Shop",
+                "email": "owner@coolbarber.com",
+                "plan": "pro",
+                "status": "active",
+                "settings": {
+                    "business_name": "Cool Barber Shop",
+                    "timezone": "America/New_York"
+                },
+                "created_at": "2025-11-24T10:00:00",
+                "updated_at": "2025-11-24T10:00:00"
+            }
+        }
+    )
+
+class TenantResponse(BaseModel):
+    """Model for tenant API response"""
+    id: str
+    name: str
+    email: EmailStr
+    plan: PlanTier
+    status: TenantStatus
+    settings: TenantSettings
+    created_at: datetime
+    total_calls: int
+    total_minutes: float
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id": "tenant_123",
+                "name": "Cool Barber Shop",
+                "email": "owner@coolbarber.com",
+                "plan": "pro",
+                "status": "active",
+                "settings": {
+                    "business_name": "Cool Barber Shop"
+                },
+                "created_at": "2025-11-24T10:00:00",
+                "total_calls": 150,
+                "total_minutes": 450.5
+            }
+        }
+    )
