@@ -1,50 +1,73 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Check, Sparkles } from "lucide-react"
+import { Check, Sparkles, Zap, Crown, Building2 } from "lucide-react"
 import { useState } from "react"
 import { GlassCard } from "@/components/ui/glass-card"
 
 const pricingPlans = [
   {
-    name: "Starter",
-    price: "Free",
-    description: "Perfect for small businesses just starting out",
-    features: ["50 AI calls per month", "Basic appointment booking", "Email support", "Standard voice options"],
+    name: "Basic",
+    monthlyPrice: 149,
+    annualPrice: 119,
+    description: "Perfect for small businesses getting started with AI",
+    features: [
+      "500 AI calls per month",
+      "Basic appointment booking",
+      "Email & chat support",
+      "Standard voice options",
+      "WhatsApp integration",
+      "Basic analytics"
+    ],
     popular: false,
-    cta: "Get Started",
+    cta: "Start Free Trial",
+    icon: Sparkles,
+    gradient: "from-blue-500/20 to-cyan-500/20"
   },
   {
-    name: "Pro",
-    monthlyPrice: 49,
-    annualPrice: 39,
-    description: "For growing businesses needing more power",
+    name: "Pro + Smart Automations",
+    monthlyPrice: 499,
+    annualPrice: 399,
+    description: "For growing businesses that need powerful automation",
     features: [
       "Unlimited AI calls",
-      "Advanced calendar integration",
-      "Priority support",
+      "🔥 Smart Automations (n8n powered)",
+      "Google Calendar sync",
+      "Airtable data logging",
+      "WhatsApp/SMS confirmations",
+      "HubSpot CRM integration",
+      "Slack notifications",
+      "Priority support (24/7)",
       "Custom voice cloning",
-      "SMS & WhatsApp integration",
-      "Analytics dashboard",
+      "Advanced analytics",
+      "API access"
     ],
     popular: true,
     cta: "Start Free Trial",
+    icon: Zap,
+    gradient: "from-yellow-500/20 to-orange-500/20"
   },
   {
-    name: "Agency",
-    monthlyPrice: 199,
-    annualPrice: 159,
-    description: "For agencies managing multiple clients",
+    name: "Enterprise",
+    monthlyPrice: 999,
+    annualPrice: 799,
+    description: "For agencies and enterprises managing multiple locations",
     features: [
       "Everything in Pro",
       "White-label dashboard",
       "Multi-tenant management",
-      "API access",
-      "Custom onboarding",
+      "Custom n8n workflows",
       "Dedicated account manager",
+      "Custom onboarding",
+      "SLA guarantees",
+      "Advanced security",
+      "Custom integrations",
+      "Volume discounts"
     ],
     popular: false,
     cta: "Contact Sales",
+    icon: Building2,
+    gradient: "from-purple-500/20 to-pink-500/20"
   },
 ]
 
@@ -79,7 +102,7 @@ export function PricingSection() {
           </h2>
 
           <p className="text-lg text-white/60 max-w-2xl mx-auto mb-8">
-            Start building beautiful components today. Upgrade anytime as your needs grow.
+            Start with a 14-day free trial. No credit card required. Upgrade anytime as your business grows.
           </p>
 
           {/* Monthly/Annual Toggle */}
@@ -111,7 +134,7 @@ export function PricingSection() {
         </motion.div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {pricingPlans.map((plan, index) => (
             <motion.div
               key={plan.name}
@@ -121,57 +144,64 @@ export function PricingSection() {
               transition={{ duration: 0.6, delay: index * 0.1 }}
               whileHover={{ y: -5 }}
               className={`relative rounded-3xl p-8 backdrop-blur-xl border shadow-2xl transition-all duration-300 ${plan.popular
-                ? "bg-slate-950/80 border-[#0891b2]/50 shadow-[#0891b2]/20"
+                ? "bg-gradient-to-br from-slate-950/90 to-slate-900/90 border-yellow-500/50 shadow-yellow-500/20 scale-105"
                 : "bg-slate-950/70 border-white/10 hover:border-white/20"
                 }`}
             >
-              {/* Subtle gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-transparent rounded-3xl pointer-events-none" />
+              {/* Gradient overlay */}
+              <div className={`absolute inset-0 bg-gradient-to-br ${plan.gradient} rounded-3xl pointer-events-none opacity-50`} />
 
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-                  <div className="bg-gradient-to-r from-[#0891b2] to-[#0891b2]/80 text-white text-sm font-medium px-4 py-2 rounded-full">
-                    Most Popular
+                  <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-sm font-bold px-6 py-2 rounded-full flex items-center gap-2 shadow-lg">
+                    <Crown className="w-4 h-4" />
+                    MOST POPULAR
                   </div>
                 </div>
               )}
 
-              <div className="text-center mb-8">
-                <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
-                <div className="flex items-baseline justify-center gap-1 mb-2">
-                  {plan.price ? (
-                    <span className="text-4xl font-bold text-white">{plan.price}</span>
-                  ) : (
-                    <>
-                      <span className="text-4xl font-bold text-white">
-                        ${isAnnual ? plan.annualPrice : plan.monthlyPrice}
-                      </span>
-                      <span className="text-white/60 text-lg">{isAnnual ? "/year" : "/month"}</span>
-                    </>
+              <div className="relative z-10">
+                <div className="text-center mb-8">
+                  <div className="flex items-center justify-center mb-4">
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${plan.gradient} flex items-center justify-center`}>
+                      <plan.icon className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
+                  <div className="flex items-baseline justify-center gap-1 mb-2">
+                    <span className="text-5xl font-bold text-white">
+                      ${isAnnual ? plan.annualPrice : plan.monthlyPrice}
+                    </span>
+                    <span className="text-white/60 text-lg">/month</span>
+                  </div>
+                  {isAnnual && (
+                    <p className="text-green-400 text-sm font-medium">
+                      Save ${(plan.monthlyPrice - plan.annualPrice) * 12}/year
+                    </p>
                   )}
+                  <p className="text-white/60 text-sm mt-2">{plan.description}</p>
                 </div>
-                <p className="text-white/60 text-sm">{plan.description}</p>
+
+                <ul className="space-y-3 mb-8">
+                  {plan.features.map((feature, featureIndex) => (
+                    <li key={featureIndex} className="flex items-start gap-3">
+                      <Check className="w-5 h-5 text-[#0891b2] flex-shrink-0 mt-0.5" />
+                      <span className="text-white/80 text-sm leading-relaxed">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`w-full py-3 px-6 rounded-lg font-medium transition-all duration-200 ${plan.popular
+                    ? "bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg shadow-yellow-500/25 hover:shadow-yellow-500/40"
+                    : "bg-white/10 text-white border border-white/20 hover:bg-white/20"
+                    }`}
+                >
+                  {plan.cta}
+                </motion.button>
               </div>
-
-              <ul className="space-y-4 mb-8">
-                {plan.features.map((feature, featureIndex) => (
-                  <li key={featureIndex} className="flex items-center gap-3">
-                    <Check className="w-5 h-5 text-[#0891b2] flex-shrink-0" />
-                    <span className="text-white/80 text-sm">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className={`w-full py-3 px-6 rounded-lg font-medium transition-all duration-200 ${plan.popular
-                  ? "bg-gradient-to-r from-[#0891b2] to-[#0891b2]/80 text-white shadow-lg shadow-[#0891b2]/25 hover:shadow-[#0891b2]/40"
-                  : "bg-white/10 text-white border border-white/20 hover:bg-white/20"
-                  }`}
-              >
-                {plan.cta}
-              </motion.button>
             </motion.div>
           ))}
         </div>
@@ -192,6 +222,28 @@ export function PricingSection() {
           >
             Contact our sales team →
           </motion.button>
+        </motion.div>
+
+        {/* Trust Badges */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          className="mt-16 flex flex-wrap items-center justify-center gap-8 text-white/40 text-sm"
+        >
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4 text-green-500" />
+            14-day free trial
+          </div>
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4 text-green-500" />
+            No credit card required
+          </div>
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4 text-green-500" />
+            Cancel anytime
+          </div>
         </motion.div>
       </div>
     </section>

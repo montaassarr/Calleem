@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 
 class AppointmentStatus(str, Enum):
@@ -26,8 +26,37 @@ class AppointmentBase(BaseModel):
     source: str = "whatsapp"
     notes: Optional[str] = None
 
-class AppointmentCreate(AppointmentBase):
-    pass
+class AppointmentCreate(BaseModel):
+    """
+    Flexible appointment creation - accepts EITHER:
+    1. datetime + duration_minutes
+    2. start_time + end_time
+    """
+    service_id: Optional[str] = None
+    service: Optional[str] = None
+    customer_name: Optional[str] = None
+    client_name: Optional[str] = None
+    customer_phone: Optional[str] = None
+    client_phone: Optional[str] = None
+    datetime: Optional[datetime] = None
+    duration_minutes: Optional[int] = None
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+    notes: Optional[str] = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def check_times(cls, values):
+        """Validate that we have either datetime+duration OR start_time+end_time"""
+        if isinstance(values, dict):
+            has_datetime = values.get('datetime') and values.get('duration_minutes')
+            has_times = values.get('start_time') and values.get('end_time')
+            
+            if has_datetime or has_times:
+                return values
+            
+            raise ValueError("Must provide either (datetime + duration_minutes) OR (start_time + end_time)")
+        return values
 
 class AppointmentUpdate(BaseModel):
     location_id: Optional[str] = None

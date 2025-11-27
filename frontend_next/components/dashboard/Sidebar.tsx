@@ -25,30 +25,25 @@ import {
     Plug,
     CalendarDays,
     Waves,
+    Zap,
 } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { useRouter, usePathname } from "next/navigation";
 import { useConfig } from "@/contexts/ConfigContext";
 
 const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+    { icon: LayoutDashboard, label: "Home", path: "/dashboard" },
+    { icon: Phone, label: "Call Logs", path: "/dashboard/conversations" },
     {
-        icon: Bot,
-        label: "AI Receptionist",
-        path: "/dashboard/ai-receptionist",
-        subItems: [
-            { icon: BarChart3, label: "Overview", path: "/dashboard/ai-receptionist" },
-            { icon: TestTube, label: "Test AI", path: "/dashboard/ai-receptionist/test" },
-        ]
+        icon: Zap,
+        label: "Smart Automations",
+        path: "/dashboard/automations",
+        proPlan: true  // Requires Pro plan
     },
     { icon: Calendar, label: "Appointments", path: "/dashboard/appointments" },
-    { icon: MessageSquare, label: "Conversations", path: "/dashboard/conversations" },
-    { icon: Scissors, label: "Services", path: "/dashboard/services" },
-    { icon: CalendarDays, label: "Schedule", path: "/dashboard/schedule" },
-    { icon: Smartphone, label: "WhatsApp", path: "/dashboard/whatsapp" },
     {
-        icon: Phone,
-        label: "Voice Agent",
+        icon: Mic,
+        label: "Voice AI",
         path: "/dashboard/voice-agent",
         subItems: [
             { icon: PhoneCall, label: "Control Room", path: "/dashboard/voice-agent" },
@@ -57,6 +52,8 @@ const menuItems = [
             { icon: Settings, label: "Voice Settings", path: "/dashboard/voice-agent/settings" },
         ]
     },
+    { icon: UserCog, label: "Team", path: "/dashboard/settings/team" },
+    { icon: Settings, label: "Billing", path: "/dashboard/settings/billing" },
 ];
 
 const generalItems = [
@@ -67,7 +64,6 @@ const generalItems = [
         subItems: [
             { icon: Settings, label: "Settings Hub", path: "/dashboard/settings" },
             { icon: Building2, label: "Business", path: "/dashboard/settings/business" },
-            { icon: UserCog, label: "Team", path: "/dashboard/settings/team" },
             { icon: Brain, label: "AI Config", path: "/dashboard/settings/ai" },
             { icon: Plug, label: "Integrations", path: "/dashboard/settings/integrations" },
         ]
@@ -102,6 +98,9 @@ export const Sidebar = () => {
     const renderMenuItem = (item: any, isGeneral = false) => {
         const hasSubItems = item.subItems && item.subItems.length > 0;
         const expanded = hasSubItems && isExpanded(item.path);
+        // Check if user is on Pro plan (fallback to false if plan field doesn't exist)
+        const isPro = (config as any)?.plan === "pro" || (config as any)?.plan === "enterprise";
+        const needsProPlan = item.proPlan && !isPro;
 
         return (
             <div key={item.path}>
@@ -118,6 +117,11 @@ export const Sidebar = () => {
                 >
                     <item.icon className="w-5 h-5" />
                     <span className="flex-1">{item.label}</span>
+                    {needsProPlan && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold">
+                            PRO
+                        </span>
+                    )}
                     {hasSubItems && (
                         expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />
                     )}

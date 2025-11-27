@@ -3,7 +3,7 @@
 import { StatCard } from "@/components/dashboard/widgets/StatCard";
 import { RecentActivities } from "@/components/dashboard/widgets/RecentActivities";
 import { LiveCallStatus } from "@/components/dashboard/widgets/LiveCallStatus";
-import { Phone, CheckCircle2, Calendar, MessageSquare, Scissors, Plus, Upload } from "lucide-react";
+import { Phone, CheckCircle2, Calendar, MessageSquare, Scissors, Plus, Upload, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { appointmentsApi, conversationsApi, servicesApi, webhookApi } from "@/lib/api-endpoints";
@@ -74,11 +74,17 @@ export default function DashboardPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                 <StatCard
+                    title="Revenue"
+                    value="$12,450"
+                    icon={DollarSign}
+                    trend={{ value: "+12% from last month", isPositive: true }}
+                    variant="primary"
+                />
+                <StatCard
                     title="Total Appointments"
                     value={appointmentsLoading ? "..." : appointments.length.toString()}
                     icon={Calendar}
                     trend={{ value: "All time bookings", isPositive: true }}
-                    variant="primary"
                 />
                 <StatCard
                     title="Upcoming"
@@ -91,12 +97,6 @@ export default function DashboardPage() {
                     value={conversationsLoading ? "..." : conversations.length.toString()}
                     icon={MessageSquare}
                     trend={{ value: `${completedToday} completed today`, isPositive: true }}
-                />
-                <StatCard
-                    title="Active Services"
-                    value={servicesLoading ? "..." : activeServices.toString()}
-                    icon={Scissors}
-                    status="On menu"
                 />
             </div>
 

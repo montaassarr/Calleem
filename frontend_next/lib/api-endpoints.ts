@@ -144,6 +144,15 @@ export const usersApi = {
             params: { tenant_id: tenantId }
         })
         return response.data
+    },
+
+    create: async (data: any): Promise<any> => {
+        const response = await api.post("/admin/users", data)
+        return response.data
+    },
+
+    delete: async (id: string): Promise<void> => {
+        await api.delete(`/admin/users/${id}`)
     }
 }
 
@@ -178,7 +187,7 @@ export const businessConfigApi = {
     },
 
     updateFeatureFlags: async (features: any): Promise<any> => {
-        const response = await api.put("/admin/config/features", features)
+        const response = await api.put("/admin/config", features)
         return response.data
     }
 }

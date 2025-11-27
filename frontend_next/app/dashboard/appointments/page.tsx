@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Filter, Calendar as CalendarIcon, Pencil, Trash2, XCircle } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Search, Filter, MoreVertical, RefreshCw, Pencil, Trash2, XCircle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { appointmentsApi } from "@/lib/api-endpoints";
 import { useRouter } from "next/navigation";

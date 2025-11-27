@@ -41,26 +41,50 @@ async def create_appointment(
         # Get tenant_id from current user
         tenant_id = current_user.get("tenant_id")
         if not tenant_id:
-            # Fallback for legacy users or admin
             tenant_id = current_user.get("business_id")
-            
-        if not tenant_id and current_user.get("role") != "admin":
-             # If still no tenant_id and not admin, this is an issue
-             # But for now let's allow it or log warning
-             pass
+        
+        # Handle both datetime formats
+        if appointment.datetime and appointment.duration_minutes:
+            # Option 1: datetime + duration_minutes
+            start_time = appointment.datetime
+            end_time = start_time + timedelta(minutes=appointment.duration_minutes)
+        elif appointment.start_time and appointment.end_time:
+            # Option 2: explicit start_time and end_time
+            start_time = appointment.start_time
+            end_time = appointment.end_time
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Must provide either (datetime + duration_minutes) OR (start_time + end_time)"
+            )
         
         # Validate appointment time
-        is_valid, error_msg = datetime_utils.is_valid_appointment_time(appointment.datetime)
+        is_valid, error_msg = datetime_utils.is_valid_appointment_time(start_time)
         if not is_valid:
             raise HTTPException(status_code=400, detail=error_msg)
         
+        # Get client name and phone (handle both field names)
+        client_name = appointment.client_name or appointment.customer_name
+        client_phone = appointment.client_phone or appointment.customer_phone
+        
         # Prepare appointment document
-        appointment_dict = appointment.dict()
-        appointment_dict["tenant_id"] = tenant_id
-        appointment_dict["business_id"] = tenant_id # Legacy support
-        appointment_dict["status"] = AppointmentStatus.CONFIRMED
-        appointment_dict["created_at"] = datetime.utcnow()
-        appointment_dict["updated_at"] = datetime.utcnow()
+        appointment_dict = {
+            "client_name": client_name,
+            "client_phone": client_phone,
+            "service": appointment.service or "Service",
+            "start_time": start_time,
+            "end_time": end_time,
+            "tenant_id": tenant_id,
+            "business_id": tenant_id,
+            "status": AppointmentStatus.CONFIRMED,
+            "source": "api",
+            "notes": appointment.notes,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        
+        if appointment.service_id:
+            appointment_dict["service_id"] = appointment.service_id
         
         # Insert into database
         result = await db.appointments.insert_one(appointment_dict)
@@ -72,18 +96,18 @@ async def create_appointment(
         logger.info(f"✅ Appointment created: {created_appointment['id']}")
         
         # Send confirmation via WhatsApp
-        confirmation_msg = f"""✅ Appointment Confirmed!
+        try:
+            confirmation_msg = f"""✅ Appointment Confirmed!
 
-{appointment.client_name}, your {appointment.service} appointment is confirmed for:
-📅 {text_formatter.format_datetime_display(appointment.datetime)}
-⏱️ Duration: {appointment.duration_minutes} minutes
+{client_name}, your appointment is confirmed for:
+📅 {text_formatter.format_datetime_display(start_time)}
+⏱️ Duration: {int((end_time - start_time).total_seconds() / 60)} minutes
 
 Looking forward to seeing you! - {settings.BUSINESS_NAME}"""
-        
-        whatsapp_cloud.send_text_message(
-            appointment.client_phone,
-            confirmation_msg
-        )
+            
+            whatsapp_cloud.send_text_message(client_phone, confirmation_msg)
+        except Exception as e:
+            logger.warning(f"Failed to send WhatsApp confirmation: {e}")
         
         return AppointmentResponse(**created_appointment)
         
@@ -369,6 +393,35 @@ async def check_availability(
                 "reason": error_msg,
                 "requested_datetime": requested_datetime.isoformat()
             }
+            
+        # Filter by tenant_id
+        tenant_id = current_user.get("tenant_id") or current_user.get("business_id")
+        
+        # Check Business Hours
+        if tenant_id:
+            config = await db.business_config.find_one({"business_id": tenant_id})
+            if config and "business_hours" in config:
+                day_name = requested_datetime.strftime("%A").lower()
+                day_config = config["business_hours"].get(day_name)
+                
+                if not day_config or not day_config.get("enabled", True):
+                    return {
+                        "available": False,
+                        "reason": f"Business is closed on {day_name.capitalize()}",
+                        "requested_datetime": requested_datetime.isoformat()
+                    }
+                
+                start_str = day_config.get("start", "09:00")
+                end_str = day_config.get("end", "17:00")
+                
+                req_time_str = requested_datetime.strftime("%H:%M")
+                
+                if req_time_str < start_str or req_time_str >= end_str:
+                     return {
+                        "available": False,
+                        "reason": f"Time is outside business hours ({start_str} - {end_str})",
+                        "requested_datetime": requested_datetime.isoformat()
+                    }
         
         # Check for overlapping appointments
         end_datetime = requested_datetime.replace(

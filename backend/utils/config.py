@@ -28,6 +28,14 @@ class Settings(BaseSettings):
     # Groq API
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "mixtral-8x7b-32768"
+
+    # n8n Integration
+    # NOTE: N8N_API_KEY is the ONLY intentionally hardcoded API key in this application.
+    # This is the backend automation engine key and is NOT a client-facing service.
+    # All client API keys (OpenAI, Vapi, Twilio, ElevenLabs, etc.) are stored
+    # encrypted per-tenant in the MongoDB business_config collection.
+    N8N_API_URL: str = "http://n8n:5678/api/v1"
+    N8N_API_KEY: str = "REDACTED_JWT"
     
     # JWT & Security
     SECRET_KEY: str = "REDACTED"
@@ -68,3 +76,29 @@ class Settings(BaseSettings):
 
 # Create global settings instance
 settings = Settings()
+
+# 🔒 CRITICAL SECURITY CHECK: Enforce strong SECRET_KEY in production
+WEAK_KEYS = [
+    "change-this-secret-key-in-production",
+    "dev",
+    "development",
+    "test",
+    "secret",
+    "supersecretkeyshouldbechangedinprod"
+]
+
+if settings.ENVIRONMENT in ["production", "prod"] and settings.SECRET_KEY in WEAK_KEYS:
+    raise RuntimeError(
+        "🚨 SECURITY ERROR: You MUST set a strong SECRET_KEY in production!\n"
+        "Generate one with: python -c 'import secrets; print(secrets.token_urlsafe(32))'\n"
+        "Then set it in your .env file: SECRET_KEY=<generated_key>"
+    )
+
+# Warn in development too
+if settings.SECRET_KEY in WEAK_KEYS and settings.ENVIRONMENT not in ["production", "prod"]:
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning(
+        "⚠️ WARNING: Using default SECRET_KEY. This is OK for development but "
+        "MUST be changed before deploying to production!"
+    )

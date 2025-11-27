@@ -608,37 +608,14 @@ async def delete_conversation(
 
 # --- Business Config Management ---
 
-from pydantic import BaseModel, Field
-
-class BusinessConfig(BaseModel):
-    """Business configuration model"""
-    business_name: str
-    timezone: str = "UTC"
-    currency: str = "USD"
-    phone_number: Optional[str] = None
-    email: Optional[str] = None
-    address: Optional[str] = None
-    tenant_id: Optional[str] = None
-    is_configured: bool = False
-    
-    # API Keys
-    vapi_api_key: Optional[str] = None
-    twilio_account_sid: Optional[str] = None
-    twilio_auth_token: Optional[str] = None
-    twilio_phone_number: Optional[str] = None
-    
-    # AI Settings
-    system_prompt: Optional[str] = None
-    
-    class Config:
-        extra = "allow"
+from models.business.business_config import BusinessConfig, BusinessConfigUpdate
 
 @router.get("/config", response_model=BusinessConfig)
 async def get_business_config(current_admin: dict = Depends(get_current_admin)):
     """Get business configuration"""
     db = get_database()
     
-    # Filter by tenant_id
+    # Filter by tenant_id (or business_id for legacy)
     tenant_id = current_admin.get("tenant_id") or current_admin.get("business_id")
     query = {}
     if tenant_id:
@@ -646,34 +623,40 @@ async def get_business_config(current_admin: dict = Depends(get_current_admin)):
         
     config = await db.business_config.find_one(query)
     
-    # Fetch tenant status
-    is_configured = False
-    if tenant_id:
-        tenant = await db.tenants.find_one({"_id": ObjectId(tenant_id)})
-        if tenant:
-            is_configured = tenant.get("is_configured", False)
-    
     if not config:
-        # Return defaults if not found
+        # Return default config if not found
         return BusinessConfig(
             business_name="My Business",
-            timezone="UTC",
-            currency="USD",
-            is_configured=is_configured
+            tenant_id=tenant_id,
+            business_id=tenant_id or "default"
         )
         
-    if "_id" in config:
-        del config["_id"]
-        
-    # Inject is_configured from tenant
-    config["is_configured"] = is_configured
+    # Decrypt sensitive fields (all API keys)
+    from utils.security import security
     
+    # List of fields to decrypt
+    encrypted_fields = [
+        "vapi_api_key",
+        "openai_api_key",
+        "groq_api_key",
+        "elevenlabs_api_key",
+        "twilio_auth_token",
+        "twilio_account_sid",
+        "airtable_api_key"
+    ]
+    
+    for field in encrypted_fields:
+        if config.get(field):
+            decrypted = security.decrypt(config[field])
+            if decrypted:  # Only update if decryption succeeded
+                config[field] = decrypted
+            
     return BusinessConfig(**config)
 
 
 @router.put("/config", response_model=BusinessConfig)
 async def update_business_config(
-    config: BusinessConfig,
+    config: BusinessConfigUpdate,
     current_admin: dict = Depends(get_current_admin)
 ):
     """Update business configuration"""
@@ -689,13 +672,85 @@ async def update_business_config(
         query["tenant_id"] = tenant_id
         config_dict["tenant_id"] = tenant_id
         
+    # --- n8n Integration Start ---
+    try:
+        from services.n8n_service import n8n_service
+        
+        # Fetch existing config to compare
+        existing_config = await db.business_config.find_one(query)
+        
+        # Convert existing_config to BusinessConfig model for comparison
+        if existing_config:
+            if "_id" in existing_config:
+                del existing_config["_id"] # Remove _id before passing to Pydantic model
+            current_config = BusinessConfig(**existing_config)
+        else:
+            current_config = BusinessConfig(business_name="My Business", timezone="UTC", currency="USD") # Default if no existing config
+        
+        # Trigger n8n sync if automations changed
+        # We pass the PLAINTEXT config to n8n service so it can create credentials
+        if tenant_id and (config.automations != current_config.automations or config.airtable_api_key != current_config.airtable_api_key):
+            try:
+                await n8n_service.handle_config_update(
+                    tenant_id, 
+                    current_config.model_dump(), 
+                    config.model_dump()
+                )
+                logger.info(f"✅ n8n workflows updated for tenant {tenant_id}")
+            except Exception as n8n_error:
+                # Log the error but don't fail the config update
+                logger.error(f"⚠️ n8n deployment failed (config still saved): {n8n_error}", exc_info=True)
+                # Optionally: Store this error to show to user later
+    except ImportError as import_error:
+        logger.warning(f"n8n service not available: {import_error}")
+    except Exception as e:
+        logger.error(f"Error in n8n integration: {e}", exc_info=True)
+        # Don't fail the entire config update if n8n fails
+    # --- n8n Integration End ---
+    
+    # Encrypt sensitive fields before saving to DB
+    try:
+        from utils.security import security
+        
+        config_dict = config.model_dump(by_alias=True, exclude={"id"})
+        
+        # List of fields to encrypt (all API keys)
+        encrypted_fields = [
+            "vapi_api_key",
+            "openai_api_key",
+            "groq_api_key",
+            "elevenlabs_api_key",
+            "twilio_auth_token",
+            "twilio_account_sid",
+            "airtable_api_key"
+        ]
+        
+        for field in encrypted_fields:
+            if config_dict.get(field):
+                try:
+                    config_dict[field] = security.encrypt(config_dict[field])
+                except Exception as enc_error:
+                    logger.error(f"Failed to encrypt {field}: {enc_error}")
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Encryption failed for {field}. Please contact support."
+                    )
+    except ImportError:
+        logger.error("Security module not available - API keys will be stored unencrypted!")
+        raise HTTPException(
+            status_code=500,
+            detail="Security module not configured. Cannot save API keys safely."
+        )
+    
+    # Note: Google Calendar credentials are stored as JSON objects, not encrypted as strings
+        
     await db.business_config.update_one(
-        query,
+        query, # Changed from {"business_id": user.tenant_id} to query to match existing context
         {"$set": config_dict},
         upsert=True
     )
     
-    updated_config = await db.business_config.find_one(query)
+    updated_config = await db.business_config.find_one(query) # Corrected syntax from `return config = ...`
     if "_id" in updated_config:
         del updated_config["_id"]
     return BusinessConfig(**updated_config)
