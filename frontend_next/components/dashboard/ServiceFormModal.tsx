@@ -199,7 +199,7 @@ export default function ServiceFormModal({
                                 step="5"
                                 value={formData.duration_minutes}
                                 onChange={(e) =>
-                                    setFormData({ ...formData, duration_minutes: parseInt(e.target.value) })
+                                    setFormData({ ...formData, duration_minutes: parseInt(e.target.value) || 0 })
                                 }
                                 required
                             />
@@ -217,7 +217,7 @@ export default function ServiceFormModal({
                                 step="0.01"
                                 value={formData.price}
                                 onChange={(e) =>
-                                    setFormData({ ...formData, price: parseFloat(e.target.value) })
+                                    setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })
                                 }
                                 required
                             />

@@ -1,0 +1,206 @@
+{
+    "name": "Test Full Appointment Lifecycle",
+    "nodes": [
+        {
+            "parameters": {},
+            "id": "manual-trigger",
+            "name": "When clicking \"Execute Workflow\"",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://localhost:5678/webhook/getslots",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "body.message.call.customer.number",
+                            "value": "+1234567890"
+                        },
+                        {
+                            "name": "body.message.toolCalls[0].id",
+                            "value": "test_get_slots"
+                        },
+                        {
+                            "name": "body.message.toolCalls[0].function.arguments.date",
+                            "value": "2025-12-01"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "test-get-slots",
+            "name": "Step 1: Get Slots",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                470,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://localhost:5678/webhook/bookslots",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "body.message.call.customer.number",
+                            "value": "+1234567890"
+                        },
+                        {
+                            "name": "body.message.toolCalls[0].id",
+                            "value": "test_book_slot"
+                        },
+                        {
+                            "name": "body.message.toolCalls[0].function.arguments.email",
+                            "value": "test_auto@example.com"
+                        },
+                        {
+                            "name": "body.message.toolCalls[0].function.arguments.name",
+                            "value": "Auto Test User"
+                        },
+                        {
+                            "name": "body.message.toolCalls[0].function.arguments.notes",
+                            "value": "Automated Test Booking"
+                        },
+                        {
+                            "name": "body.message.toolCalls[0].function.arguments.starttime",
+                            "value": "2025-12-01T10:00:00"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "test-book-slot",
+            "name": "Step 2: Book Slot",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                690,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://localhost:5678/webhook/updateslots",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "body.message.call.customer.number",
+                            "value": "+1234567890"
+                        },
+                        {
+                            "name": "body.message.toolCalls[0].id",
+                            "value": "test_update_slot"
+                        },
+                        {
+                            "name": "body.message.toolCalls[0].function.arguments.appointment_id",
+                            "value": "={{ $json.results[0].result.split('ID: ')[1] || 'UNKNOWN_ID' }}"
+                        },
+                        {
+                            "name": "body.message.toolCalls[0].function.arguments.new_time",
+                            "value": "2025-12-01T14:00:00"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "test-update-slot",
+            "name": "Step 3: Update Slot",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                910,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://localhost:5678/webhook/cancelslots",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "body.message.call.customer.number",
+                            "value": "+1234567890"
+                        },
+                        {
+                            "name": "body.message.toolCalls[0].id",
+                            "value": "test_cancel_slot"
+                        },
+                        {
+                            "name": "body.message.toolCalls[0].function.arguments.appointment_id",
+                            "value": "={{ $('Step 3: Update Slot').item.json.results[0].result.split('ID: ')[1] || $('Step 2: Book Slot').item.json.results[0].result.split('ID: ')[1] }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "test-cancel-slot",
+            "name": "Step 4: Cancel Slot",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                1130,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "When clicking \"Execute Workflow\"": {
+            "main": [
+                [
+                    {
+                        "node": "Step 1: Get Slots",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Step 1: Get Slots": {
+            "main": [
+                [
+                    {
+                        "node": "Step 2: Book Slot",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Step 2: Book Slot": {
+            "main": [
+                [
+                    {
+                        "node": "Step 3: Update Slot",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Step 3: Update Slot": {
+            "main": [
+                [
+                    {
+                        "node": "Step 4: Cancel Slot",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

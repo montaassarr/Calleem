@@ -15,22 +15,22 @@ export const appointmentsApi = {
         const response = await api.get<AppointmentResponse[]>("/appointments/", {
             params: filters,
         })
-        return response.data
+        return response
     },
 
     get: async (appointmentId: string): Promise<AppointmentResponse> => {
         const response = await api.get<AppointmentResponse>(`/appointments/${appointmentId}`)
-        return response.data
+        return response
     },
 
     create: async (data: AppointmentCreate): Promise<AppointmentResponse> => {
         const response = await api.post<AppointmentResponse>("/appointments/", data)
-        return response.data
+        return response
     },
 
     update: async (appointmentId: string, data: AppointmentUpdate): Promise<AppointmentResponse> => {
         const response = await api.put<AppointmentResponse>(`/appointments/${appointmentId}`, data)
-        return response.data
+        return response
     },
 
     delete: async (appointmentId: string): Promise<void> => {
@@ -39,7 +39,7 @@ export const appointmentsApi = {
 
     cancel: async (appointmentId: string): Promise<AppointmentResponse> => {
         const response = await api.post<AppointmentResponse>(`/appointments/${appointmentId}/cancel`)
-        return response.data
+        return response
     },
 
     checkAvailability: async (
@@ -59,7 +59,7 @@ export const appointmentsApi = {
                 duration_minutes: durationMinutes,
             },
         })
-        return response.data
+        return response
     },
 
     getStats: async (): Promise<{
@@ -68,7 +68,7 @@ export const appointmentsApi = {
         by_status: Record<string, number>
     }> => {
         const response = await api.get("/appointments/stats/summary")
-        return response.data
+        return response
     },
 }
 
@@ -77,22 +77,22 @@ export const servicesApi = {
         const response = await api.get<ServiceResponse[]>("/services/", {
             params: filters,
         })
-        return response.data
+        return response
     },
 
     get: async (serviceId: string): Promise<ServiceResponse> => {
         const response = await api.get<ServiceResponse>(`/services/${serviceId}`)
-        return response.data
+        return response
     },
 
     create: async (data: ServiceCreate): Promise<ServiceResponse> => {
         const response = await api.post<ServiceResponse>("/services/", data)
-        return response.data
+        return response
     },
 
     update: async (serviceId: string, data: ServiceUpdate): Promise<ServiceResponse> => {
         const response = await api.put<ServiceResponse>(`/services/${serviceId}`, data)
-        return response.data
+        return response
     },
 
     delete: async (serviceId: string): Promise<void> => {
@@ -113,12 +113,12 @@ export const conversationsApi = {
         const response = await api.get("/conversations", {
             params
         })
-        return response.data
+        return response
     },
 
     get: async (id: string): Promise<any> => {
         const response = await api.get(`/conversations/${id}`)
-        return response.data
+        return response
     },
 
     delete: async (id: string): Promise<void> => {
@@ -129,12 +129,12 @@ export const conversationsApi = {
 export const webhookApi = {
     getStatus: async (): Promise<any> => {
         const response = await api.get("/whatsapp/status")
-        return response.data
+        return response
     },
 
     updateSettings: async (settings: any): Promise<any> => {
         const response = await api.post("/whatsapp/settings", settings)
-        return response.data
+        return response
     }
 }
 
@@ -143,12 +143,12 @@ export const usersApi = {
         const response = await api.get("/admin/users", {
             params: { tenant_id: tenantId }
         })
-        return response.data
+        return response
     },
 
     create: async (data: any): Promise<any> => {
         const response = await api.post("/admin/users", data)
-        return response.data
+        return response
     },
 
     delete: async (id: string): Promise<void> => {
@@ -159,36 +159,35 @@ export const usersApi = {
 export const voiceApi = {
     testAgent: async (): Promise<any> => {
         const response = await api.get("/voice-agent/status")
-        return response.data
+        return response
     },
 
     callHistory: async (limit: number = 25): Promise<any> => {
         const response = await api.get("/voice-agent/history", {
             params: { limit }
         })
-        return response.data
+        return response
     },
 
     startCall: async (data: any): Promise<any> => {
         const response = await api.post("/voice-agent/call", data)
-        return response.data
+        return response
     },
 
     webrtcTest: async (): Promise<any> => {
         const response = await api.post("/voice-agent/webrtc/test")
-        return response.data
+        return response
     }
 }
 
 export const businessConfigApi = {
     getConfig: async (): Promise<any> => {
         const response = await api.get("/admin/config")
-        return response.data
+        return response
     },
 
     updateFeatureFlags: async (features: any): Promise<any> => {
         const response = await api.put("/admin/config", features)
-        return response.data
+        return response
     }
 }
-

@@ -90,6 +90,18 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     
     user["id"] = str(user["_id"])
     
+    # STRICT TENANT ISOLATION CHECK
+    # If user is not a super admin, they MUST have a tenant_id
+    # Otherwise, they might see all data (global access)
+    if user.get("role") != UserRole.SUPER_ADMIN.value:
+        tenant_id = user.get("tenant_id") or user.get("business_id")
+        if not tenant_id:
+            logger.critical(f"🚨 SECURITY ALERT: User {user_id} ({user.get('username')}) has no tenant_id! Blocking access.")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account configuration error: Missing tenant association. Please contact support."
+            )
+    
     return user
 
 

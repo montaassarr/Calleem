@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import logging
+import os
 from datetime import datetime
 
 # Import routers
@@ -145,6 +146,34 @@ app.include_router(
     automations.router,
     prefix=f"{settings.API_V1_PREFIX}/automations",
     tags=["Smart Automations"]
+)
+
+from routers import whatsapp
+app.include_router(
+    whatsapp.router,
+    prefix=f"{settings.API_V1_PREFIX}/whatsapp",
+    tags=["WhatsApp"]
+)
+
+from routers import tenants
+app.include_router(
+    tenants.router,
+    prefix=f"{settings.API_V1_PREFIX}/tenants",
+    tags=["Tenants"]
+)
+
+from routers import api_keys
+app.include_router(
+    api_keys.router,
+    prefix=f"{settings.API_V1_PREFIX}",
+    tags=["API Keys"]
+)
+
+from routers import agents
+app.include_router(
+    agents.router,
+    prefix=f"{settings.API_V1_PREFIX}/agents",
+    tags=["Agents"]
 )
 
 

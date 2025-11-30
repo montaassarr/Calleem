@@ -96,7 +96,7 @@ export const businessConfigApi = {
      */
     getConfig: async (businessId: string = 'default'): Promise<BusinessConfig> => {
         const response = await api.get<BusinessConfig>('/admin/config');
-        return response.data;
+        return response; // ApiClient already returns .data
     },
 
     /**
@@ -107,7 +107,7 @@ export const businessConfigApi = {
         businessId: string = 'default'
     ): Promise<BusinessConfig> => {
         const response = await api.put<BusinessConfig>('/admin/config', data);
-        return response.data;
+        return response; // ApiClient already returns .data
     },
 
     updateFeatureFlags: async (
@@ -118,17 +118,11 @@ export const businessConfigApi = {
         const current = await businessConfigApi.getConfig();
         const updatedFeatures = { ...current.features_enabled, ...features };
 
-        // Since backend expects flat structure or specific fields, we might need to adjust.
-        // But BusinessConfigUpdate has features_enabled? No, it has automations.
-        // Let's check the interface. It has automations.
-        // Wait, FeatureFlags in frontend seems to map to automations in backend?
-        // Let's assume features_enabled maps to automations for now based on previous context.
-
         const response = await api.put<BusinessConfig>(
             '/admin/config',
-            { automations: updatedFeatures } // Mapping features_enabled to automations
+            { automations: updatedFeatures }
         );
-        return response.data;
+        return response; // ApiClient already returns .data
     },
 
     updateAutomations: async (
@@ -139,14 +133,13 @@ export const businessConfigApi = {
             '/admin/config',
             { automations }
         );
-        return response.data;
+        return response; // ApiClient already returns .data
     },
 
     /**
      * Reload configuration (invalidate cache)
      */
     reloadConfig: async (businessId: string = 'default'): Promise<{ message: string }> => {
-        // No backend endpoint for reload, just return success
         return { message: "Config reloaded" };
     },
 
@@ -169,7 +162,7 @@ export const businessConfigApi = {
             '/admin/config',
             { system_prompt: systemPrompt }
         );
-        return response.data;
+        return response; // ApiClient already returns .data
     },
 
     /**
@@ -180,7 +173,7 @@ export const businessConfigApi = {
         businessId: string = 'default'
     ): Promise<BusinessConfig> => {
         const response = await api.put<BusinessConfig>('/admin/config', { whatsapp_config: config });
-        return response.data;
+        return response; // ApiClient already returns .data
     },
 
     /**
@@ -188,6 +181,6 @@ export const businessConfigApi = {
      */
     getServices: async (businessId: string = 'default'): Promise<ServiceDefinition[]> => {
         const response = await api.get<ServiceDefinition[]>('/services/');
-        return response.data;
+        return response; // ApiClient already returns .data
     },
 };

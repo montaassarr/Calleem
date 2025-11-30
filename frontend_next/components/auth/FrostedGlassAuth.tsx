@@ -42,6 +42,8 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
         password: "",
         confirmPassword: "",
         name: "",
+        business_name: "",
+        phone: "",
         otp: ["", "", "", "", "", ""],
     })
 
@@ -96,6 +98,8 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                     username: formData.email,
                     password: formData.password,
                     full_name: formData.name,
+                    business_name: formData.business_name,
+                    phone: formData.phone,
                     role: "owner"
                 });
                 setStep("success");
@@ -120,7 +124,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
     const switchMode = (newMode: AuthMode) => {
         setMode(newMode)
         setStep(newMode)
-        setFormData({ email: "", password: "", confirmPassword: "", name: "", otp: ["", "", "", "", "", ""] })
+        setFormData({ email: "", password: "", confirmPassword: "", name: "", business_name: "", phone: "", otp: ["", "", "", "", "", ""] })
         // Update URL without full reload
         window.history.pushState({}, "", `/${newMode}`)
     }
@@ -128,13 +132,13 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
     const resetToLogin = () => {
         setStep("login")
         setMode("login")
-        setFormData({ email: "", password: "", confirmPassword: "", name: "", otp: ["", "", "", "", "", ""] })
+        setFormData({ email: "", password: "", confirmPassword: "", name: "", business_name: "", phone: "", otp: ["", "", "", "", "", ""] })
         window.history.pushState({}, "", "/login")
     }
 
     const goToForgotPassword = () => {
         setStep("forgot-password")
-        setFormData((prev) => ({ ...prev, password: "", confirmPassword: "", name: "", otp: ["", "", "", "", "", ""] }))
+        setFormData((prev) => ({ ...prev, password: "", confirmPassword: "", name: "", business_name: "", phone: "", otp: ["", "", "", "", "", ""] }))
     }
 
     const getCardHeight = () => {
@@ -160,6 +164,8 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
     const isSignupValid =
         step === "signup" &&
         formData.name &&
+        formData.business_name &&
+        formData.phone &&
         formData.email &&
         formData.password &&
         formData.confirmPassword &&
@@ -279,6 +285,42 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                             onChange={(e) => handleInputChange("name", e.target.value)}
                                             className="pl-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:ring-cyan-500/20"
                                             placeholder="Enter your full name"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="business_name" className="text-slate-200">
+                                        Business Name
+                                    </Label>
+                                    <div className="relative">
+                                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                                        <Input
+                                            id="business_name"
+                                            type="text"
+                                            value={formData.business_name}
+                                            onChange={(e) => handleInputChange("business_name", e.target.value)}
+                                            className="pl-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:ring-cyan-500/20"
+                                            placeholder="Enter your business name"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="phone" className="text-slate-200">
+                                        Phone Number
+                                    </Label>
+                                    <div className="relative">
+                                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                                        <Input
+                                            id="phone"
+                                            type="tel"
+                                            value={formData.phone}
+                                            onChange={(e) => handleInputChange("phone", e.target.value)}
+                                            className="pl-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:ring-cyan-500/20"
+                                            placeholder="+1234567890"
                                             required
                                         />
                                     </div>

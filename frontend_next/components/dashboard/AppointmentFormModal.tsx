@@ -21,8 +21,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface AppointmentFormModalProps {
     open: boolean;
@@ -35,7 +43,8 @@ interface FormData {
     client_name: string;
     client_phone: string;
     service: string;
-    datetime: string;
+    date: Date | undefined;
+    time: string;
     duration_minutes: number;
     notes?: string;
 }
@@ -51,10 +60,23 @@ export default function AppointmentFormModal({
         client_name: "",
         client_phone: "",
         service: "",
-        datetime: "",
+        date: undefined,
+        time: "",
         duration_minutes: 30,
         notes: "",
     });
+
+    // Generate time slots (every 15 mins)
+    const timeSlots = [];
+    for (let i = 0; i < 24 * 4; i++) {
+        const hour = Math.floor(i / 4);
+        const minute = (i % 4) * 15;
+        const date = new Date();
+        date.setHours(hour, minute);
+        const timeString = format(date, "h:mm a"); // 9:00 AM
+        const value = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`; // 09:00
+        timeSlots.push({ value, label: timeString });
+    }
 
     // Fetch active services for dropdown
     const { data: services } = useQuery<ServiceResponse[]>({
@@ -65,23 +87,16 @@ export default function AppointmentFormModal({
     // Pre-fill form when editing
     useEffect(() => {
         if (mode === "edit" && appointment) {
-            // Convert ISO datetime to datetime-local format (YYYY-MM-DDTHH:MM)
-            const formatDatetimeForInput = (isoString: string) => {
-                const date = new Date(isoString);
-                // Get local datetime in YYYY-MM-DDTHH:MM format
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                const hours = String(date.getHours()).padStart(2, '0');
-                const minutes = String(date.getMinutes()).padStart(2, '0');
-                return `${year}-${month}-${day}T${hours}:${minutes}`;
-            };
+            const dateObj = new Date(appointment.datetime);
+            const hours = String(dateObj.getHours()).padStart(2, "0");
+            const minutes = String(dateObj.getMinutes()).padStart(2, "0");
 
             setFormData({
                 client_name: appointment.client_name,
                 client_phone: appointment.client_phone,
                 service: appointment.service || "",
-                datetime: formatDatetimeForInput(appointment.datetime),
+                date: dateObj,
+                time: `${hours}:${minutes}`,
                 duration_minutes: appointment.duration_minutes || 30,
                 notes: appointment.notes || "",
             });
@@ -91,7 +106,8 @@ export default function AppointmentFormModal({
                 client_name: "",
                 client_phone: "",
                 service: "",
-                datetime: "",
+                date: undefined,
+                time: "09:00", // Default to 9 AM
                 duration_minutes: 30,
                 notes: "",
             });
@@ -102,7 +118,6 @@ export default function AppointmentFormModal({
     const createMutation = useMutation({
         mutationFn: appointmentsApi.create,
         onSuccess: () => {
-            // Force immediate refresh of appointments list
             queryClient.invalidateQueries({ queryKey: ["appointments"] });
             queryClient.refetchQueries({ queryKey: ["appointments"] });
             toast.success("Appointment created successfully!");
@@ -110,11 +125,9 @@ export default function AppointmentFormModal({
         },
         onError: (error: any) => {
             console.error("Create error:", error);
-            // Handle validation errors from FastAPI
             if (error.response?.data?.detail) {
                 const detail = error.response.data.detail;
                 if (Array.isArray(detail)) {
-                    // Pydantic validation errors
                     const errorMessages = detail.map((err: any) =>
                         `${err.loc?.join(' -> ') || 'Error'}: ${err.msg}`
                     ).join(', ');
@@ -135,7 +148,6 @@ export default function AppointmentFormModal({
         mutationFn: ({ id, data }: { id: string; data: AppointmentUpdate }) =>
             appointmentsApi.update(id, data),
         onSuccess: () => {
-            // Force immediate refresh of appointments list
             queryClient.invalidateQueries({ queryKey: ["appointments"] });
             queryClient.refetchQueries({ queryKey: ["appointments"] });
             toast.success("Appointment updated successfully!");
@@ -143,11 +155,9 @@ export default function AppointmentFormModal({
         },
         onError: (error: any) => {
             console.error("Update error:", error);
-            // Handle validation errors from FastAPI
             if (error.response?.data?.detail) {
                 const detail = error.response.data.detail;
                 if (Array.isArray(detail)) {
-                    // Pydantic validation errors
                     const errorMessages = detail.map((err: any) =>
                         `${err.loc?.join(' -> ') || 'Error'}: ${err.msg}`
                     ).join(', ');
@@ -167,44 +177,40 @@ export default function AppointmentFormModal({
         e.preventDefault();
 
         // Validation
-        if (!formData.client_name || !formData.client_phone || !formData.service || !formData.datetime) {
+        if (!formData.client_name || !formData.client_phone || !formData.service || !formData.date || !formData.time) {
             toast.error("Please fill in all required fields");
             return;
         }
 
-        // Convert datetime-local format to ISO 8601
-        // datetime-local gives us "2025-11-15T14:30"
-        // We need to convert it to "2025-11-15T14:30:00" (add seconds)
-        const formattedDatetime = formData.datetime.includes(':')
-            ? formData.datetime.length === 16
-                ? `${formData.datetime}:00`  // Add seconds if missing
-                : formData.datetime
-            : formData.datetime;
+        // Combine date and time
+        const [hours, minutes] = formData.time.split(":").map(Number);
+        const combinedDate = new Date(formData.date);
+        combinedDate.setHours(hours, minutes, 0, 0);
+
+        // Convert to ISO string
+        const isoDatetime = combinedDate.toISOString();
 
         if (mode === "create") {
-            // For create, send all fields as AppointmentCreate
             const createData: AppointmentCreate = {
                 client_name: formData.client_name,
                 client_phone: formData.client_phone,
                 service: formData.service,
-                datetime: formattedDatetime,
+                datetime: isoDatetime,
                 duration_minutes: formData.duration_minutes,
                 notes: formData.notes,
             };
             createMutation.mutate(createData);
         } else if (appointment?.id) {
-            // For update, build object with only non-empty fields
             const updateData: AppointmentUpdate = {};
 
-            // Only include fields that have values
             if (formData.client_name && formData.client_name !== appointment.client_name) {
                 updateData.client_name = formData.client_name;
             }
             if (formData.service && formData.service !== appointment.service) {
                 updateData.service = formData.service;
             }
-            if (formData.datetime && formattedDatetime !== appointment.datetime) {
-                updateData.datetime = formattedDatetime;
+            if (isoDatetime !== appointment.datetime) {
+                updateData.datetime = isoDatetime;
             }
             if (formData.duration_minutes && formData.duration_minutes !== appointment.duration_minutes) {
                 updateData.duration_minutes = formData.duration_minutes;
@@ -213,7 +219,6 @@ export default function AppointmentFormModal({
                 updateData.notes = formData.notes || undefined;
             }
 
-            // Check if there are any changes
             if (Object.keys(updateData).length === 0) {
                 toast.info("No changes to save");
                 onOpenChange(false);
@@ -290,25 +295,56 @@ export default function AppointmentFormModal({
                                             <SelectItem key={service.id} value={service.name}>
                                                 {service.name} ({service.duration_minutes} min - ${service.price})
                                             </SelectItem>
-                                        ))}
+                                        )) || []}
                                 </SelectContent>
                             </Select>
                         </div>
 
                         {/* Date & Time */}
-                        <div className="grid gap-2">
-                            <Label htmlFor="datetime">
-                                Date & Time <span className="text-red-500">*</span>
-                            </Label>
-                            <Input
-                                id="datetime"
-                                type="datetime-local"
-                                value={formData.datetime}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, datetime: e.target.value })
-                                }
-                                required
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label>Date <span className="text-red-500">*</span></Label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                                "w-full justify-start text-left font-normal",
+                                                !formData.date && "text-muted-foreground"
+                                            )}
+                                        >
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {formData.date ? format(formData.date, "PPP") : <span>Pick a date</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                        <Calendar
+                                            mode="single"
+                                            selected={formData.date}
+                                            onSelect={(date) => setFormData({ ...formData, date })}
+                                            initialFocus
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>Time <span className="text-red-500">*</span></Label>
+                                <Select
+                                    value={formData.time}
+                                    onValueChange={(value) => setFormData({ ...formData, time: value })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select time" />
+                                    </SelectTrigger>
+                                    <SelectContent className="max-h-[200px]">
+                                        {timeSlots.map((slot) => (
+                                            <SelectItem key={slot.value} value={slot.value}>
+                                                {slot.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
 
                         {/* Duration */}
@@ -319,9 +355,9 @@ export default function AppointmentFormModal({
                                 type="number"
                                 min="15"
                                 step="15"
-                                value={formData.duration_minutes}
+                                value={formData.duration_minutes || 30}
                                 onChange={(e) =>
-                                    setFormData({ ...formData, duration_minutes: parseInt(e.target.value) })
+                                    setFormData({ ...formData, duration_minutes: parseInt(e.target.value) || 30 })
                                 }
                             />
                         </div>
