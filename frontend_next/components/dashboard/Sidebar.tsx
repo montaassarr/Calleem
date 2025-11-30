@@ -26,21 +26,18 @@ import {
     CalendarDays,
     Waves,
     Zap,
+    MessageCircle, // Added MessageCircle
 } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { useRouter, usePathname } from "next/navigation";
 import { useConfig } from "@/contexts/ConfigContext";
 
 const menuItems = [
-    { icon: LayoutDashboard, label: "Home", path: "/dashboard" },
-    { icon: Phone, label: "Call Logs", path: "/dashboard/conversations" },
-    {
-        icon: Zap,
-        label: "Smart Automations",
-        path: "/dashboard/automations",
-        proPlan: true  // Requires Pro plan
-    },
+    { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
     { icon: Calendar, label: "Appointments", path: "/dashboard/appointments" },
+    { icon: Scissors, label: "Services", path: "/dashboard/services" },
+    { icon: MessageSquare, label: "Conversations", path: "/dashboard/conversations" },
+    { icon: Bot, label: "Agents", path: "/dashboard/agents" },
     {
         icon: Mic,
         label: "Voice AI",
@@ -52,6 +49,7 @@ const menuItems = [
             { icon: Settings, label: "Voice Settings", path: "/dashboard/voice-agent/settings" },
         ]
     },
+    { icon: MessageCircle, label: "WhatsApp", path: "/dashboard/whatsapp" },
     { icon: UserCog, label: "Team", path: "/dashboard/settings/team" },
     { icon: Settings, label: "Billing", path: "/dashboard/settings/billing" },
 ];
@@ -65,7 +63,7 @@ const generalItems = [
             { icon: Settings, label: "Settings Hub", path: "/dashboard/settings" },
             { icon: Building2, label: "Business", path: "/dashboard/settings/business" },
             { icon: Brain, label: "AI Config", path: "/dashboard/settings/ai" },
-            { icon: Plug, label: "Integrations", path: "/dashboard/settings/integrations" },
+            { icon: Plug, label: "Integrations", path: "/dashboard/integrations" },
         ]
     },
     { icon: HelpCircle, label: "Help", path: "/dashboard/help" },

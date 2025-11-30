@@ -22,10 +22,17 @@ class TenantSettings(BaseModel):
     business_name: str
     timezone: str = "UTC"
     currency: str = "USD"
-    vapi_api_key: Optional[str] = None
+    
+    # Twilio (kept for backward compatibility)
     twilio_account_sid: Optional[str] = None
     twilio_auth_token: Optional[str] = None
     twilio_phone_number: Optional[str] = None
+    
+    # Integrations
+    google_calendar_connected: bool = False
+    slack_webhook_url: Optional[str] = None
+    hubspot_api_key: Optional[str] = None
+    google_calendar_credentials: Optional[Dict[str, Any]] = None
     
     # Custom prompts
     system_prompt: Optional[str] = None

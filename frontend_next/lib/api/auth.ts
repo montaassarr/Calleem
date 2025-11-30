@@ -16,7 +16,7 @@ export const authApi = {
             },
         });
 
-        return response.data;
+        return response; // ApiClient already returns .data
     },
 
     /**
@@ -24,7 +24,7 @@ export const authApi = {
      */
     register: async (userData: UserCreate): Promise<UserResponse> => {
         const response = await api.post<UserResponse>('/users/register', userData);
-        return response.data;
+        return response; // ApiClient already returns .data
     },
 
     /**
@@ -32,7 +32,7 @@ export const authApi = {
      */
     getCurrentUser: async (): Promise<UserResponse> => {
         const response = await api.get<UserResponse>('/users/me');
-        return response.data;
+        return response; // ApiClient already returns .data
     },
 
     /**

@@ -11,8 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function UsersPage() {
+    const { user: currentUser } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
@@ -32,7 +34,7 @@ export default function UsersPage() {
         password: '',
         full_name: '',
         role: 'staff',
-        business_id: '',
+        tenant_id: currentUser?.tenant_id || '',
         permissions: '',
         active: true
     });
@@ -74,7 +76,7 @@ export default function UsersPage() {
             password: '',
             full_name: '',
             role: 'staff',
-            business_id: '',
+            tenant_id: currentUser?.tenant_id || '',
             permissions: '',
             active: true
         });
@@ -89,7 +91,7 @@ export default function UsersPage() {
             password: '', // Don't show password
             full_name: (user as any).full_name || '',
             role: user.role,
-            business_id: user.business_id || '',
+            tenant_id: user.tenant_id || currentUser?.tenant_id || '',
             permissions: user.permissions ? user.permissions.join(', ') : '',
             active: user.active
         });
@@ -290,15 +292,18 @@ export default function UsersPage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="business_id">Business ID</Label>
-                            <Input
-                                id="business_id"
-                                value={formData.business_id}
-                                onChange={(e) => setFormData({ ...formData, business_id: e.target.value })}
-                                placeholder="Optional"
-                            />
-                        </div>
+                        {/* Only show tenant_id field for super_admin */}
+                        {currentUser?.role === 'super_admin' && (
+                            <div className="space-y-2">
+                                <Label htmlFor="tenant_id">Tenant ID</Label>
+                                <Input
+                                    id="tenant_id"
+                                    value={formData.tenant_id}
+                                    onChange={(e) => setFormData({ ...formData, tenant_id: e.target.value })}
+                                    placeholder="Auto-assigned if empty"
+                                />
+                            </div>
+                        )}
                         <div className="space-y-2 col-span-2">
                             <Label htmlFor="permissions">Permissions (comma separated)</Label>
                             <Input

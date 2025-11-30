@@ -1,0 +1,341 @@
+{
+    "name": "Book Appointment",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "bookslots",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-trigger",
+            "name": "Webhook Trigger",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1.1,
+            "position": [
+                240,
+                400
+            ],
+            "webhookId": "book-slots-webhook"
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "caller_phone",
+                            "name": "caller_phone",
+                            "value": "={{ $json.body.message.call.customer.number || $json.body.customer_phone }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "tool_call_id",
+                            "name": "tool_call_id",
+                            "value": "={{ $json.body.message.toolCalls[0].id || $json.body.tool_call_id }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "email",
+                            "name": "email",
+                            "value": "={{ $json.body.message.toolCalls[0].function.arguments.email || $json.body.email }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "name",
+                            "name": "name",
+                            "value": "={{ $json.body.message.toolCalls[0].function.arguments.name || $json.body.name }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "notes",
+                            "name": "notes",
+                            "value": "={{ $json.body.message.toolCalls[0].function.arguments.notes || $json.body.notes }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "starttime",
+                            "name": "starttime",
+                            "value": "={{ $json.body.message.toolCalls[0].function.arguments.starttime || $json.body.starttime }}",
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "id": "extract-data",
+            "name": "Extract Data",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.3,
+            "position": [
+                460,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "email-check",
+                            "leftValue": "={{ $json.email }}",
+                            "rightValue": "",
+                            "operator": {
+                                "type": "string",
+                                "operation": "notEmpty"
+                            }
+                        },
+                        {
+                            "id": "name-check",
+                            "leftValue": "={{ $json.name }}",
+                            "rightValue": "",
+                            "operator": {
+                                "type": "string",
+                                "operation": "notEmpty"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                }
+            },
+            "id": "validate-input",
+            "name": "Validate Input",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                680,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://core-service:8000/api/v1/tenants/lookup-by-phone",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "phone",
+                            "value": "={{ $json.caller_phone }}"
+                        }
+                    ]
+                }
+            },
+            "id": "lookup-tenant",
+            "name": "Lookup Tenant",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://core-service:8000/api/v1/appointments",
+                "sendBody": true,
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "X-Tenant-ID",
+                            "value": "={{ $json.tenant_id }}"
+                        }
+                    ]
+                },
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "client_name",
+                            "value": "={{ $('Extract Data').item.json.name }}"
+                        },
+                        {
+                            "name": "client_email",
+                            "value": "={{ $('Extract Data').item.json.email }}"
+                        },
+                        {
+                            "name": "client_phone",
+                            "value": "={{ $('Extract Data').item.json.caller_phone }}"
+                        },
+                        {
+                            "name": "datetime",
+                            "value": "={{ $('Extract Data').item.json.starttime }}"
+                        },
+                        {
+                            "name": "duration",
+                            "value": "30"
+                        },
+                        {
+                            "name": "notes",
+                            "value": "={{ $('Extract Data').item.json.notes }}"
+                        },
+                        {
+                            "name": "service_id",
+                            "value": "default"
+                        }
+                    ]
+                }
+            },
+            "id": "create-appointment",
+            "name": "Create Appointment",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                1120,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "success-response",
+                            "name": "results",
+                            "value": "=[{\"toolCallId\": \"{{ $('Extract Data').item.json.tool_call_id }}\", \"result\": \"Appointment booked successfully for {{ $('Extract Data').item.json.name }} at {{ $('Extract Data').item.json.starttime }}\"}]",
+                            "type": "array"
+                        }
+                    ]
+                }
+            },
+            "id": "success-response",
+            "name": "Success Response",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.3,
+            "position": [
+                1340,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "error-response",
+                            "name": "results",
+                            "value": "=[{\"toolCallId\": \"{{ $('Extract Data').item.json.tool_call_id }}\", \"result\": \"Please provide email, name, and appointment time to book\"}]",
+                            "type": "array"
+                        }
+                    ]
+                }
+            },
+            "id": "error-response",
+            "name": "Error Response",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.3,
+            "position": [
+                900,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ $json }}",
+                "options": {}
+            },
+            "id": "respond",
+            "name": "Respond to Webhook",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                1560,
+                400
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract Data": {
+            "main": [
+                [
+                    {
+                        "node": "Validate Input",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Validate Input": {
+            "main": [
+                [
+                    {
+                        "node": "Lookup Tenant",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Error Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Lookup Tenant": {
+            "main": [
+                [
+                    {
+                        "node": "Create Appointment",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Create Appointment": {
+            "main": [
+                [
+                    {
+                        "node": "Success Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Success Response": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Error Response": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

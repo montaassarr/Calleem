@@ -21,7 +21,16 @@ export function useConfig(businessId: string = 'default') {
         queryKey: [QUERY_KEY, businessId],
         queryFn: () => businessConfigApi.getConfig(businessId),
         staleTime: 5 * 60 * 1000, // 5 minutes (matches backend cache)
-        retry: 2,
+        retry: (failureCount, error: any) => {
+            // Don't retry on 401 (unauthorized) - user needs to login
+            if (error?.response?.status === 401) {
+                return false;
+            }
+            // Retry other errors up to 2 times
+            return failureCount < 2;
+        },
+        // Don't throw errors, let components handle them
+        throwOnError: false,
     });
 
     // Update configuration

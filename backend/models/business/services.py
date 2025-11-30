@@ -39,4 +39,5 @@ class Service(ServiceBase):
     )
 
 class ServiceResponse(Service):
+    id: str = Field()  # Override to remove alias and ensure 'id' is in JSON
     pass

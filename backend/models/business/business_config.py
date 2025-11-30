@@ -1,39 +1,32 @@
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
+from models.business.api_keys import ApiKey
 
 class BusinessConfig(BaseModel):
     id: Optional[str] = Field(alias="_id", default=None)
     business_id: Optional[str] = None
+    # General
     business_name: str = "My Business"
-    language: str = "en"
+    
+    # Localization
+    language: Optional[str] = "en"
     timezone: str = "UTC"
-    currency: str = "USD"
-    default_duration: int = 30
+    currency: Optional[str] = "USD"
     
-    # Contact Info
-    phone_number: Optional[str] = None
-    email: Optional[str] = None
-    address: Optional[str] = None
-    tenant_id: Optional[str] = None
-    is_configured: bool = False
+    # Configuration
+    default_duration: Optional[int] = 30
+    is_configured: Optional[bool] = False
     
-    # API Keys
-    vapi_api_key: Optional[str] = None
-    openai_api_key: Optional[str] = None
-    groq_api_key: Optional[str] = None
-    elevenlabs_api_key: Optional[str] = None
-    
-    # Twilio
+    # Twilio (kept for backward compatibility, will migrate to api_keys)
     twilio_account_sid: Optional[str] = None
     twilio_auth_token: Optional[str] = None
     twilio_phone_number: Optional[str] = None
     twilio_verify_sid: Optional[str] = None
 
     # Integrations
-    airtable_api_key: Optional[str] = None
-    google_calendar_connected: bool = False
+    google_calendar_connected: Optional[bool] = False
     google_calendar_credentials: Optional[Dict[str, Any]] = None
     hubspot_credentials: Optional[Dict[str, Any]] = None
     slack_credentials: Optional[Dict[str, Any]] = None
@@ -44,10 +37,13 @@ class BusinessConfig(BaseModel):
     system_prompt: Optional[str] = None
     
     # Automations
-    automations: Dict[str, bool] = Field(default_factory=dict)
+    automations: Optional[Dict[str, bool]] = Field(default_factory=dict)
+    
+    # API Keys (BYOK)
+    api_keys: List[ApiKey] = Field(default_factory=list)
     
     # Scheduling
-    business_hours: dict = {
+    business_hours: Optional[dict] = {
         "monday": {"start": "09:00", "end": "17:00", "enabled": True},
         "tuesday": {"start": "09:00", "end": "17:00", "enabled": True},
         "wednesday": {"start": "09:00", "end": "17:00", "enabled": True},
@@ -83,17 +79,11 @@ class BusinessConfigUpdate(BaseModel):
     address: Optional[str] = None
     is_configured: Optional[bool] = None
     
-    vapi_api_key: Optional[str] = None
-    openai_api_key: Optional[str] = None
-    groq_api_key: Optional[str] = None
-    elevenlabs_api_key: Optional[str] = None
-    
+    # Twilio (kept for backward compatibility)
     twilio_account_sid: Optional[str] = None
     twilio_auth_token: Optional[str] = None
     twilio_phone_number: Optional[str] = None
     twilio_verify_sid: Optional[str] = None
-    
-    airtable_api_key: Optional[str] = None
     google_calendar_connected: Optional[bool] = None
     whatsapp_config: Optional[Dict[str, Any]] = None
     

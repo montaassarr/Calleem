@@ -37,7 +37,7 @@ echo ""
 
 # Start backend in background with correct venv and PYTHONPATH
 export PYTHONPATH="/home/montassar/Desktop/ai_receptionist/backend:$PYTHONPATH"
-/home/montassar/Desktop/ai_receptionist/.venv/bin/python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000 > ../logs/backend.log 2>&1 &
+python3 -m uvicorn main:app --reload --host 0.0.0.0 --port 8000 > ../logs/backend.log 2>&1 &
 BACKEND_PID=$!
 echo -e "${GREEN}✅ Backend started (PID: $BACKEND_PID)${NC}"
 echo ""
@@ -47,14 +47,14 @@ sleep 3
 
 # Start Frontend
 echo -e "${BLUE}Starting Frontend Dashboard...${NC}"
-cd ../frontend
+cd ../frontend_next
 
 if [ ! -d "node_modules" ]; then
     echo -e "${YELLOW}⚠️  Node modules not found. Installing...${NC}"
     npm install
 fi
 
-echo -e "${GREEN}✅ Frontend will start at http://localhost:5173${NC}"
+echo -e "${GREEN}✅ Frontend will start at http://localhost:3000${NC}"
 echo -e "${YELLOW}📝 Login: admin / admin123${NC}"
 echo ""
 
@@ -71,7 +71,7 @@ echo ""
 echo "📍 Service URLs:"
 echo "   Backend API:  http://localhost:8000"
 echo "   API Docs:     http://localhost:8000/docs"
-echo "   Frontend:     http://localhost:5173"
+echo "   Frontend:     http://localhost:3000"
 echo ""
 echo "🔐 Default Login:"
 echo "   Username: admin"

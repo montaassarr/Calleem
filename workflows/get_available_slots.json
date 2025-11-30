@@ -1,0 +1,244 @@
+{
+    "name": "Get Available Slots",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "getslots",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-trigger",
+            "name": "Webhook Trigger",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1.1,
+            "position": [
+                240,
+                300
+            ],
+            "webhookId": "get-slots-webhook"
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "caller_phone",
+                            "name": "caller_phone",
+                            "value": "={{ $json.body.message.call.customer.number || $json.body.customer_phone }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "tool_call_id",
+                            "name": "tool_call_id",
+                            "value": "={{ $json.body.message.toolCalls[0].id || $json.body.tool_call_id }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "start_time",
+                            "name": "start_time",
+                            "value": "={{ $json.body.message.toolCalls[0].function.arguments.starttime || $json.body.start_time }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "end_time",
+                            "name": "end_time",
+                            "value": "={{ $json.body.message.toolCalls[0].function.arguments.endtime || $json.body.end_time }}",
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "id": "extract-data",
+            "name": "Extract Data",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.3,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://core-service:8000/api/v1/tenants/lookup-by-phone",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "phone",
+                            "value": "={{ $json.caller_phone }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "lookup-tenant",
+            "name": "Lookup Tenant",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                680,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "http://core-service:8000/api/v1/appointments",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "start",
+                            "value": "={{ $json.start_time }}"
+                        },
+                        {
+                            "name": "end",
+                            "value": "={{ $json.end_time }}"
+                        }
+                    ]
+                },
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "X-Tenant-ID",
+                            "value": "={{ $json.tenant_id }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "get-appointments",
+            "name": "Get Appointments",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "runOnceForEachItem",
+                "jsCode": "// Calculate available slots\nconst appointments = $input.item.json.appointments || [];\nconst startTime = new Date($('Extract Data').item.json.start_time);\nconst endTime = new Date($('Extract Data').item.json.end_time);\n\nconst SLOT_DURATION = 30 * 60 * 1000; // 30 minutes\nconst WORKDAY_START = 9; // 9 AM\nconst WORKDAY_END = 18; // 6 PM\n\nconst availableSlots = [];\nlet current = new Date(startTime);\ncurrent.setHours(WORKDAY_START, 0, 0, 0);\n\nwhile (current < endTime) {\n  const slotEnd = new Date(current.getTime() + SLOT_DURATION);\n  \n  // Check if slot is within working hours\n  if (current.getHours() >= WORKDAY_START && slotEnd.getHours() <= WORKDAY_END) {\n    // Check if slot conflicts with existing appointments\n    const hasConflict = appointments.some(apt => {\n      const aptStart = new Date(apt.datetime);\n      const aptEnd = new Date(aptStart.getTime() + (apt.duration * 60 * 1000));\n      return (current < aptEnd && slotEnd > aptStart);\n    });\n    \n    if (!hasConflict) {\n      availableSlots.push({\n        start: current.toISOString(),\n        formatted: current.toLocaleString('en-US', {\n          weekday: 'long',\n          month: 'long',\n          day: 'numeric',\n          hour: 'numeric',\n          minute: '2-digit',\n          hour12: true\n        })\n      });\n    }\n  }\n  \n  current = new Date(current.getTime() + SLOT_DURATION);\n}\n\nreturn {\n  json: {\n    availableSlots: availableSlots.map(s => s.formatted).join('\\n')\n  }\n};"
+            },
+            "id": "calculate-slots",
+            "name": "Calculate Available Slots",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1120,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "response",
+                            "name": "results",
+                            "value": "=[{\"toolCallId\": \"{{ $('Extract Data').item.json.tool_call_id }}\", \"result\": \"{{ $json.availableSlots }}\"}]",
+                            "type": "array"
+                        }
+                    ]
+                }
+            },
+            "id": "format-response",
+            "name": "Format Response",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.3,
+            "position": [
+                1340,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ $json }}",
+                "options": {}
+            },
+            "id": "respond",
+            "name": "Respond to Webhook",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                1560,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract Data": {
+            "main": [
+                [
+                    {
+                        "node": "Lookup Tenant",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Lookup Tenant": {
+            "main": [
+                [
+                    {
+                        "node": "Get Appointments",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Appointments": {
+            "main": [
+                [
+                    {
+                        "node": "Calculate Available Slots",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Calculate Available Slots": {
+            "main": [
+                [
+                    {
+                        "node": "Format Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Format Response": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

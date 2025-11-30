@@ -12,8 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function AppointmentsPage() {
+    const { user: currentUser } = useAuth();
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
@@ -36,7 +38,7 @@ export default function AppointmentsPage() {
         duration_minutes: 30,
         status: 'confirmed',
         source: 'manual',
-        business_id: '',
+        business_id: currentUser?.business_id || currentUser?.tenant_id || '',
         location_id: '',
         notes: ''
     });
@@ -81,7 +83,7 @@ export default function AppointmentsPage() {
             duration_minutes: 30,
             status: 'confirmed',
             source: 'manual',
-            business_id: '',
+            business_id: currentUser?.business_id || currentUser?.tenant_id || '',
             location_id: '',
             notes: ''
         });
@@ -98,7 +100,7 @@ export default function AppointmentsPage() {
             duration_minutes: appt.duration_minutes,
             status: appt.status,
             source: appt.source || 'manual',
-            business_id: appt.business_id || '',
+            business_id: appt.business_id || currentUser?.business_id || currentUser?.tenant_id || '',
             location_id: appt.location_id || '',
             notes: appt.notes || ''
         });
@@ -315,15 +317,18 @@ export default function AppointmentsPage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="business_id">Business ID</Label>
-                            <Input
-                                id="business_id"
-                                value={formData.business_id}
-                                onChange={(e) => setFormData({ ...formData, business_id: e.target.value })}
-                                placeholder="Optional"
-                            />
-                        </div>
+                        {/* Only show business_id field for super_admin */}
+                        {currentUser?.role === 'super_admin' && (
+                            <div className="space-y-2">
+                                <Label htmlFor="business_id">Business ID</Label>
+                                <Input
+                                    id="business_id"
+                                    value={formData.business_id}
+                                    onChange={(e) => setFormData({ ...formData, business_id: e.target.value })}
+                                    placeholder="Auto-assigned if empty"
+                                />
+                            </div>
+                        )}
                         <div className="space-y-2">
                             <Label htmlFor="location_id">Location ID</Label>
                             <Input

@@ -5,7 +5,7 @@ CRUD operations for appointments
 
 from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from bson import ObjectId
 import logging
 
@@ -74,6 +74,8 @@ async def create_appointment(
             "service": appointment.service or "Service",
             "start_time": start_time,
             "end_time": end_time,
+            "datetime": start_time,  # Frontend compatibility
+            "duration_minutes": int((end_time - start_time).total_seconds() / 60),  # Frontend compatibility
             "tenant_id": tenant_id,
             "business_id": tenant_id,
             "status": AppointmentStatus.CONFIRMED,
@@ -92,8 +94,10 @@ async def create_appointment(
         # Retrieve created appointment
         created_appointment = await db.appointments.find_one({"_id": result.inserted_id})
         created_appointment["id"] = str(created_appointment["_id"])
+        created_appointment["_id"] = str(created_appointment["_id"])  # Convert ObjectId to string for Pydantic
         
         logger.info(f"✅ Appointment created: {created_appointment['id']}")
+
         
         # Send confirmation via WhatsApp
         try:
@@ -160,6 +164,12 @@ async def list_appointments(
         # Format response
         for appointment in appointments:
             appointment["id"] = str(appointment["_id"])
+            appointment["_id"] = str(appointment["_id"])  # Convert ObjectId to string
+            
+            # Ensure datetime and duration_minutes are present for frontend
+            if "start_time" in appointment and "end_time" in appointment:
+                appointment["datetime"] = appointment["start_time"]
+                appointment["duration_minutes"] = int((appointment["end_time"] - appointment["start_time"]).total_seconds() / 60)
         
         logger.info(f"Retrieved {len(appointments)} appointments")
         
@@ -195,6 +205,12 @@ async def get_appointment(
             raise HTTPException(status_code=404, detail="Appointment not found")
         
         appointment["id"] = str(appointment["_id"])
+        appointment["_id"] = str(appointment["_id"])  # Convert ObjectId to string
+        
+        # Ensure datetime and duration_minutes are present
+        if "start_time" in appointment and "end_time" in appointment:
+            appointment["datetime"] = appointment["start_time"]
+            appointment["duration_minutes"] = int((appointment["end_time"] - appointment["start_time"]).total_seconds() / 60)
         
         return AppointmentResponse(**appointment)
         
@@ -237,10 +253,33 @@ async def update_appointment(
             raise HTTPException(status_code=400, detail="No fields to update")
         
         # Validate new datetime if provided
-        if "datetime" in update_data:
-            is_valid, error_msg = datetime_utils.is_valid_appointment_time(update_data["datetime"])
+        if "datetime" in update_data or "duration_minutes" in update_data:
+            # Get start_time (new or existing)
+            start_time = update_data.get("datetime", existing.get("start_time"))
+            
+            # Get duration (new or existing)
+            duration = update_data.get("duration_minutes")
+            if duration is None:
+                # Calculate from existing
+                old_start = existing.get("start_time")
+                old_end = existing.get("end_time")
+                if old_start and old_end:
+                    duration = int((old_end - old_start).total_seconds() / 60)
+                else:
+                    duration = 30 # Default
+            
+            # Calculate new end_time
+            end_time = start_time + timedelta(minutes=duration)
+            
+            # Validate time
+            is_valid, error_msg = datetime_utils.is_valid_appointment_time(start_time)
             if not is_valid:
                 raise HTTPException(status_code=400, detail=error_msg)
+                
+            update_data["start_time"] = start_time
+            update_data["end_time"] = end_time
+            update_data["datetime"] = start_time
+            update_data["duration_minutes"] = duration
         
         update_data["updated_at"] = datetime.utcnow()
         
@@ -253,6 +292,12 @@ async def update_appointment(
         # Retrieve updated appointment
         updated_appointment = await db.appointments.find_one({"_id": ObjectId(appointment_id)})
         updated_appointment["id"] = str(updated_appointment["_id"])
+        updated_appointment["_id"] = str(updated_appointment["_id"])  # Convert ObjectId to string
+        
+        # Ensure datetime and duration_minutes are present
+        if "start_time" in updated_appointment and "end_time" in updated_appointment:
+            updated_appointment["datetime"] = updated_appointment["start_time"]
+            updated_appointment["duration_minutes"] = int((updated_appointment["end_time"] - updated_appointment["start_time"]).total_seconds() / 60)
         
         logger.info(f"✏️ Appointment updated: {appointment_id}")
         
@@ -346,6 +391,12 @@ async def cancel_appointment(
         # Retrieve updated appointment
         cancelled_appointment = await db.appointments.find_one({"_id": ObjectId(appointment_id)})
         cancelled_appointment["id"] = str(cancelled_appointment["_id"])
+        cancelled_appointment["_id"] = str(cancelled_appointment["_id"])  # Convert ObjectId to string
+        
+        # Ensure datetime and duration_minutes are present
+        if "start_time" in cancelled_appointment and "end_time" in cancelled_appointment:
+            cancelled_appointment["datetime"] = cancelled_appointment["start_time"]
+            cancelled_appointment["duration_minutes"] = int((cancelled_appointment["end_time"] - cancelled_appointment["start_time"]).total_seconds() / 60)
         
         logger.info(f"❌ Appointment cancelled: {appointment_id}")
         

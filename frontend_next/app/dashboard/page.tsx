@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { appointmentsApi, conversationsApi, servicesApi, webhookApi } from "@/lib/api-endpoints";
 import { useRouter } from "next/navigation";
-import { useConfig } from "@/contexts/ConfigContext";
+import { useTenant } from "@/contexts/TenantContext";
 
 export default function DashboardPage() {
-    const { config } = useConfig();
+    const { config } = useTenant();
     const router = useRouter();
 
     // Fetch appointments

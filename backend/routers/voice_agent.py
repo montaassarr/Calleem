@@ -8,7 +8,7 @@ from datetime import datetime
 from database.mongo_config import get_database
 from routers.users import get_current_user
 from models.business.business_config import BusinessConfig
-from utils.security import security
+from routers.api_keys import get_decrypted_key
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -20,32 +20,11 @@ class CallRequest(BaseModel):
     customer_name: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
 
-async def get_vapi_api_key(tenant_id: str) -> str:
-    db = get_database()
-    config = await db.business_config.find_one({"tenant_id": tenant_id})
-    
-    if not config:
-        raise HTTPException(status_code=404, detail="Business configuration not found")
-        
-    api_key = config.get("vapi_api_key")
-    if not api_key:
-        raise HTTPException(status_code=400, detail="Vapi API key not configured")
-        
-    # Decrypt the API key (all keys are now encrypted)
-    from utils.security import security
-    decrypted_key = security.decrypt(api_key)
-    if not decrypted_key:
-        # If decryption fails, assume it's a legacy unencrypted key
-        logger.warning(f"Failed to decrypt vapi_api_key for tenant {tenant_id}, using as-is (legacy)")
-        return api_key
-    
-    return decrypted_key
-
 @router.get("/status")
 async def get_agent_status(current_user: dict = Depends(get_current_user)):
     """Get Voice Agent status and details"""
     tenant_id = str(current_user["tenant_id"])
-    api_key = await get_vapi_api_key(tenant_id)
+    api_key = await get_decrypted_key(tenant_id, "vapi")
     
     async with httpx.AsyncClient() as client:
         headers = {"Authorization": f"Bearer {api_key}"}
@@ -81,7 +60,7 @@ async def get_agent_status(current_user: dict = Depends(get_current_user)):
 async def get_call_history(limit: int = 25, current_user: dict = Depends(get_current_user)):
     """Get call history from Vapi"""
     tenant_id = str(current_user["tenant_id"])
-    api_key = await get_vapi_api_key(tenant_id)
+    api_key = await get_decrypted_key(tenant_id, "vapi")
     
     async with httpx.AsyncClient() as client:
         headers = {"Authorization": f"Bearer {api_key}"}
@@ -119,7 +98,7 @@ async def get_call_history(limit: int = 25, current_user: dict = Depends(get_cur
 async def start_outbound_call(data: CallRequest, current_user: dict = Depends(get_current_user)):
     """Start an outbound call"""
     tenant_id = str(current_user["tenant_id"])
-    api_key = await get_vapi_api_key(tenant_id)
+    api_key = await get_decrypted_key(tenant_id, "vapi")
     
     # Get assistant ID (reuse logic or fetch again)
     # Ideally we should store this in DB to avoid extra API call

@@ -8,11 +8,13 @@
 // ============================================
 
 export interface UserCreate {
-    username: string;
     email: string;
+    username: string;
     password: string;
     full_name: string;
-    role?: 'owner' | 'admin' | 'staff' | 'viewer' | 'barber' | 'manager' | 'super_admin';
+    business_name?: string;
+    phone?: string;
+    role?: string;
     business_id?: string;
     tenant_id?: string;
     permissions?: string[];
@@ -58,8 +60,8 @@ export interface LoginCredentials {
 export type AppointmentStatus = 'confirmed' | 'pending' | 'cancelled' | 'completed' | 'no_show';
 
 export interface AppointmentCreate {
-    business_id: string;
-    location_id: string;
+    business_id?: string;
+    location_id?: string;
     client_id?: string;
     service_id?: string;
     staff_id?: string;
@@ -528,83 +530,3 @@ export interface StaffMember {
 // ============================================
 // CRM (Customer Relationship Management)
 // ============================================
-
-export interface Client {
-    id: string;
-    business_id: string;
-    name: string;
-    phone: string;
-    last_visit?: string;
-    visit_count: number;
-    preferences: Record<string, any>;
-}
-
-export interface ClientNote {
-    id: string;
-    client_id: string;
-    author_id: string;
-    content: string;
-    created_at: string;
-}
-
-// ============================================
-// CREWAI JOBS
-// ============================================
-
-export type CrewJobType = 'cleaning' | 'analytics' | 'insights' | 'revenue_optimization' | 'marketing' | 'quality_assurance';
-export type CrewJobStatus = 'pending' | 'running' | 'completed' | 'failed';
-
-export interface CrewJobCreate {
-    type: CrewJobType;
-    tenant_id: string;
-    parameters?: Record<string, any>;
-}
-
-export interface CrewJobResponse {
-    id: string;
-    type: CrewJobType;
-    tenant_id: string;
-    status: CrewJobStatus;
-    result?: any;
-    error?: string;
-    created_at: string;
-    started_at?: string;
-    completed_at?: string;
-    parameters?: Record<string, any>;
-}
-
-// ============================================
-// AI INSIGHTS (CrewAI Results)
-// ============================================
-
-export interface CustomerInsight {
-    segment: string;
-    client_count: number;
-    characteristics: string[];
-    recommendations: string[];
-}
-
-export interface RevenueOpportunity {
-    type: 'upsell' | 'cross_sell' | 'retention';
-    client_id: string;
-    client_name: string;
-    estimated_value: number;
-    confidence: number;
-    recommendation: string;
-}
-
-export interface MarketingCampaign {
-    name: string;
-    target_segment: string;
-    channel: string;
-    message: string;
-    expected_roi: number;
-}
-
-export interface QualityMetric {
-    metric: string;
-    score: number;
-    trend: 'improving' | 'stable' | 'declining';
-    issues: string[];
-    recommendations: string[];
-}

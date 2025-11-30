@@ -22,15 +22,15 @@ export const adminApi = {
     // Users
     getUsers: async (skip = 0, limit = 100) => {
         const response = await api.get(`/admin/users?skip=${skip}&limit=${limit}`);
-        return response.data;
+        return response; // ApiClient already returns .data
     },
     createUser: async (data: any) => {
         const response = await api.post('/admin/users', data);
-        return response.data;
+        return response; // ApiClient already returns .data
     },
     updateUser: async (id: string, data: any) => {
         const response = await api.put(`/admin/users/${id}`, data);
-        return response.data;
+        return response; // ApiClient already returns .data
     },
     deleteUser: async (id: string) => {
         await api.delete(`/admin/users/${id}`);
@@ -90,11 +90,11 @@ export const adminApi = {
     // Business Config
     getConfig: async () => {
         const response = await api.get('/admin/config');
-        return response.data;
+        return response; // ApiClient already returns .data
     },
     updateConfig: async (data: any) => {
         const response = await api.put('/admin/config', data);
-        return response.data;
+        return response; // ApiClient already returns .data
     },
 
     // Tenants

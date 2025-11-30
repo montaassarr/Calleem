@@ -631,6 +631,9 @@ async def get_business_config(current_admin: dict = Depends(get_current_admin)):
             business_id=tenant_id or "default"
         )
         
+    if "_id" in config:
+        config["_id"] = str(config["_id"])
+        
     # Decrypt sensitive fields (all API keys)
     from utils.security import security
     
@@ -650,6 +653,14 @@ async def get_business_config(current_admin: dict = Depends(get_current_admin)):
             decrypted = security.decrypt(config[field])
             if decrypted:  # Only update if decryption succeeded
                 config[field] = decrypted
+    
+    # Ensure required fields have defaults
+    if not config.get("business_name"):
+        config["business_name"] = "My Business"
+    if not config.get("timezone"):
+        config["timezone"] = "UTC"
+    if "tenant_id" not in config and tenant_id:
+        config["tenant_id"] = tenant_id
             
     return BusinessConfig(**config)
 
@@ -683,6 +694,11 @@ async def update_business_config(
         if existing_config:
             if "_id" in existing_config:
                 del existing_config["_id"] # Remove _id before passing to Pydantic model
+            # Ensure required fields have defaults
+            if not existing_config.get("business_name"):
+                existing_config["business_name"] = "My Business"
+            if not existing_config.get("timezone"):
+                existing_config["timezone"] = "UTC"
             current_config = BusinessConfig(**existing_config)
         else:
             current_config = BusinessConfig(business_name="My Business", timezone="UTC", currency="USD") # Default if no existing config
@@ -743,6 +759,10 @@ async def update_business_config(
         )
     
     # Note: Google Calendar credentials are stored as JSON objects, not encrypted as strings
+    
+    # Remove _id from config_dict to prevent WriteError (immutable field)
+    if "_id" in config_dict:
+        del config_dict["_id"]
         
     await db.business_config.update_one(
         query, # Changed from {"business_id": user.tenant_id} to query to match existing context
@@ -753,4 +773,13 @@ async def update_business_config(
     updated_config = await db.business_config.find_one(query) # Corrected syntax from `return config = ...`
     if "_id" in updated_config:
         del updated_config["_id"]
+    
+    # Ensure required fields have defaults
+    if not updated_config.get("business_name"):
+        updated_config["business_name"] = "My Business"
+    if not updated_config.get("timezone"):
+        updated_config["timezone"] = "UTC"
+    if "tenant_id" not in updated_config and tenant_id:
+        updated_config["tenant_id"] = tenant_id
+        
     return BusinessConfig(**updated_config)
