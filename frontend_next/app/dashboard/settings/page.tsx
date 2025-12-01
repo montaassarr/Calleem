@@ -15,6 +15,13 @@ export default function SettingsPage() {
             color: "from-blue-500 to-cyan-500",
         },
         {
+            title: "API Keys",
+            description: "Manage API keys for AI services (VAPI, Groq, WhatsApp)",
+            icon: Key,
+            path: "/dashboard/settings/api-keys",
+            color: "from-red-500 to-orange-500",
+        },
+        {
             title: "Business Hours",
             description: "Set your weekly operating hours and schedule",
             icon: Clock,
@@ -34,13 +41,6 @@ export default function SettingsPage() {
             icon: Bot,
             path: "/dashboard/settings/ai",
             color: "from-green-500 to-emerald-500",
-        },
-        {
-            title: "WhatsApp Integration",
-            description: "WhatsApp Cloud API configuration",
-            icon: Key,
-            path: "/dashboard/settings/integrations",
-            color: "from-cyan-500 to-blue-500",
         },
         {
             title: "Team Members",

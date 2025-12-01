@@ -6,6 +6,12 @@ const QUERY_KEY = 'businessConfig';
 
 /**
  * Hook for business configuration management
+ * 
+ * TENANT ISOLATION: This hook MUST receive a unique businessId (tenant_id) per tenant
+ * to ensure proper data isolation in React Query's cache. Without this, all tenants
+ * would share the same cached configuration data.
+ * 
+ * @param businessId - Unique identifier for the tenant/business (defaults to 'default' if not provided)
  */
 export function useConfig(businessId: string = 'default') {
     const queryClient = useQueryClient();

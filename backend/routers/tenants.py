@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends, Body
 from typing import Dict, Any, Optional
 from pydantic import BaseModel
 from database.mongo_config import get_database
+from bson import ObjectId
+from datetime import datetime
 import logging
 
 router = APIRouter(
@@ -70,3 +72,109 @@ async def lookup_tenant_by_phone(request: TenantLookupRequest = Body(...)):
         business_name=tenant.get("business_name", "Unknown Business"),
         phone_number=tenant.get("phone_number")
     )
+
+
+class OnboardingCompleteRequest(BaseModel):
+    """Request to mark onboarding as complete"""
+    groq_api_key: Optional[str] = None
+    vapi_api_key: Optional[str] = None
+    openai_api_key: Optional[str] = None
+    n8n_url: Optional[str] = None
+    n8n_api_key: Optional[str] = None
+    business_name: Optional[str] = None
+    business_description: Optional[str] = None
+    industry: Optional[str] = None
+    phone: Optional[str] = None
+    website: Optional[str] = None
+    timezone: Optional[str] = None
+
+
+@router.patch("/me/complete-onboarding")
+async def complete_onboarding(
+    request: OnboardingCompleteRequest,
+    tenant_id: str = Depends(lambda: "temp_tenant")  # TODO: Get from auth
+):
+    """
+    Mark tenant onboarding as complete and save configuration.
+    Called after user finishes onboarding wizard.
+    """
+    db = get_database()
+    
+    # Find tenant
+    try:
+        tenant = await db.tenants.find_one({"_id": ObjectId(tenant_id)})
+    except:
+        # If not ObjectId, try as string
+        tenant = await db.tenants.find_one({"tenant_id": tenant_id})
+    
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    # Update tenant with onboarding data
+    update_data = {
+        "onboarding_completed": True,
+        "is_configured": True,
+        "updated_at": datetime.utcnow()
+    }
+    
+    # Add optional fields if provided
+    if request.business_name:
+        update_data["name"] = request.business_name
+    if request.business_description:
+        update_data["business_description"] = request.business_description
+    if request.industry:
+        update_data["industry"] = request.industry
+    if request.phone:
+        update_data["phone"] = request.phone
+    if request.website:
+        update_data["website"] = request.website
+    if request.timezone:
+        update_data["timezone"] = request.timezone
+    
+    # Save API keys to separate encrypted collection (TODO: Implement encryption)
+    if request.groq_api_key or request.vapi_api_key or request.openai_api_key:
+        api_keys = {}
+        if request.groq_api_key:
+            api_keys["groq"] = request.groq_api_key
+        if request.vapi_api_key:
+            api_keys["vapi"] = request.vapi_api_key
+        if request.openai_api_key:
+            api_keys["openai"] = request.openai_api_key
+        
+        # Store in api_keys collection (should be encrypted in production)
+        await db.api_keys.update_one(
+            {"tenant_id": str(tenant["_id"])},
+            {
+                "$set": {
+                    "tenant_id": str(tenant["_id"]),
+                    "keys": api_keys,
+                    "updated_at": datetime.utcnow()
+                }
+            },
+            upsert=True
+        )
+    
+    # Save n8n config
+    if request.n8n_url or request.n8n_api_key:
+        n8n_config = {}
+        if request.n8n_url:
+            n8n_config["url"] = request.n8n_url
+        if request.n8n_api_key:
+            n8n_config["api_key"] = request.n8n_api_key
+        
+        update_data["n8n_config"] = n8n_config
+    
+    # Update tenant
+    await db.tenants.update_one(
+        {"_id": tenant["_id"]},
+        {"$set": update_data}
+    )
+    
+    logger.info(f"Onboarding completed for tenant {tenant_id}")
+    
+    return {
+        "success": True,
+        "message": "Onboarding completed successfully",
+        "tenant_id": str(tenant["_id"])
+    }
+

@@ -176,6 +176,13 @@ app.include_router(
     tags=["Agents"]
 )
 
+from routers import billing
+app.include_router(
+    billing.router,
+    prefix=f"{settings.API_V1_PREFIX}/billing",
+    tags=["Billing & Subscriptions"]
+)
+
 
 @app.get("/")
 async def root():

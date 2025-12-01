@@ -243,6 +243,15 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
   type __Unused = __Check
 }
 
+// Validate ../../app/dashboard/settings/api-keys/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/dashboard/settings/api-keys">> = Specific
+  const handler = {} as typeof import("../../app/dashboard/settings/api-keys/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../app/dashboard/settings/billing/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/dashboard/settings/billing">> = Specific
@@ -351,10 +360,46 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
   type __Unused = __Check
 }
 
+// Validate ../../app/onboarding/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/onboarding">> = Specific
+  const handler = {} as typeof import("../../app/onboarding/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../app/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/">> = Specific
   const handler = {} as typeof import("../../app/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/payment/cancel/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/payment/cancel">> = Specific
+  const handler = {} as typeof import("../../app/payment/cancel/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/payment/mock-checkout/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/payment/mock-checkout">> = Specific
+  const handler = {} as typeof import("../../app/payment/mock-checkout/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/payment/success/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/payment/success">> = Specific
+  const handler = {} as typeof import("../../app/payment/success/page.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

@@ -125,7 +125,17 @@ async def webhook_message(request: Request):
                         tenant_id = str(tenant["_id"])
                         logger.info(f"🏢 Resolved tenant: {tenant.get('name')} ({tenant_id})")
                     else:
-                        logger.warning(f"⚠️ No tenant found for phone_number_id: {phone_number_id}")
+                        logger.error(f"❌ SECURITY: No tenant found for phone_number_id: {phone_number_id}")
+                        return JSONResponse(
+                            content={"status": "error", "message": "Invalid phone_number_id - No tenant configured"}, 
+                            status_code=400
+                        )
+                else:
+                    logger.error(f"❌ SECURITY: No phone_number_id in WhatsApp metadata")
+                    return JSONResponse(
+                        content={"status": "error", "message": "Missing phone_number_id in metadata"}, 
+                        status_code=400
+                    )
                 
                 # Process each message
                 for message in messages:
