@@ -91,5 +91,4 @@ class BusinessConfigUpdate(BaseModel):
     automations: Optional[Dict[str, bool]] = None
     business_hours: Optional[dict] = None
     
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
