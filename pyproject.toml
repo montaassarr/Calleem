@@ -13,7 +13,12 @@ markers = [
     "asyncio: marks tests as async",
     "unit: marks tests as unit tests",
     "integration: marks tests as integration tests",
-    "e2e: marks tests as end-to-end tests",
+    "e2e: marks tests as end-to-end tests with real API calls",
+    "vapi: marks tests that use Vapi API",
+    "groq: marks tests that use Groq AI API",
+    "conversation: marks tests for conversation management",
+    "appointment_flow: marks tests for complete appointment booking flow",
+    "performance: marks tests for performance and reliability",
 ]
 asyncio_mode = "auto"
 
