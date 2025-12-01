@@ -3,12 +3,19 @@ Configuration settings using Pydantic Settings
 """
 
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 from typing import List
 import os
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
+    
+    model_config = ConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra="allow"  # Allow extra fields from .env
+    )
     
     # Application
     APP_NAME: str = "AI Receptionist"
@@ -67,11 +74,6 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
     LOG_FILE: str = "logs/app.log"
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
-        extra = "allow"  # Allow extra fields from .env
 
 
 # Create global settings instance
