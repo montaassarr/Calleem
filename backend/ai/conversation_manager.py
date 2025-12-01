@@ -95,7 +95,7 @@ class ConversationManager:
                 ]
                 if any(keyword in message_lower for keyword in intent_changing_keywords):
                     # User wants to change intent, reclassify
-                    intent = await self._classify_intent(message_text, conversation["messages"])
+                    intent = await self._classify_intent(message_text, conversation["messages"], tenant_id)
                     logger.info(f"🔄 Intent changed during booking: {current_intent} → {intent}")
                     conversation["state"]["intent"] = intent
                 else:
@@ -104,7 +104,7 @@ class ConversationManager:
                     logger.info(f"📋 Maintaining booking flow intent (has booking data: {has_booking_data})")
             else:
                 # Not in active booking flow, classify normally
-                intent = await self._classify_intent(message_text, conversation["messages"])
+                intent = await self._classify_intent(message_text, conversation["messages"], tenant_id)
                 old_intent = conversation["state"].get("intent")
                 if intent != old_intent:
                     logger.info(f"🔄 Intent changed: {old_intent} → {intent}")
@@ -224,16 +224,33 @@ class ConversationManager:
     async def _classify_intent(
         self,
         message: str,
-        conversation_history: List[Dict]
+        conversation_history: List[Dict],
+        tenant_id: str = None
     ) -> str:
-        """Classify the intent of the message"""
+        """Classify the intent of the message using tenant-specific AI configuration"""
         
         try:
+            # Get tenant-specific API key and model
+            api_key = None
+            model = None
+            
+            if tenant_id:
+                config = await self.db.business_config.find_one({"tenant_id": tenant_id})
+                if config:
+                    # Get encrypted API key
+                    groq_api_key = config.get("groq_api_key")
+                    if groq_api_key:
+                        from utils.security import security
+                        api_key = security.decrypt(groq_api_key)
+                    
+                    # Get model preference
+                    model = config.get("ai_config", {}).get("model")
+            
             # Use Groq for intent classification
-            result = await groq_agent.classify_intent(message)
+            result = await groq_agent.classify_intent(message, api_key=api_key, model=model)
             intent = result.get("intent", "unknown")
             
-            logger.info(f"Intent classified as: {intent}")
+            logger.info(f"Intent classified as: {intent} (tenant: {tenant_id})")
             return intent
             
         except Exception as e:
@@ -249,11 +266,36 @@ class ConversationManager:
         message_text: str,
         conversation: Dict
     ) -> str:
-        """Generate AI response based on intent and conversation state"""
+        """Generate AI response based on intent and conversation state using tenant-specific config"""
+        
+        tenant_id = conversation.get("tenant_id")
         
         try:
             # Build conversation context for AI
             messages = []
+            
+            # Get tenant-specific configuration
+            api_key = None
+            model = None
+            system_prompt = None
+            temperature = 0.7
+            
+            if tenant_id:
+                config = await self.db.business_config.find_one({"tenant_id": tenant_id})
+                if config:
+                    # Get encrypted API key
+                    groq_api_key = config.get("groq_api_key")
+                    if groq_api_key:
+                        from utils.security import security
+                        api_key = security.decrypt(groq_api_key)
+                    
+                    # Get AI configuration
+                    ai_config = config.get("ai_config", {})
+                    model = ai_config.get("model")
+                    custom_prompt = ai_config.get("system_prompt")
+                    if custom_prompt:
+                        system_prompt = custom_prompt
+                    temperature = ai_config.get("temperature", 0.7)
             
             # Add recent message history (last 10 messages)
             recent_messages = conversation["messages"][-10:]
@@ -263,24 +305,28 @@ class ConversationManager:
                     "content": msg["text"]
                 })
             
-            # Get appropriate system prompt based on intent
-            system_prompt = prompt_templates.get_system_prompt()
+            # Get appropriate system prompt based on intent if not customized
+            if not system_prompt:
+                system_prompt = prompt_templates.get_system_prompt()
             
             # Special handling for first message (greeting)
             if len(conversation["messages"]) == 1:
                 system_prompt += "\n\n" + prompt_templates.get_greeting_prompt()
             
-            # Generate response using Groq
+            # Generate response using tenant-specific config
+            logger.info(f"Generating response for tenant {tenant_id} with model: {model}")
             response = await groq_agent.generate_response(
                 messages=messages,
+                api_key=api_key,
+                model=model,
                 system_prompt=system_prompt,
-                temperature=0.7
+                temperature=temperature
             )
             
             return response
             
         except Exception as e:
-            logger.error(f"Error generating response: {e}")
+            logger.error(f"Error generating response for tenant {tenant_id}: {e}")
             return "I apologize, but I'm having trouble right now. Please try again in a moment."
     
     async def _save_conversation(self, conversation: Dict):
@@ -376,9 +422,25 @@ class ConversationManager:
         info = dict(state.get("collected_info", {}))
         info.setdefault("client_phone", conversation.get("phone_number"))
         missing_core = [field for field in ["client_name", "service", "date", "time"] if not info.get(field)]
+        
+        tenant_id = conversation.get("tenant_id")
+        
         if missing_core:
             transcript = self._build_conversation_transcript(conversation.get("messages", []))
-            ai_info = await groq_agent.extract_booking_info(transcript) or {}
+            
+            # Get tenant-specific API key for extraction
+            api_key = None
+            model = None
+            if tenant_id:
+                config = await self.db.business_config.find_one({"tenant_id": tenant_id})
+                if config:
+                    groq_api_key = config.get("groq_api_key")
+                    if groq_api_key:
+                        from utils.security import security
+                        api_key = security.decrypt(groq_api_key)
+                    model = config.get("ai_config", {}).get("model")
+            
+            ai_info = await groq_agent.extract_booking_info(transcript, api_key=api_key, model=model) or {}
             
             # FALLBACK: If AI extraction failed to get client_name, use regex
             if not ai_info.get("client_name") and not info.get("client_name"):

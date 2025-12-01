@@ -3,6 +3,7 @@
 import React, { createContext, useContext } from 'react';
 import { useConfig as useConfigHook } from '@/hooks/use-config';
 import { BusinessConfig } from '@/lib/api/business-config';
+import { useAuth } from './AuthContext';
 
 interface ConfigContextType {
     config: BusinessConfig | undefined;
@@ -14,7 +15,13 @@ interface ConfigContextType {
 const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
 
 export const ConfigProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { config, isLoading, error, refetch } = useConfigHook();
+    const { user } = useAuth();
+    
+    // CRITICAL: Use tenant_id from the authenticated user to ensure each tenant has their own config cache
+    // This prevents config data from being shared between different tenants in React Query's cache
+    // Without this, all tenants would share the same 'default' cache key and see each other's data
+    const tenantId = user?.tenant_id || 'default';
+    const { config, isLoading, error, refetch } = useConfigHook(tenantId);
 
     return (
         <ConfigContext.Provider value={{ config, isLoading, error, refreshConfig: refetch }}>

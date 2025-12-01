@@ -15,17 +15,20 @@ class GroqAgent:
     """
     Groq AI Agent for handling natural language conversations
     with barbershop clients
+    
+    MULTI-TENANT: This agent now accepts tenant-specific API keys
+    to ensure proper isolation and cost attribution.
     """
     
     def __init__(self):
-        """Initialize Groq client"""
-        self.client = Groq(api_key=settings.GROQ_API_KEY)
-        self.model = settings.GROQ_MODEL
-        logger.info(f"Groq Agent initialized with model: {self.model}")
+        """Initialize Groq agent (client created per-request with tenant key)"""
+        logger.info("Groq Agent initialized (multi-tenant mode)")
     
     async def generate_response(
         self,
         messages: List[Dict[str, str]],
+        api_key: str = None,
+        model: str = None,
         system_prompt: str = None,
         temperature: float = 0.7,
         max_tokens: int = 500
@@ -35,6 +38,8 @@ class GroqAgent:
         
         Args:
             messages: List of conversation messages
+            api_key: Tenant-specific Groq API key (REQUIRED for multi-tenant)
+            model: AI model to use (defaults to mixtral-8x7b-32768)
             system_prompt: Optional system prompt to guide the AI
             temperature: Creativity level (0.0 to 1.0)
             max_tokens: Maximum response length
@@ -43,6 +48,23 @@ class GroqAgent:
             AI-generated response text
         """
         try:
+            # Use tenant's API key if provided, otherwise fall back to system default
+            if not api_key:
+                api_key = settings.GROQ_API_KEY
+                logger.warning("⚠️ No tenant API key provided, using system default")
+            
+            if not api_key:
+                raise ValueError("Groq API key is required")
+            
+            # Use tenant's model if provided, otherwise use system default
+            if not model:
+                model = settings.GROQ_MODEL
+            
+            # Create client with tenant's API key
+            client = Groq(api_key=api_key)
+            # Create client with tenant's API key
+            client = Groq(api_key=api_key)
+            
             # Prepare messages
             formatted_messages = []
             
@@ -55,10 +77,10 @@ class GroqAgent:
             formatted_messages.extend(messages)
             
             # Call Groq API
-            logger.debug(f"Sending {len(formatted_messages)} messages to Groq API")
+            logger.debug(f"Sending {len(formatted_messages)} messages to Groq API (model: {model})")
             
-            response = self.client.chat.completions.create(
-                model=self.model,
+            response = client.chat.completions.create(
+                model=model,
                 messages=formatted_messages,
                 temperature=temperature,
                 max_tokens=max_tokens,
@@ -76,12 +98,14 @@ class GroqAgent:
             # Return fallback response
             return self._get_fallback_response()
     
-    async def classify_intent(self, user_message: str) -> Dict[str, Any]:
+    async def classify_intent(self, user_message: str, api_key: str = None, model: str = None) -> Dict[str, Any]:
         """
         Classify the intent of a user message
         
         Args:
             user_message: The user's message text
+            api_key: Tenant-specific Groq API key
+            model: AI model to use
             
         Returns:
             Dictionary with intent and confidence
@@ -105,6 +129,8 @@ class GroqAgent:
             
             response = await self.generate_response(
                 messages=messages,
+                api_key=api_key,
+                model=model,
                 system_prompt=system_prompt,
                 temperature=0.3,
                 max_tokens=100
@@ -121,12 +147,14 @@ class GroqAgent:
             logger.error(f"Error classifying intent: {e}")
             return {"intent": "unknown", "confidence": 0.0}
     
-    async def extract_booking_info(self, conversation_text: str) -> Dict[str, Any]:
+    async def extract_booking_info(self, conversation_text: str, api_key: str = None, model: str = None) -> Dict[str, Any]:
         """
         Extract booking information from conversation
         
         Args:
             conversation_text: Full conversation transcript
+            api_key: Tenant-specific Groq API key
+            model: AI model to use
             
         Returns:
             Extracted booking details
@@ -166,6 +194,8 @@ class GroqAgent:
             
             response = await self.generate_response(
                 messages=messages,
+                api_key=api_key,
+                model=model,
                 system_prompt=system_prompt,
                 temperature=0.2,
                 max_tokens=300

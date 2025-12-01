@@ -26,7 +26,8 @@ import {
     CalendarDays,
     Waves,
     Zap,
-    MessageCircle, // Added MessageCircle
+    MessageCircle,
+    Key, // Added for API Keys
 } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { useRouter, usePathname } from "next/navigation";
@@ -62,6 +63,7 @@ const generalItems = [
         subItems: [
             { icon: Settings, label: "Settings Hub", path: "/dashboard/settings" },
             { icon: Building2, label: "Business", path: "/dashboard/settings/business" },
+            { icon: Key, label: "API Keys", path: "/dashboard/settings/api-keys" },
             { icon: Brain, label: "AI Config", path: "/dashboard/settings/ai" },
             { icon: Plug, label: "Integrations", path: "/dashboard/integrations" },
         ]

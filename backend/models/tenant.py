@@ -69,6 +69,25 @@ class TenantInDB(TenantBase):
     total_calls: int = 0
     total_minutes: float = 0.0
     
+    # Stripe integration fields
+    stripe_customer_id: Optional[str] = None
+    stripe_subscription_id: Optional[str] = None
+    subscription_status: Optional[str] = None  # trialing, active, past_due, canceled
+    
+    # Trial management
+    trial_start_date: Optional[datetime] = None
+    trial_end_date: Optional[datetime] = None
+    trial_minutes_used: float = 0.0
+    trial_minutes_limit: float = 100.0
+    
+    # Billing period
+    current_period_end: Optional[datetime] = None
+    cancel_at_period_end: bool = False
+    
+    # Onboarding status
+    is_configured: bool = False
+    onboarding_completed: bool = False
+    
     model_config = ConfigDict(
         populate_by_name=True,
         json_schema_extra={
@@ -83,7 +102,10 @@ class TenantInDB(TenantBase):
                     "timezone": "America/New_York"
                 },
                 "created_at": "2025-11-24T10:00:00",
-                "updated_at": "2025-11-24T10:00:00"
+                "updated_at": "2025-11-24T10:00:00",
+                "trial_end_date": "2025-12-08T10:00:00",
+                "trial_minutes_used": 43.5,
+                "trial_minutes_limit": 100.0
             }
         }
     )
