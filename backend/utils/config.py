@@ -2,8 +2,7 @@
 Configuration settings using Pydantic Settings
 """
 
-from pydantic_settings import BaseSettings
-from pydantic import ConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
 import os
 
@@ -11,7 +10,7 @@ import os
 class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
     
-    model_config = ConfigDict(
+    model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,
         extra="allow"  # Allow extra fields from .env
@@ -22,6 +21,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     ENVIRONMENT: str = "development"
     API_V1_PREFIX: str = "/api/v1"
+    TESTING: bool = False
     
     # Database
     MONGO_URI: str = "mongodb://REDACTED:REDACTED@localhost:27017/ai_barber_receptionist?authSource=admin"
@@ -74,6 +74,13 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
     LOG_FILE: str = "logs/app.log"
+
+    # LiveKit Voice Agent
+    LIVEKIT_URL: str = ""
+    LIVEKIT_API_KEY: str = ""
+    LIVEKIT_API_SECRET: str = ""
+    LIVEKIT_AGENT_QUEUE: str = "voice-agents"
+    LIVEKIT_AGENT_NAME: str = "Parker_165"
 
 
 # Create global settings instance

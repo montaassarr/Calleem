@@ -77,7 +77,6 @@ async def lookup_tenant_by_phone(request: TenantLookupRequest = Body(...)):
 class OnboardingCompleteRequest(BaseModel):
     """Request to mark onboarding as complete"""
     groq_api_key: Optional[str] = None
-    vapi_api_key: Optional[str] = None
     openai_api_key: Optional[str] = None
     n8n_url: Optional[str] = None
     n8n_api_key: Optional[str] = None
@@ -132,12 +131,10 @@ async def complete_onboarding(
         update_data["timezone"] = request.timezone
     
     # Save API keys to separate encrypted collection (TODO: Implement encryption)
-    if request.groq_api_key or request.vapi_api_key or request.openai_api_key:
+    if request.groq_api_key or request.openai_api_key:
         api_keys = {}
         if request.groq_api_key:
             api_keys["groq"] = request.groq_api_key
-        if request.vapi_api_key:
-            api_keys["vapi"] = request.vapi_api_key
         if request.openai_api_key:
             api_keys["openai"] = request.openai_api_key
         

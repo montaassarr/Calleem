@@ -6,8 +6,12 @@ Tracks conversation flow and manages state across multiple messages
 import uuid
 import json
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Protocol, cast
 from datetime import datetime
+try:  # pragma: no cover - optional dependency during static analysis
+    from bson import ObjectId
+except ImportError:  # pragma: no cover
+    ObjectId = None  # type: ignore[assignment]
 from models.communication.conversations import (
     Message, MessageRole, ConversationIntent,
     ConversationState, ConversationInDB
@@ -25,25 +29,44 @@ from utils.config import settings
 logger = logging.getLogger(__name__)
 
 
+class MongoDatabaseProtocol(Protocol):
+    conversations: Any
+    business_config: Any
+    appointments: Any
+
+
 class ConversationManager:
     """
     Manages conversation state and generates appropriate AI responses
     """
-    
+
     def __init__(self):
         """Initialize conversation manager"""
-        self.db = None
-    
-    async def initialize(self):
+        self._db: Optional[MongoDatabaseProtocol] = None
+
+    async def initialize(self) -> MongoDatabaseProtocol:
         """Initialize database connection"""
-        self.db = get_database()
+        self._db = cast(MongoDatabaseProtocol, get_database())
+        return self._db
+
+    def _get_db(self) -> MongoDatabaseProtocol:
+        """Ensure a database handle is available"""
+        if self._db is None:
+            self._db = cast(MongoDatabaseProtocol, get_database())
+        return self._db
+
+    def _require_object_id(self):
+        """Return the ObjectId factory, ensuring bson is installed"""
+        if ObjectId is None:
+            raise RuntimeError("bson library is required for ObjectId operations")
+        return ObjectId
     
     async def process_message(
         self,
         phone_number: str,
         message_text: str,
-        whatsapp_metadata: Dict = None,
-        tenant_id: str = None
+    whatsapp_metadata: Optional[Dict[str, Any]] = None,
+    tenant_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Process incoming message and generate response
@@ -59,7 +82,7 @@ class ConversationManager:
         """
         try:
             # Ensure DB is initialized
-            if self.db is None:
+            if self._db is None:
                 await self.initialize()
             
             # Get or create conversation
@@ -182,9 +205,11 @@ class ConversationManager:
                 "error": str(e)
             }
     
-    async def _get_or_create_conversation(self, phone_number: str, tenant_id: str = None) -> Dict:
+    async def _get_or_create_conversation(self, phone_number: str, tenant_id: Optional[str] = None) -> Dict:
         """Get existing conversation or create new one"""
-        
+
+        db = self._get_db()
+
         # Try to find recent conversation (within last 24 hours)
         query = {
             "phone_number": phone_number,
@@ -192,8 +217,8 @@ class ConversationManager:
         }
         if tenant_id:
             query["tenant_id"] = tenant_id
-            
-        recent_conversation = await self.db.conversations.find_one(query, sort=[("created_at", -1)])
+
+        recent_conversation = await db.conversations.find_one(query, sort=[("created_at", -1)])
         
         if recent_conversation:
             logger.info(f"Found existing conversation: {recent_conversation['conversation_id']}")
@@ -225,7 +250,7 @@ class ConversationManager:
         self,
         message: str,
         conversation_history: List[Dict],
-        tenant_id: str = None
+        tenant_id: Optional[str] = None
     ) -> str:
         """Classify the intent of the message using tenant-specific AI configuration"""
         
@@ -235,7 +260,8 @@ class ConversationManager:
             model = None
             
             if tenant_id:
-                config = await self.db.business_config.find_one({"tenant_id": tenant_id})
+                db = self._get_db()
+                config = await db.business_config.find_one({"tenant_id": tenant_id})
                 if config:
                     # Get encrypted API key
                     groq_api_key = config.get("groq_api_key")
@@ -281,7 +307,8 @@ class ConversationManager:
             temperature = 0.7
             
             if tenant_id:
-                config = await self.db.business_config.find_one({"tenant_id": tenant_id})
+                db = self._get_db()
+                config = await db.business_config.find_one({"tenant_id": tenant_id})
                 if config:
                     # Get encrypted API key
                     groq_api_key = config.get("groq_api_key")
@@ -333,7 +360,8 @@ class ConversationManager:
         """Save or update conversation in database"""
         
         try:
-            result = await self.db.conversations.update_one(
+            db = self._get_db()
+            result = await db.conversations.update_one(
                 {"conversation_id": conversation["conversation_id"]},
                 {"$set": conversation},
                 upsert=True
@@ -346,8 +374,8 @@ class ConversationManager:
     
     async def get_conversation(self, conversation_id: str) -> Optional[Dict]:
         """Retrieve a conversation by ID"""
-        
-        conversation = await self.db.conversations.find_one({
+        db = self._get_db()
+        conversation = await db.conversations.find_one({
             "conversation_id": conversation_id
         })
         
@@ -356,11 +384,11 @@ class ConversationManager:
     async def complete_conversation(
         self,
         conversation_id: str,
-        appointment_id: str = None
+        appointment_id: Optional[str] = None
     ):
         """Mark conversation as completed"""
-        
-        await self.db.conversations.update_one(
+        db = self._get_db()
+        await db.conversations.update_one(
             {"conversation_id": conversation_id},
             {
                 "$set": {
@@ -385,18 +413,29 @@ class ConversationManager:
         info = state.setdefault("collected_info", {})
         if phone_number and not info.get("client_phone"):
             info["client_phone"] = phone_number
-        if entities.get("phone"):
-            info["client_phone"] = text_formatter.clean_phone_number(entities["phone"])
-        if entities.get("email"):
-            info["client_email"] = entities["email"].strip()
-        if entities.get("service"):
-            info["service"] = text_formatter.format_service_name(entities["service"])
-        if entities.get("date"):
-            info["date"] = entities["date"].strip()
-        if entities.get("time"):
-            info["time"] = entities["time"].strip()
-        if entities.get("name"):
-            info["client_name"] = text_formatter.capitalize_name(entities["name"])
+        phone_value = entities.get("phone")
+        if isinstance(phone_value, str):
+            info["client_phone"] = text_formatter.clean_phone_number(phone_value)
+
+        email_value = entities.get("email")
+        if isinstance(email_value, str):
+            info["client_email"] = email_value.strip()
+
+        service_value = entities.get("service")
+        if isinstance(service_value, str):
+            info["service"] = text_formatter.format_service_name(service_value)
+
+        date_value = entities.get("date")
+        if isinstance(date_value, str):
+            info["date"] = date_value.strip()
+
+        time_value = entities.get("time")
+        if isinstance(time_value, str):
+            info["time"] = time_value.strip()
+
+        name_value = entities.get("name")
+        if isinstance(name_value, str):
+            info["client_name"] = text_formatter.capitalize_name(name_value)
 
         # Attempt to pull name from free text if still missing
         # Only extract from messages that explicitly mention a name
@@ -432,7 +471,8 @@ class ConversationManager:
             api_key = None
             model = None
             if tenant_id:
-                config = await self.db.business_config.find_one({"tenant_id": tenant_id})
+                db = self._get_db()
+                config = await db.business_config.find_one({"tenant_id": tenant_id})
                 if config:
                     groq_api_key = config.get("groq_api_key")
                     if groq_api_key:
@@ -463,9 +503,9 @@ class ConversationManager:
             for ai_key, target_key in mapping.items():
                 value = ai_info.get(ai_key)
                 if value and not info.get(target_key):
-                    if target_key == "service":
+                    if target_key == "service" and isinstance(value, str):
                         info[target_key] = text_formatter.format_service_name(value)
-                    elif target_key == "client_name":
+                    elif target_key == "client_name" and isinstance(value, str):
                         info[target_key] = text_formatter.capitalize_name(value)
                     else:
                         info[target_key] = value
@@ -542,19 +582,32 @@ class ConversationManager:
         except (TypeError, ValueError):
             duration = settings.DEFAULT_APPOINTMENT_DURATION
         base_phone = info.get("client_phone") or conversation.get("phone_number")
-        client_phone = text_formatter.clean_phone_number(base_phone) if base_phone else None
+        client_phone = text_formatter.clean_phone_number(base_phone) if isinstance(base_phone, str) else None
         if not client_phone:
             state["next_question"] = "client phone number"
             return None
+        client_phone_str = cast(str, client_phone)
+
+        raw_client_name = info.get("client_name")
+        formatted_client_name = (
+            text_formatter.capitalize_name(raw_client_name)
+            if isinstance(raw_client_name, str)
+            else None
+        )
+
+        raw_service = info.get("service")
+        formatted_service = (
+            text_formatter.format_service_name(raw_service)
+            if isinstance(raw_service, str)
+            else None
+        )
 
         payload = AppointmentCreate(
-            client_name=text_formatter.capitalize_name(info["client_name"]),
-            client_phone=client_phone,
-            client_email=info.get("client_email"),
-            service=text_formatter.format_service_name(info["service"]),
+            client_name=formatted_client_name,
+            client_phone=client_phone_str,
+            service=formatted_service,
             datetime=appointment_dt,
             duration_minutes=duration,
-            barber_preference=info.get("barber_preference"),
             notes=info.get("notes")
         )
         appointment_doc = payload.dict()
@@ -564,12 +617,16 @@ class ConversationManager:
             "updated_at": datetime.utcnow(),
             "conversation_id": conversation.get("conversation_id"),
             "tenant_id": conversation.get("tenant_id"),
-            "business_id": conversation.get("business_id") or conversation.get("tenant_id")
+            "business_id": conversation.get("business_id") or conversation.get("tenant_id"),
+            # Add optional fields that aren't in AppointmentCreate
+            "client_email": info.get("client_email"),
+            "barber_preference": info.get("barber_preference")
         })
         try:
             logger.info(f"🔄 Attempting to create appointment for {payload.client_name}")
-            result = await self.db.appointments.insert_one(appointment_doc)
-            created = await self.db.appointments.find_one({"_id": result.inserted_id})
+            db = self._get_db()
+            result = await db.appointments.insert_one(appointment_doc)
+            created = await db.appointments.find_one({"_id": result.inserted_id})
             created["id"] = str(created["_id"])
             conversation["appointment_id"] = created["id"]
             state["completed"] = True
@@ -597,7 +654,7 @@ class ConversationManager:
 
 Looking forward to seeing you! - {settings.BUSINESS_NAME}"""
             
-            whatsapp_cloud.send_text_message(payload.client_phone, confirmation_msg)
+            whatsapp_cloud.send_text_message(client_phone_str, confirmation_msg)
             
             confirmation_text = self._format_confirmation_text(created)
             return {"appointment": created, "confirmation_text": confirmation_text}
@@ -635,14 +692,15 @@ Looking forward to seeing you! - {settings.BUSINESS_NAME}"""
         
         # Update the appointment in database
         try:
-            from bson import ObjectId
             update_data = {
                 "datetime": appointment_dt,
                 "updated_at": datetime.utcnow()
             }
             
-            result = await self.db.appointments.update_one(
-                {"_id": ObjectId(appointment_id)},
+            db = self._get_db()
+            object_id = self._require_object_id()(appointment_id)
+            result = await db.appointments.update_one(
+                {"_id": object_id},
                 {"$set": update_data}
             )
             
@@ -651,7 +709,7 @@ Looking forward to seeing you! - {settings.BUSINESS_NAME}"""
                 return {"error": "I couldn't find that appointment. Would you like to book a new one?"}
             
             # Get updated appointment
-            updated = await self.db.appointments.find_one({"_id": ObjectId(appointment_id)})
+            updated = await db.appointments.find_one({"_id": object_id})
             updated["id"] = str(updated["_id"])
             
             # Update conversation state

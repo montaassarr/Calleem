@@ -21,13 +21,29 @@ import os
 from datetime import datetime
 
 # Import routers
-from routers import webhook, appointments, services, users, conversations, admin
+from routers import (
+    webhook,
+    webhook_livekit,
+    appointments,
+    services,
+    users,
+    conversations,
+    admin,
+    platform_keys,
+    simple_setup,
+    onboarding,
+    monitoring,
+)
 
 # Import database connection
 from database.mongo_config import connect_to_mongo, close_mongo_connection
 
 # Import settings
 from utils.config import settings
+
+# Import custom error handling
+from utils.error_logger import set_error_logger_db
+from middleware.error_handler import ErrorHandlingMiddleware
 
 # Configure logging
 logging.basicConfig(
@@ -51,6 +67,13 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("🚀 Starting AI Receptionist application...")
     await connect_to_mongo()
+    
+    # Initialize error logger with database
+    from database.mongo_config import get_database
+    db = get_database()
+    set_error_logger_db(db)
+    logger.info("✅ Error logging system initialized")
+    
     logger.info("✅ Application startup complete!")
     
     yield
@@ -78,7 +101,11 @@ from slowapi.errors import RateLimitExceeded
 
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore
+
+# Add error handling middleware
+app.add_middleware(ErrorHandlingMiddleware)
+logger.info("✅ Error handling middleware enabled")
 
 # CORS Configuration
 app.add_middleware(
@@ -102,6 +129,12 @@ app.include_router(
     webhook.router,
     prefix=f"{settings.API_V1_PREFIX}/webhook",
     tags=["Twilio Webhook"]
+)
+
+app.include_router(
+    webhook_livekit.router,
+    prefix=f"{settings.API_V1_PREFIX}/webhook",
+    tags=["LiveKit Webhook"]
 )
 
 app.include_router(
@@ -134,11 +167,25 @@ app.include_router(
     tags=["Admin"]
 )
 
+from routers import admin_analytics
+app.include_router(
+    admin_analytics.router,
+    prefix=f"{settings.API_V1_PREFIX}/admin",
+    tags=["Admin Analytics"]
+)
+
 from routers import voice_agent
 app.include_router(
     voice_agent.router,
     prefix=f"{settings.API_V1_PREFIX}/voice-agent",
     tags=["Voice Agent"]
+)
+
+# Platform API Keys (Admin Only)
+app.include_router(
+    platform_keys.router,
+    prefix=f"{settings.API_V1_PREFIX}",
+    tags=["Platform API Keys"]
 )
 
 from routers import automations
@@ -181,6 +228,27 @@ app.include_router(
     billing.router,
     prefix=f"{settings.API_V1_PREFIX}/billing",
     tags=["Billing & Subscriptions"]
+)
+
+# Monitoring endpoints for diagnostics
+app.include_router(
+    monitoring.router,
+    prefix=f"{settings.API_V1_PREFIX}",
+    tags=["Monitoring"]
+)
+
+# Simple Setup for Non-Technical Users
+app.include_router(
+    simple_setup.router,
+    prefix=f"{settings.API_V1_PREFIX}",
+    tags=["Easy Setup"]
+)
+
+# Onboarding Wizard (Voice Provider Setup)
+app.include_router(
+    onboarding.router,
+    prefix=f"{settings.API_V1_PREFIX}",
+    tags=["Onboarding"]
 )
 
 

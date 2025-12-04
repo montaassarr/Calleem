@@ -33,6 +33,7 @@ websockets==12.0
 
 # AI & LLM (Core - only Groq for main receptionist functionality)
 groq>=0.4.1
+openai>=1.12.0
 
 # Optional: CrewAI and Langchain (for advanced analytics features)
 # Uncomment these if you need the /api/v1/crew endpoints for data cleaning and analytics

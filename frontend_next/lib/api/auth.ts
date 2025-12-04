@@ -4,10 +4,13 @@ import type { LoginCredentials, Token, UserResponse, UserCreate } from '@/lib/ty
 export const authApi = {
     /**
      * Login user and get JWT token
+     * Sends email as username since backend supports both
      */
     login: async (credentials: LoginCredentials): Promise<Token> => {
-        const formData = new FormData();
-        formData.append('username', credentials.username);
+        const formData = new URLSearchParams();
+        // Send email as username - backend now supports email lookup
+        const username = credentials.username || credentials.email || '';
+        formData.append('username', username);
         formData.append('password', credentials.password);
 
         const response = await api.post<Token>('/users/token', formData, {
@@ -22,8 +25,8 @@ export const authApi = {
     /**
      * Register a new user
      */
-    register: async (userData: UserCreate): Promise<UserResponse> => {
-        const response = await api.post<UserResponse>('/users/register', userData);
+    register: async (userData: UserCreate): Promise<Token> => {
+        const response = await api.post<Token>('/users/register', userData);
         return response; // ApiClient already returns .data
     },
 

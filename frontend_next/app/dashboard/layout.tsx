@@ -9,7 +9,7 @@ import { ConfigProvider } from "@/contexts/ConfigContext"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/toaster"
 import { Toaster as Sonner } from "@/components/ui/sonner"
-import { OnboardingGuard } from "@/components/dashboard/OnboardingGuard"
+import ErrorBoundary from "@/components/ErrorBoundary"
 
 export default function DashboardLayout({
     children,
@@ -38,9 +38,9 @@ export default function DashboardLayout({
     }
 
     return (
-        <ConfigProvider>
-            <TooltipProvider>
-                <OnboardingGuard>
+        <ErrorBoundary>
+            <ConfigProvider>
+                <TooltipProvider>
                     <div className="min-h-screen bg-background text-foreground">
                         <div
                             className="absolute inset-0 z-0 pointer-events-none"
@@ -56,8 +56,8 @@ export default function DashboardLayout({
                         <Toaster />
                         <Sonner />
                     </div>
-                </OnboardingGuard>
-            </TooltipProvider>
-        </ConfigProvider>
+                </TooltipProvider>
+            </ConfigProvider>
+        </ErrorBoundary>
     )
 }

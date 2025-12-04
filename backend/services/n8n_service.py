@@ -1,4 +1,5 @@
 import logging
+import uuid
 import httpx
 from typing import Dict, Any, Optional, List
 from utils.config import settings
@@ -18,6 +19,17 @@ class N8nService:
             "X-N8N-API-KEY": self.api_key,
             "Content-Type": "application/json"
         }
+
+    def _build_webhook_path(self, base_path: str, tenant_id: str) -> str:
+        """Return a deterministic, tenant-scoped webhook path."""
+        slug = (base_path or "webhook").strip("/").replace(" ", "-") or "webhook"
+        tenant_slug = tenant_id.replace("_", "-")
+        return f"{slug}-{tenant_slug}"
+
+    def _build_webhook_id(self, identifier: str, tenant_id: str) -> str:
+        """Return a deterministic UUID5 webhook id scoped per tenant and node."""
+        seed = f"{tenant_id}:{identifier or 'webhook'}"
+        return str(uuid.uuid5(uuid.NAMESPACE_URL, seed))
         
     async def _get_workflow_by_name(self, name: str) -> Optional[Dict[str, Any]]:
         """Fetch a workflow by its name."""
@@ -130,6 +142,12 @@ class N8nService:
                 for param in header_params:
                     if param['name'] == 'X-Tenant-ID':
                         param['value'] = tenant_id # Hardcode it for this tenant's workflow
+
+            if node['type'] == 'n8n-nodes-base.webhook':
+                parameters = node.setdefault('parameters', {})
+                original_path = parameters.get('path') or node.get('name', 'webhook')
+                parameters['path'] = self._build_webhook_path(original_path, tenant_id)
+                node['webhookId'] = self._build_webhook_id(node.get('webhookId') or original_path, tenant_id)
                         
         # Toggle Nodes & Inject Credentials
         automations = config.get('automations', {})

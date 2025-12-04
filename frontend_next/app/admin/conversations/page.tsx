@@ -120,7 +120,7 @@ export default function ConversationsPage() {
         {
             key: 'actions',
             label: 'View',
-            render: (_, row: Conversation) => (
+            render: (_value: unknown, row: Conversation) => (
                 <Button variant="ghost" size="sm" onClick={() => handleView(row)}>
                     <MessageSquare className="h-4 w-4 mr-2" /> View
                 </Button>

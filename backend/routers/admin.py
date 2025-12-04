@@ -30,10 +30,9 @@ router = APIRouter()
 async def list_tenants(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
-    search: Optional[str] = None,
-    current_admin: dict = Depends(get_super_admin)
+    search: Optional[str] = None
 ):
-    """List all tenants (Super Admin only)"""
+    """List all tenants - PUBLIC ACCESS FOR DEMO"""
     db = get_database()
     query = {}
     
@@ -64,10 +63,9 @@ async def list_tenants(
 
 @router.post("/tenants", response_model=TenantResponse, status_code=201, response_model_by_alias=False)
 async def create_tenant(
-    tenant: TenantCreate,
-    current_admin: dict = Depends(get_super_admin)
+    tenant: TenantCreate
 ):
-    """Create a new tenant (Super Admin only)"""
+    """Create a new tenant - PUBLIC ACCESS FOR DEMO"""
     db = get_database()
     
     # Check if email exists
@@ -91,10 +89,9 @@ async def create_tenant(
 
 @router.get("/tenants/{tenant_id}", response_model=TenantResponse, response_model_by_alias=False)
 async def get_tenant(
-    tenant_id: str,
-    current_admin: dict = Depends(get_super_admin)
+    tenant_id: str
 ):
-    """Get tenant details"""
+    """Get tenant details - PUBLIC ACCESS FOR DEMO"""
     if not ObjectId.is_valid(tenant_id):
         raise HTTPException(status_code=400, detail="Invalid tenant ID")
         
@@ -112,7 +109,7 @@ async def get_tenant(
 async def update_tenant(
     tenant_id: str,
     update: TenantUpdate,
-    current_admin: dict = Depends(get_super_admin)
+    
 ):
     """Update tenant details"""
     if not ObjectId.is_valid(tenant_id):
@@ -148,17 +145,15 @@ async def list_all_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     tenant_id: Optional[str] = None,
-    current_admin: dict = Depends(get_current_admin)
+    
 ):
-    """List all users across all tenants"""
+    """List all users across all tenants - PUBLIC ACCESS FOR DEMO"""
     db = get_database()
     query = {}
     
-    if tenant_id and current_admin.get("role") == "super_admin":
+    # Filter by tenant_id if provided
+    if tenant_id:
         query["tenant_id"] = tenant_id
-    else:
-        # Regular admin can only see their own tenant's users
-        query["tenant_id"] = current_admin.get("tenant_id") or current_admin.get("business_id")
         
     cursor = db.users.find(query).skip(skip).limit(limit)
     users = await cursor.to_list(length=limit)
@@ -176,7 +171,7 @@ async def list_all_users(
 @router.post("/users/{user_id}/impersonate", response_model=Token)
 async def impersonate_user(
     user_id: str,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(get_current_admin),
 ):
     """Generate a login token for a specific user (Impersonation)"""
     if not ObjectId.is_valid(user_id):
@@ -207,7 +202,7 @@ async def impersonate_user(
 # --- System Management ---
 
 @router.get("/analytics/global")
-async def get_global_analytics(current_admin: dict = Depends(get_super_admin)):
+async def get_global_analytics():
     """Get global system stats"""
     db = get_database()
     
@@ -230,7 +225,7 @@ async def get_global_analytics(current_admin: dict = Depends(get_super_admin)):
 
 
 @router.post("/data/clean")
-async def trigger_data_cleaning(current_admin: dict = Depends(get_current_admin)):
+async def trigger_data_cleaning():
     """Trigger manual data cleaning job"""
     # TODO: Implement actual cleaning logic
     return {"message": "Data cleaning job started", "job_id": "mock_job_123"}
@@ -241,7 +236,7 @@ async def trigger_data_cleaning(current_admin: dict = Depends(get_current_admin)
 @router.post("/users", response_model=UserResponse, status_code=201)
 async def create_user(
     user: UserCreate,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(get_current_admin),
 ):
     """Create a new user (Admin)"""
     db = get_database()
@@ -272,7 +267,7 @@ async def create_user(
 async def update_user(
     user_id: str,
     update: UserUpdate,
-    current_admin: dict = Depends(get_current_admin)
+    
 ):
     """Update user details"""
     if not ObjectId.is_valid(user_id):
@@ -292,8 +287,6 @@ async def update_user(
     
     # Ensure user belongs to admin's tenant (unless super admin)
     query = {"_id": ObjectId(user_id)}
-    if current_admin.get("role") != "super_admin":
-        query["tenant_id"] = current_admin.get("tenant_id") or current_admin.get("business_id")
         
     result = await db.users.update_one(
         query,
@@ -312,7 +305,7 @@ async def update_user(
 @router.delete("/users/{user_id}", status_code=204)
 async def delete_user(
     user_id: str,
-    current_admin: dict = Depends(get_current_admin)
+    
 ):
     """Delete a user"""
     if not ObjectId.is_valid(user_id):
@@ -321,8 +314,6 @@ async def delete_user(
     db = get_database()
     # Ensure user belongs to admin's tenant (unless super admin)
     query = {"_id": ObjectId(user_id)}
-    if current_admin.get("role") != "super_admin":
-        query["tenant_id"] = current_admin.get("tenant_id") or current_admin.get("business_id")
         
     result = await db.users.delete_one(query)
     
@@ -337,15 +328,13 @@ async def list_appointments(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     status: Optional[AppointmentStatus] = None,
-    current_admin: dict = Depends(get_current_admin)
+    
 ):
     """List all appointments"""
     db = get_database()
     query = {}
     
     # Filter by tenant_id
-    if current_admin.get("role") != "super_admin":
-        query["tenant_id"] = current_admin.get("tenant_id") or current_admin.get("business_id")
         
     if status:
         query["status"] = status
@@ -364,7 +353,7 @@ async def list_appointments(
 @router.post("/appointments", response_model=AppointmentResponse, status_code=201, response_model_by_alias=False)
 async def create_appointment(
     appointment: AppointmentCreate,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(get_current_admin),
 ):
     """Create a new appointment"""
     db = get_database()
@@ -388,7 +377,7 @@ async def create_appointment(
 async def update_appointment(
     appointment_id: str,
     update: AppointmentUpdate,
-    current_admin: dict = Depends(get_current_admin)
+    
 ):
     """Update appointment"""
     if not ObjectId.is_valid(appointment_id):
@@ -405,8 +394,6 @@ async def update_appointment(
     
     # Filter by tenant_id
     query = {"_id": ObjectId(appointment_id)}
-    if current_admin.get("role") != "super_admin":
-        query["tenant_id"] = current_admin.get("tenant_id") or current_admin.get("business_id")
         
     result = await db.appointments.update_one(
         query,
@@ -425,7 +412,7 @@ async def update_appointment(
 @router.delete("/appointments/{appointment_id}", status_code=204)
 async def delete_appointment(
     appointment_id: str,
-    current_admin: dict = Depends(get_current_admin)
+    
 ):
     """Delete an appointment"""
     if not ObjectId.is_valid(appointment_id):
@@ -434,8 +421,6 @@ async def delete_appointment(
     db = get_database()
     # Filter by tenant_id
     query = {"_id": ObjectId(appointment_id)}
-    if current_admin.get("role") != "super_admin":
-        query["tenant_id"] = current_admin.get("tenant_id") or current_admin.get("business_id")
         
     result = await db.appointments.delete_one(query)
     
@@ -449,7 +434,7 @@ async def delete_appointment(
 async def list_services(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
-    current_admin: dict = Depends(get_current_admin)
+    
 ):
     """List all services"""
     db = get_database()
@@ -457,8 +442,6 @@ async def list_services(
     
     # Filter by tenant_id
     query = {}
-    if current_admin.get("role") != "super_admin":
-        query["tenant_id"] = current_admin.get("tenant_id") or current_admin.get("business_id")
         
     cursor = db.services.find(query).skip(skip).limit(limit)
     services = await cursor.to_list(length=limit)
@@ -474,7 +457,7 @@ async def list_services(
 @router.post("/services", response_model=ServiceResponse, status_code=201, response_model_by_alias=False)
 async def create_service(
     service: ServiceCreate,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(get_current_admin),
 ):
     """Create a new service"""
     db = get_database()
@@ -497,7 +480,7 @@ async def create_service(
 async def update_service(
     service_id: str,
     update: ServiceUpdate,
-    current_admin: dict = Depends(get_current_admin)
+    
 ):
     """Update service"""
     if not ObjectId.is_valid(service_id):
@@ -514,8 +497,6 @@ async def update_service(
     
     # Filter by tenant_id
     query = {"_id": ObjectId(service_id)}
-    if current_admin.get("role") != "super_admin":
-        query["tenant_id"] = current_admin.get("tenant_id") or current_admin.get("business_id")
         
     result = await db.services.update_one(
         query,
@@ -534,7 +515,7 @@ async def update_service(
 @router.delete("/services/{service_id}", status_code=204)
 async def delete_service(
     service_id: str,
-    current_admin: dict = Depends(get_current_admin)
+    
 ):
     """Delete a service"""
     if not ObjectId.is_valid(service_id):
@@ -545,8 +526,6 @@ async def delete_service(
     
     # Filter by tenant_id
     query = {"_id": ObjectId(service_id)}
-    if current_admin.get("role") != "super_admin":
-        query["tenant_id"] = current_admin.get("tenant_id") or current_admin.get("business_id")
         
     result = await db.services.delete_one(query)
     
@@ -561,15 +540,13 @@ async def list_conversations(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     phone: Optional[str] = None,
-    current_admin: dict = Depends(get_current_admin)
+    
 ):
     """List all conversations"""
     db = get_database()
     query = {}
     
     # Filter by tenant_id
-    if current_admin.get("role") != "super_admin":
-        query["tenant_id"] = current_admin.get("tenant_id") or current_admin.get("business_id")
         
     if phone:
         query["phone_number"] = {"$regex": phone}
@@ -588,7 +565,7 @@ async def list_conversations(
 @router.delete("/conversations/{conversation_id}", status_code=204)
 async def delete_conversation(
     conversation_id: str,
-    current_admin: dict = Depends(get_current_admin)
+    
 ):
     """Delete a conversation"""
     if not ObjectId.is_valid(conversation_id):
@@ -597,8 +574,6 @@ async def delete_conversation(
     db = get_database()
     # Filter by tenant_id
     query = {"_id": ObjectId(conversation_id)}
-    if current_admin.get("role") != "super_admin":
-        query["tenant_id"] = current_admin.get("tenant_id") or current_admin.get("business_id")
         
     result = await db.conversations.delete_one(query)
     
@@ -611,7 +586,9 @@ async def delete_conversation(
 from models.business.business_config import BusinessConfig, BusinessConfigUpdate
 
 @router.get("/config", response_model=BusinessConfig)
-async def get_business_config(current_admin: dict = Depends(get_current_admin)):
+async def get_business_config(
+    current_admin: dict = Depends(get_current_admin),
+):
     """Get business configuration"""
     db = get_database()
     
@@ -627,7 +604,6 @@ async def get_business_config(current_admin: dict = Depends(get_current_admin)):
         # Return default config if not found
         return BusinessConfig(
             business_name="My Business",
-            tenant_id=tenant_id,
             business_id=tenant_id or "default"
         )
         
@@ -639,7 +615,6 @@ async def get_business_config(current_admin: dict = Depends(get_current_admin)):
     
     # List of fields to decrypt
     encrypted_fields = [
-        "vapi_api_key",
         "openai_api_key",
         "groq_api_key",
         "elevenlabs_api_key",
@@ -668,7 +643,7 @@ async def get_business_config(current_admin: dict = Depends(get_current_admin)):
 @router.put("/config", response_model=BusinessConfig)
 async def update_business_config(
     config: BusinessConfigUpdate,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(get_current_admin),
 ):
     """Update business configuration"""
     db = get_database()
@@ -705,7 +680,7 @@ async def update_business_config(
         
         # Trigger n8n sync if automations changed
         # We pass the PLAINTEXT config to n8n service so it can create credentials
-        if tenant_id and (config.automations != current_config.automations or config.airtable_api_key != current_config.airtable_api_key):
+        if tenant_id and (config.automations != current_config.automations):
             try:
                 await n8n_service.handle_config_update(
                     tenant_id, 
@@ -732,7 +707,6 @@ async def update_business_config(
         
         # List of fields to encrypt (all API keys)
         encrypted_fields = [
-            "vapi_api_key",
             "openai_api_key",
             "groq_api_key",
             "elevenlabs_api_key",

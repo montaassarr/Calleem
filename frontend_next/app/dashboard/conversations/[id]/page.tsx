@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, User, Clock, Phone, Calendar, Tag } from "lucide-react"
+import { ArrowLeft, User, Clock, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import api from "@/lib/api"
 import type { ConversationResponse } from "@/lib/types"
@@ -22,7 +22,7 @@ export default function ConversationDetailPage() {
             try {
                 setIsLoading(true)
                 const response = await api.get<ConversationResponse>(`/conversations/${params.id}`)
-                setConversation(response.data)
+                setConversation(response)
             } catch (error) {
                 console.error("Failed to fetch conversation:", error)
                 toast({
@@ -66,6 +66,8 @@ export default function ConversationDetailPage() {
         )
     }
 
+    const conversationStatus = conversation.state.completed ? "completed" : "active"
+
     return (
         <div className="p-6 space-y-6 h-[calc(100vh-4rem)] flex flex-col">
             {/* Header */}
@@ -91,14 +93,14 @@ export default function ConversationDetailPage() {
                 </div>
                 <div className="ml-auto">
                     <span
-                        className={`px-3 py-1 rounded-full text-sm font-medium ${conversation.status === "active"
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${conversationStatus === "active"
                                 ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                : conversation.status === "completed"
+                                : conversationStatus === "completed"
                                     ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
                                     : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
                             }`}
                     >
-                        {conversation.status}
+                        {conversationStatus}
                     </span>
                 </div>
             </div>

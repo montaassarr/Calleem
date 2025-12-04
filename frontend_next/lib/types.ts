@@ -51,6 +51,7 @@ export interface Token {
 export interface LoginCredentials {
     username: string;
     password: string;
+    email?: string; // Optional email field for flexibility
 }
 
 // ============================================
@@ -365,13 +366,31 @@ export interface VoiceStartCallRequest {
 export interface VoiceStartCallResponse {
     status: string;
     call_id: string;
-    assistant_id: string;
+    assistant_id?: string;
 }
 
-export interface VoiceTestResponse {
+export interface VoiceAgentStatus {
+    configured: boolean;
+    url: string;
+    agent_queue: string;
+    agent_name: string;
+    voice_agent_enabled: boolean;
+    tenant_id: string;
+    phone_number?: string;
+    number_status?: string;
+    country?: string;
+    sip_trunks?: any;
+}
+
+export interface LiveKitPhoneNumber {
+    id: string;
+    phone_number: string;
+    country: string;
     status: string;
-    assistant_id: string | null;
-    groq_model: string;
+    monthly_cost?: number;
+    setup_cost?: number;
+    created_at: string;
+    trunks?: any;
 }
 
 export interface VoiceCallHistoryItem {
@@ -395,20 +414,11 @@ export interface VoiceCallHistoryResponse {
 }
 
 export interface VoiceWebRTCResponse {
-    status: string;
-    mode: string;
-    config?: {
-        model?: string;
-        voice?: string;
-        first_message?: string;
-        system_prompt?: string;
-    };
-    assistant_id?: string;
-    public_key?: string;
-    session_token?: string;
-    expires_at?: string;
-    business_id?: string;
-    session?: Record<string, any> | null;
+    room_name: string;
+    token: string;
+    url: string;
+    agent_queue: string;
+    agent_name: string;
 }
 
 // Voice Configuration Types
@@ -494,6 +504,7 @@ export interface TenantResponse {
     total_minutes: number;
     created_at: string;
     updated_at: string;
+    is_configured?: boolean;
 }
 
 // ============================================

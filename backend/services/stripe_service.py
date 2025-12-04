@@ -13,14 +13,18 @@ logger = logging.getLogger(__name__)
 # Check if we should use mock mode
 MOCK_MODE = os.getenv("STRIPE_MOCK_MODE", "true").lower() == "true"
 
+# Import dependencies based on mode
+get_mock_service = None
+stripe = None
+
 if MOCK_MODE:
     logger.info("🧪 STRIPE MOCK MODE ENABLED - No real charges will be made")
-    from services.mock_stripe_service import get_mock_service
+    from services.mock_stripe_service import get_mock_service  # type: ignore
 else:
     logger.info("💳 STRIPE LIVE MODE - Real API calls will be made")
-    import stripe
-    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-    if not stripe.api_key:
+    import stripe  # type: ignore
+    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")  # type: ignore
+    if not stripe.api_key:  # type: ignore
         raise ValueError("STRIPE_SECRET_KEY environment variable is required when MOCK_MODE is disabled")
 
 
@@ -32,7 +36,7 @@ class StripeService:
     def __init__(self):
         self.mock_mode = MOCK_MODE
         if self.mock_mode:
-            self.mock = get_mock_service()
+            self.mock = get_mock_service()  # type: ignore
         
         # Product and price IDs (create these once in Stripe dashboard for production)
         self.product_id = os.getenv("STRIPE_PRODUCT_ID", "prod_mock_ai_receptionist")
@@ -73,7 +77,7 @@ class StripeService:
         if self.mock_mode:
             customer = self.mock.create_customer(email, name, metadata)
         else:
-            customer = stripe.Customer.create(
+            customer = stripe.Customer.create(  # type: ignore
                 email=email,
                 name=name,
                 metadata=metadata
@@ -114,7 +118,7 @@ class StripeService:
                 metadata=metadata
             )
         else:
-            session = stripe.checkout.Session.create(
+            session = stripe.checkout.Session.create(  # type: ignore
                 customer=customer_id,
                 mode="subscription",
                 payment_method_types=["card"],
@@ -152,8 +156,8 @@ class StripeService:
             return self.mock.get_subscription(subscription_id)
         else:
             try:
-                return stripe.Subscription.retrieve(subscription_id)
-            except stripe.error.StripeError as e:
+                return stripe.Subscription.retrieve(subscription_id)  # type: ignore
+            except stripe.error.StripeError as e:  # type: ignore
                 logger.error(f"Failed to retrieve subscription {subscription_id}: {e}")
                 return None
     
@@ -168,7 +172,7 @@ class StripeService:
         if self.mock_mode:
             session = self.mock.create_portal_session(customer_id, return_url)
         else:
-            session = stripe.billing_portal.Session.create(
+            session = stripe.billing_portal.Session.create(  # type: ignore
                 customer=customer_id,
                 return_url=return_url
             )
@@ -181,7 +185,7 @@ class StripeService:
         if self.mock_mode:
             return self.mock.cancel_subscription(subscription_id)
         else:
-            return stripe.Subscription.delete(subscription_id)
+            return stripe.Subscription.delete(subscription_id)  # type: ignore
     
     async def construct_webhook_event(self, payload: bytes, sig_header: str) -> Dict[str, Any]:
         """
@@ -197,7 +201,7 @@ class StripeService:
             if not webhook_secret:
                 raise ValueError("STRIPE_WEBHOOK_SECRET is required for live mode")
             
-            return stripe.Webhook.construct_event(
+            return stripe.Webhook.construct_event(  # type: ignore
                 payload, sig_header, webhook_secret
             )
 

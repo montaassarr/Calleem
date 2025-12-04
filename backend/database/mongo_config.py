@@ -2,16 +2,17 @@
 MongoDB Configuration and Connection Management
 """
 
-from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pymongo.errors import ConnectionFailure
+from typing import Optional
 import logging
 from utils.config import settings
 
 logger = logging.getLogger(__name__)
 
 # Global MongoDB client
-mongodb_client: AsyncIOMotorClient = None
-database = None
+mongodb_client: Optional[AsyncIOMotorClient] = None  # type: ignore
+database: Optional[AsyncIOMotorDatabase] = None  # type: ignore
 
 
 async def connect_to_mongo():
@@ -22,14 +23,18 @@ async def connect_to_mongo():
     
     try:
         logger.info(f"Connecting to MongoDB at {settings.MONGO_URI}")
-        mongodb_client = AsyncIOMotorClient(settings.MONGO_URI)
-        
+        client = AsyncIOMotorClient(settings.MONGO_URI)
+
         # Test connection
-        await mongodb_client.admin.command('ping')
-        
-        database = mongodb_client[settings.MONGO_DB_NAME]
+        await client.admin.command('ping')
+
+        db = client[settings.MONGO_DB_NAME]
         logger.info(f"✅ Successfully connected to MongoDB database: {settings.MONGO_DB_NAME}")
-        
+
+        # Update globals only after successful connection
+        mongodb_client = client
+        database = db
+
         # Create indexes
         await create_indexes()
         
@@ -59,6 +64,9 @@ async def create_indexes():
     """
     try:
         # Appointments indexes
+        if database is None:
+            raise RuntimeError("MongoDB database is not initialized")
+
         await database.appointments.create_index("client_phone")
         await database.appointments.create_index("datetime")
         await database.appointments.create_index("status")
@@ -83,8 +91,11 @@ async def create_indexes():
         logger.error(f"Error creating indexes: {e}")
 
 
-def get_database():
+def get_database() -> AsyncIOMotorDatabase:  # type: ignore
     """
     Get database instance (dependency injection)
     """
+    if database is None:
+        raise RuntimeError("MongoDB database is not initialized")
+
     return database

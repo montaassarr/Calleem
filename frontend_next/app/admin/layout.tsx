@@ -1,3 +1,5 @@
+"use client";
+
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -7,6 +9,7 @@ export default function AdminLayout({
 }: {
     children: React.ReactNode;
 }) {
+    // PUBLIC ACCESS - No authentication required for demo/development
     return (
         <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
             <AdminSidebar />

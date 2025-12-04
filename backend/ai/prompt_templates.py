@@ -3,7 +3,7 @@ AI Prompt Templates for Conversation Management
 """
 
 from utils.config import settings
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 
 class PromptTemplates:
@@ -131,7 +131,7 @@ Generate a professional but warm response that:
 Keep it friendly and brief, 2 sentences."""
     
     @staticmethod
-    def get_service_info_prompt(service_name: str = None) -> str:
+    def get_service_info_prompt(service_name: Optional[str] = None) -> str:
         """Prompt for providing service information"""
         if service_name:
             return f"""The client is asking about the '{service_name}' service.

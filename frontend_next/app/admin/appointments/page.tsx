@@ -7,6 +7,7 @@ import { DeleteDialog } from '@/components/admin/DeleteDialog';
 import { adminApi, Appointment } from '@/lib/api/admin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import type { AppointmentResponse, AppointmentStatus } from "@/lib/types";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
@@ -29,8 +30,20 @@ export default function AppointmentsPage() {
     const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Form state
-    const [formData, setFormData] = useState({
+    type AppointmentForm = {
+        client_name: string;
+        client_phone: string;
+        service: string;
+        datetime: string;
+        duration_minutes: number;
+        status: AppointmentStatus;
+        source: string;
+        business_id: string;
+        location_id: string;
+        notes: string;
+    };
+
+    const initialFormState: AppointmentForm = {
         client_name: '',
         client_phone: '',
         service: '',
@@ -41,7 +54,9 @@ export default function AppointmentsPage() {
         business_id: currentUser?.business_id || currentUser?.tenant_id || '',
         location_id: '',
         notes: ''
-    });
+    };
+
+    const [formData, setFormData] = useState<AppointmentForm>(initialFormState);
 
     const { toast } = useToast();
 
@@ -76,16 +91,9 @@ export default function AppointmentsPage() {
     const handleAdd = () => {
         setSelectedAppt(null);
         setFormData({
-            client_name: '',
-            client_phone: '',
-            service: '',
-            datetime: new Date().toISOString().slice(0, 16), // Current time for datetime-local
-            duration_minutes: 30,
-            status: 'confirmed',
-            source: 'manual',
-            business_id: currentUser?.business_id || currentUser?.tenant_id || '',
-            location_id: '',
-            notes: ''
+            ...initialFormState,
+            datetime: new Date().toISOString().slice(0, 16),
+            business_id: currentUser?.business_id || currentUser?.tenant_id || ''
         });
         setIsModalOpen(true);
     };
@@ -116,7 +124,7 @@ export default function AppointmentsPage() {
         e.preventDefault();
         try {
             setIsSubmitting(true);
-            const submitData = {
+            const submitData: Partial<AppointmentResponse> = {
                 ...formData,
                 datetime: new Date(formData.datetime).toISOString()
             };
@@ -160,17 +168,31 @@ export default function AppointmentsPage() {
         }
     };
 
-    const getStatusBadge = (status: string) => {
-        const styles: Record<string, string> = {
-            confirmed: "bg-green-100 text-green-800 hover:bg-green-200",
-            pending: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
-            cancelled: "bg-red-100 text-red-800 hover:bg-red-200",
-            completed: "bg-blue-100 text-blue-800 hover:bg-blue-200",
-            no_show: "bg-gray-100 text-gray-800 hover:bg-gray-200"
-        };
+    const appointmentStatuses: AppointmentStatus[] = [
+        'confirmed',
+        'pending',
+        'completed',
+        'cancelled',
+        'no_show'
+    ];
+
+    const statusStyles: Record<AppointmentStatus, string> = {
+        confirmed: "bg-green-100 text-green-800 hover:bg-green-200",
+        pending: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
+        cancelled: "bg-red-100 text-red-800 hover:bg-red-200",
+        completed: "bg-blue-100 text-blue-800 hover:bg-blue-200",
+        no_show: "bg-gray-100 text-gray-800 hover:bg-gray-200"
+    };
+
+    const formatStatusLabel = (status: AppointmentStatus) =>
+        status
+            .replace('_', ' ')
+            .replace(/(^|\s)\w/g, (char) => char.toUpperCase());
+
+    const getStatusBadge = (status: AppointmentStatus) => {
         return (
-            <Badge className={styles[status] || "bg-gray-100 text-gray-800"}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
+            <Badge className={statusStyles[status]}>
+                {formatStatusLabel(status)}
             </Badge>
         );
     };
@@ -186,7 +208,7 @@ export default function AppointmentsPage() {
         {
             key: 'status',
             label: 'Status',
-            render: (status: string) => getStatusBadge(status)
+            render: (status: AppointmentStatus) => getStatusBadge(status)
         },
         {
             key: 'duration_minutes',
@@ -286,17 +308,17 @@ export default function AppointmentsPage() {
                             <Label htmlFor="status">Status</Label>
                             <Select
                                 value={formData.status}
-                                onValueChange={(value) => setFormData({ ...formData, status: value })}
+                                onValueChange={(value) => setFormData({ ...formData, status: value as AppointmentStatus })}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select status" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                                    <SelectItem value="pending">Pending</SelectItem>
-                                    <SelectItem value="completed">Completed</SelectItem>
-                                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                                    <SelectItem value="no_show">No Show</SelectItem>
+                                    {appointmentStatuses.map((status) => (
+                                        <SelectItem key={status} value={status}>
+                                            {formatStatusLabel(status)}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>

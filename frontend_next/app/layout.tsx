@@ -38,7 +38,7 @@ html {
 }
         `}</style>
       </head>
-      <body className="dark">
+      <body className="dark" suppressHydrationWarning>
         <Providers>
           <GlobalBackground />
           {children}

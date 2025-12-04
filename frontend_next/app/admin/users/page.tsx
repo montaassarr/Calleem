@@ -1,357 +1,234 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { DataTable } from '@/components/admin/DataTable';
-import { CrudModal } from '@/components/admin/CrudModal';
-import { DeleteDialog } from '@/components/admin/DeleteDialog';
-import { adminApi, User } from '@/lib/api/admin';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/components/ui/use-toast';
-import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import api from "@/lib/api";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Search, Users as UsersIcon, TrendingUp, Activity, Mail, Phone, Calendar, Building2 } from "lucide-react";
+import { toast } from "sonner";
 
-export default function UsersPage() {
-    const { user: currentUser } = useAuth();
-    const [users, setUsers] = useState<User[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState(1);
-    const [total, setTotal] = useState(0);
-    const [pageSize] = useState(10);
+interface User {
+    id: string;
+    email: string;
+    username: string;
+    full_name?: string;
+    business_name?: string;
+    role: string;
+    tenant_id?: string;
+    created_at: string;
+    last_login?: string;
+    active: boolean;
+    phone?: string;
+}
 
-    // Modal states
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-    const [selectedUser, setSelectedUser] = useState<User | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+export default function UsersAdminPage() {
+    const [search, setSearch] = useState("");
 
-    // Form state
-    const [formData, setFormData] = useState({
-        username: '',
-        email: '',
-        password: '',
-        full_name: '',
-        role: 'staff',
-        tenant_id: currentUser?.tenant_id || '',
-        permissions: '',
-        active: true
+    // Fetch all users
+    const { data: users = [], isLoading, refetch } = useQuery({
+        queryKey: ["admin-users"],
+        queryFn: async () => {
+            const response = await api.get("/admin/users");
+            return response as User[];
+        },
     });
 
-    const { toast } = useToast();
+    // Filter by search
+    const filteredUsers = users.filter((user) => {
+        const searchLower = search.toLowerCase();
+        return (
+            user.email?.toLowerCase().includes(searchLower) ||
+            user.username?.toLowerCase().includes(searchLower) ||
+            user.full_name?.toLowerCase().includes(searchLower) ||
+            user.business_name?.toLowerCase().includes(searchLower)
+        );
+    });
 
-    const fetchUsers = async () => {
-        try {
-            setLoading(true);
-            const data = await adminApi.getUsers((page - 1) * pageSize, pageSize);
-            // Handle different response formats (list or paginated object)
-            if (Array.isArray(data)) {
-                setUsers(data);
-                setTotal(data.length); // If API doesn't return total, assume list length
-            } else {
-                setUsers(data.items || []);
-                setTotal(data.total || 0);
-            }
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: "Failed to fetch users",
-                variant: "destructive"
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchUsers();
-    }, [page]);
-
-    const handleAdd = () => {
-        setSelectedUser(null);
-        setFormData({
-            username: '',
-            email: '',
-            password: '',
-            full_name: '',
-            role: 'staff',
-            tenant_id: currentUser?.tenant_id || '',
-            permissions: '',
-            active: true
-        });
-        setIsModalOpen(true);
-    };
-
-    const handleEdit = (user: User) => {
-        setSelectedUser(user);
-        setFormData({
-            username: user.username,
-            email: user.email,
-            password: '', // Don't show password
-            full_name: (user as any).full_name || '',
-            role: user.role,
-            tenant_id: user.tenant_id || currentUser?.tenant_id || '',
-            permissions: user.permissions ? user.permissions.join(', ') : '',
-            active: user.active
-        });
-        setIsModalOpen(true);
-    };
-
-    const handleDeleteClick = (user: User) => {
-        setSelectedUser(user);
-        setIsDeleteOpen(true);
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            setIsSubmitting(true);
-            if (selectedUser) {
-                // Update
-                const updateData: any = {
-                    ...formData,
-                    permissions: formData.permissions ? formData.permissions.split(',').map(p => p.trim()) : []
-                };
-                if (!updateData.password) delete updateData.password;
-                await adminApi.updateUser(selectedUser.id, updateData);
-                toast({ title: "Success", description: "User updated successfully" });
-            } else {
-                // Create
-                await adminApi.createUser({
-                    ...formData,
-                    permissions: formData.permissions ? formData.permissions.split(',').map(p => p.trim()) : []
-                });
-                toast({ title: "Success", description: "User created successfully" });
-            }
-            setIsModalOpen(false);
-            fetchUsers();
-        } catch (error: any) {
-            toast({
-                title: "Error",
-                description: error.response?.data?.detail || "Operation failed",
-                variant: "destructive"
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleDeleteConfirm = async () => {
-        if (!selectedUser) return;
-        try {
-            setIsSubmitting(true);
-            await adminApi.deleteUser(selectedUser.id);
-            toast({ title: "Success", description: "User deleted successfully" });
-            setIsDeleteOpen(false);
-            fetchUsers();
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: "Failed to delete user",
-                variant: "destructive"
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleImpersonate = async (user: User) => {
-        try {
-            const response = await adminApi.impersonateUser(user.id);
-            // Store the new token
-            localStorage.setItem('access_token', response.access_token);
-            localStorage.setItem('tenant_id', user.tenant_id || '');
-            localStorage.setItem('impersonating', 'true');
-            localStorage.setItem('original_admin', 'true');
-
-            toast({
-                title: "Impersonation Started",
-                description: `Now viewing as ${user.username}. Redirecting to dashboard...`
-            });
-
-            // Redirect to tenant dashboard
-            setTimeout(() => {
-                window.location.href = '/dashboard';
-            }, 1000);
-        } catch (error: any) {
-            toast({
-                title: "Error",
-                description: error.response?.data?.detail || "Failed to impersonate user",
-                variant: "destructive"
-            });
-        }
-    };
-
-    const columns = [
-        { key: 'username', label: 'Username' },
-        { key: 'email', label: 'Email' },
-        {
-            key: 'role',
-            label: 'Role',
-            render: (role: string) => (
-                <Badge variant={role === 'owner' || role === 'admin' ? 'default' : 'secondary'}>
-                    {role}
-                </Badge>
-            )
-        },
-        {
-            key: 'active',
-            label: 'Status',
-            render: (active: boolean) => (
-                <Badge variant={active ? 'outline' : 'destructive'} className={active ? "text-green-600 border-green-600" : ""}>
-                    {active ? 'Active' : 'Inactive'}
-                </Badge>
-            )
-        },
-        {
-            key: 'created_at',
-            label: 'Created At',
-            render: (date: string) => new Date(date).toLocaleDateString()
-        },
-        {
-            key: 'actions',
-            label: 'Actions',
-            render: (_: any, user: User) => (
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleImpersonate(user)}
-                >
-                    Impersonate
-                </Button>
-            )
-        }
-    ];
+    // Calculate stats
+    const totalUsers = users.length;
+    const activeUsers = users.filter((u) => u.active).length;
+    const businessOwners = users.filter((u) => u.role === "owner").length;
 
     return (
-        <div className="p-6">
-            <DataTable
-                title="Users Management"
-                columns={columns}
-                data={users}
-                total={total}
-                page={page}
-                pageSize={pageSize}
-                onPageChange={setPage}
-                onAdd={handleAdd}
-                onEdit={handleEdit}
-                onDelete={handleDeleteClick}
-                isLoading={loading}
-            />
+        <div className="space-y-6">
+            {/* Header */}
+            <div>
+                <h1 className="text-3xl font-bold mb-2">Users (Business Owners)</h1>
+                <p className="text-muted-foreground">
+                    Manage all business owners and their accounts across your platform
+                </p>
+            </div>
 
-            <CrudModal
-                open={isModalOpen}
-                onOpenChange={setIsModalOpen}
-                title={selectedUser ? "Edit User" : "Add New User"}
-            >
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="username">Username</Label>
-                            <Input
-                                id="username"
-                                value={formData.username}
-                                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                required
-                                disabled={!!selectedUser} // Username usually immutable
-                            />
+            {/* Stats Cards */}
+            <div className="grid gap-4 md:grid-cols-4">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                        <UsersIcon className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{totalUsers}</div>
+                        <p className="text-xs text-muted-foreground">All registered accounts</p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+                        <Activity className="h-4 w-4 text-green-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-green-600">{activeUsers}</div>
+                        <p className="text-xs text-muted-foreground">Currently active</p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Business Owners</CardTitle>
+                        <Building2 className="h-4 w-4 text-blue-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-blue-600">{businessOwners}</div>
+                        <p className="text-xs text-muted-foreground">Your customers</p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Growth</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-purple-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-purple-600">+12%</div>
+                        <p className="text-xs text-muted-foreground">This month</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Search */}
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle>All Users</CardTitle>
+                            <CardDescription>
+                                {filteredUsers.length} users found
+                            </CardDescription>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="full_name">Full Name</Label>
-                            <Input
-                                id="full_name"
-                                value={formData.full_name}
-                                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="role">Role</Label>
-                            <Select
-                                value={formData.role}
-                                onValueChange={(value) => setFormData({ ...formData, role: value })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select role" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="owner">Owner</SelectItem>
-                                    <SelectItem value="admin">Admin</SelectItem>
-                                    <SelectItem value="staff">Staff</SelectItem>
-                                    <SelectItem value="viewer">Viewer</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        {/* Only show tenant_id field for super_admin */}
-                        {currentUser?.role === 'super_admin' && (
-                            <div className="space-y-2">
-                                <Label htmlFor="tenant_id">Tenant ID</Label>
+                        <div className="flex items-center gap-2">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
-                                    id="tenant_id"
-                                    value={formData.tenant_id}
-                                    onChange={(e) => setFormData({ ...formData, tenant_id: e.target.value })}
-                                    placeholder="Auto-assigned if empty"
+                                    placeholder="Search users..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-9 w-[300px]"
                                 />
                             </div>
-                        )}
-                        <div className="space-y-2 col-span-2">
-                            <Label htmlFor="permissions">Permissions (comma separated)</Label>
-                            <Input
-                                id="permissions"
-                                value={formData.permissions}
-                                onChange={(e) => setFormData({ ...formData, permissions: e.target.value })}
-                                placeholder="e.g. manage_users, view_reports"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="password">Password {selectedUser && "(Leave blank to keep current)"}</Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                value={formData.password}
-                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                required={!selectedUser}
-                            />
-                        </div>
-                        <div className="space-y-2 flex items-end pb-2">
-                            <label className="flex items-center space-x-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={formData.active}
-                                    onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-                                    className="h-4 w-4 rounded border-gray-300"
-                                />
-                                <span>Active Account</span>
-                            </label>
+                            <Button onClick={() => refetch()}>Refresh</Button>
                         </div>
                     </div>
-                    <div className="flex justify-end space-x-2 pt-4">
-                        <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                        <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting ? "Saving..." : "Save User"}
-                        </Button>
-                    </div>
-                </form>
-            </CrudModal>
-
-            <DeleteDialog
-                open={isDeleteOpen}
-                onOpenChange={setIsDeleteOpen}
-                onConfirm={handleDeleteConfirm}
-                title="Delete User"
-                description={`Are you sure you want to delete user ${selectedUser?.username}? This action cannot be undone.`}
-                isLoading={isSubmitting}
-            />
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? (
+                        <div className="text-center py-8">
+                            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+                            <p className="text-muted-foreground mt-2">Loading users...</p>
+                        </div>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>User</TableHead>
+                                    <TableHead>Business</TableHead>
+                                    <TableHead>Contact</TableHead>
+                                    <TableHead>Role</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Joined</TableHead>
+                                    <TableHead>Last Login</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredUsers.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                            No users found
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    filteredUsers.map((user) => (
+                                        <TableRow key={user.id}>
+                                            <TableCell>
+                                                <div>
+                                                    <div className="font-medium">{user.full_name || user.username}</div>
+                                                    <div className="text-sm text-muted-foreground">{user.email}</div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                                                    <span>{user.business_name || "N/A"}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col gap-1 text-sm">
+                                                    {user.phone && (
+                                                        <div className="flex items-center gap-1 text-muted-foreground">
+                                                            <Phone className="h-3 w-3" />
+                                                            {user.phone}
+                                                        </div>
+                                                    )}
+                                                    <div className="flex items-center gap-1 text-muted-foreground">
+                                                        <Mail className="h-3 w-3" />
+                                                        {user.email}
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant={user.role === "owner" ? "default" : "secondary"}>
+                                                    {user.role}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                {user.active ? (
+                                                    <Badge variant="default" className="bg-green-600">Active</Badge>
+                                                ) : (
+                                                    <Badge variant="destructive">Inactive</Badge>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                                    <Calendar className="h-3 w-3" />
+                                                    {new Date(user.created_at).toLocaleDateString()}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="text-sm text-muted-foreground">
+                                                    {user.last_login 
+                                                        ? new Date(user.last_login).toLocaleDateString()
+                                                        : "Never"}
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    )}
+                </CardContent>
+            </Card>
         </div>
     );
 }

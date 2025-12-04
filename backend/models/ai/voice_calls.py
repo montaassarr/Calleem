@@ -20,7 +20,7 @@ class VoiceCall(BaseModel):
                 "status": "completed",
                 "duration_seconds": 180,
                 "transcription": [],
-                "recording_url": "https://api.vapi.ai/recordings/..."
+                "recording_url": "https://livekit.example.com/recordings/..."
             }
         }
     )

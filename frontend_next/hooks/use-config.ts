@@ -12,8 +12,9 @@ const QUERY_KEY = 'businessConfig';
  * would share the same cached configuration data.
  * 
  * @param businessId - Unique identifier for the tenant/business (defaults to 'default' if not provided)
+ * @param enabled - Whether to enable the query (should be false if user is not authenticated)
  */
-export function useConfig(businessId: string = 'default') {
+export function useConfig(businessId: string = 'default', enabled: boolean = true) {
     const queryClient = useQueryClient();
     const { toast } = useToast();
 
@@ -26,6 +27,7 @@ export function useConfig(businessId: string = 'default') {
     } = useQuery({
         queryKey: [QUERY_KEY, businessId],
         queryFn: () => businessConfigApi.getConfig(businessId),
+        enabled: enabled, // Only fetch if enabled (user is authenticated)
         staleTime: 5 * 60 * 1000, // 5 minutes (matches backend cache)
         retry: (failureCount, error: any) => {
             // Don't retry on 401 (unauthorized) - user needs to login

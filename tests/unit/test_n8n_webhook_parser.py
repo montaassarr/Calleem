@@ -116,7 +116,8 @@ class TestN8nWebhookParser:
         # Verify error response
         assert "error" in result
         assert result["status"] == 400
-        assert "phone_number" in result["error"]
+        error_msg = str(result.get("error", ""))
+        assert "phone_number" in error_msg
         
     def test_invalid_tenant_id_returns_404_json(self):
         """Test that invalid tenant_id returns 404 JSON"""
@@ -152,7 +153,8 @@ class TestN8nWebhookParser:
         # Verify 404 response
         assert result["status"] == 404
         assert "error" in result
-        assert "Tenant not found" in result["error"]
+        error_msg = str(result.get("error", ""))
+        assert "Tenant not found" in error_msg
 
 
 class TestN8nWebhookParserEdgeCases:
@@ -176,7 +178,8 @@ class TestN8nWebhookParserEdgeCases:
         result = validate_webhook_payload(payload)
         
         assert result["status"] == 400
-        assert "Missing required fields" in result["error"]
+        error_msg = str(result.get("error", ""))
+        assert "Missing required fields" in error_msg
         
     def test_parse_malformed_json_returns_error(self):
         """Test that malformed JSON returns error"""
@@ -269,7 +272,7 @@ class TestN8nWebhookParserEdgeCases:
             # Verify phone number extracted correctly
             parsed_number = payload.get("phone_number")
             assert parsed_number == number
-            assert parsed_number.startswith("+")
+            assert parsed_number is not None and parsed_number.startswith("+")
             
     def test_parse_webhook_action_types(self):
         """Test parsing of different action types"""

@@ -29,13 +29,6 @@ export default function SettingsPage() {
             color: "from-amber-500 to-yellow-500",
         },
         {
-            title: "Services & Pricing",
-            description: "Configure your services, durations, and pricing",
-            icon: Briefcase,
-            path: "/dashboard/settings/services",
-            color: "from-violet-500 to-purple-500",
-        },
-        {
             title: "AI Configuration",
             description: "Configure AI behavior and prompts",
             icon: Bot,

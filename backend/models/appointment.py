@@ -3,8 +3,8 @@ Appointment Data Model
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional
-from datetime import datetime
+from typing import Optional, List
+from datetime import datetime as dt
 from enum import Enum
 
 
@@ -23,7 +23,7 @@ class AppointmentBase(BaseModel):
     client_phone: str = Field(..., pattern=r'^\+?1?\d{9,15}$')
     client_email: Optional[str] = Field(None, pattern=r'^[\w\.-]+@[\w\.-]+\.\w+$')
     service: str = Field(..., min_length=2)
-    datetime: datetime
+    datetime: dt
     duration_minutes: int = Field(default=30, ge=15, le=240)
     barber_preference: Optional[str] = None
     notes: Optional[str] = None
@@ -40,7 +40,7 @@ class AppointmentUpdate(BaseModel):
     client_phone: Optional[str] = Field(None, pattern=r'^\+?1?\d{9,15}$')
     client_email: Optional[str] = Field(None, pattern=r'^[\w\.-]+@[\w\.-]+\.\w+$')
     service: Optional[str] = None
-    datetime: Optional[datetime] = None
+    datetime: Optional[dt] = None
     duration_minutes: Optional[int] = Field(None, ge=15, le=240)
     barber_preference: Optional[str] = None
     status: Optional[AppointmentStatus] = None
@@ -52,8 +52,8 @@ class AppointmentInDB(AppointmentBase):
     id: str = Field(alias="_id")
     status: AppointmentStatus = AppointmentStatus.CONFIRMED
     conversation_id: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: dt = Field(default_factory=dt.utcnow)
+    updated_at: dt = Field(default_factory=dt.utcnow)
     
     class Config:
         populate_by_name = True
@@ -83,14 +83,14 @@ class AppointmentResponse(BaseModel):
     client_phone: str
     client_email: Optional[str] = None
     service: str
-    datetime: datetime
+    datetime: dt
     duration_minutes: int
     barber_preference: Optional[str] = None
     status: AppointmentStatus
     conversation_id: Optional[str] = None
     notes: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: dt
+    updated_at: dt
     
     class Config:
         json_schema_extra = {

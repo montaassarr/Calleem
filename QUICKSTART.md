@@ -1,137 +1,73 @@
-# AI Receptionist - Quick Start Reference
+# 🚀 QUICKSTART: LiveKit Voice Platform
 
-## 🚀 Three Ways to Start the Application
-
-### Option 1: Docker (Recommended for Production)
-
-**Best for:** Production deployment, consistent environment, easy setup
-
-```bash
-./docker-start.sh
-```
-
-**What it does:**
-- Starts MongoDB, Backend, and Frontend in containers
-- Handles all dependencies automatically
-- No need to install Python, Node.js, or MongoDB locally
-
-**Access:**
-- Frontend: http://localhost:3000
-- Backend: http://localhost:8000
-
-**Stop:**
-```bash
-./docker-stop.sh
-```
+**New Model**: Voice runs on LiveKit managed by the platform. Tenants optionally BYOK their LLM/TTS keys.
 
 ---
 
-### Option 2: Local Development (start.sh)
+## 🎯 What Changed
 
-**Best for:** Development with hot-reload, debugging
+### Before
+- ❌ Tenants had to paste Vapi keys before doing anything
+- ❌ Support had to debug 3rd-party accounts
+- ❌ Billing was unpredictable
 
-```bash
-./start.sh
-```
-
-**Requirements:**
-- Python 3.11+ installed
-- Node.js 18+ installed
-- MongoDB running locally
-
-**What it does:**
-- Checks MongoDB status
-- Starts backend with uvicorn (hot-reload enabled)
-- Starts frontend with Vite dev server
-
-**Access:**
-- Frontend: http://localhost:5173
-- Backend: http://localhost:8000
+### Now
+- ✅ LiveKit env vars ship with the backend (no tenant key required)
+- ✅ Onboarding auto-enables voice agent toggle
+- ✅ Dashboard fetches preview tokens directly from `/voice-agent/webrtc/test`
+- ✅ BYOK applies only to OpenAI/Groq/Anthropic/ElevenLabs
 
 ---
 
-### Option 3: Manual Start
+## 📁 Important Files
 
-**Best for:** Fine-grained control, troubleshooting
-
-#### Backend:
-```bash
-cd backend
-source venv/bin/activate  # or .venv/bin/activate
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-#### Frontend:
-```bash
-cd frontend_next
-npm run dev
-```
+1. `backend/services/livekit_service.py`
+2. `backend/routers/voice_agent.py`
+3. `backend/routers/onboarding.py`
+4. `frontend_next/app/dashboard/voice-agent/*`
 
 ---
 
-## 📋 Quick Comparison
+## 🧪 Smoke Test
 
-| Feature | Docker | start.sh | Manual |
-|---------|--------|----------|--------|
-| Setup Time | Fast | Medium | Slow |
-| Dependencies | None (containerized) | Must install | Must install |
-| Hot Reload | No | Yes | Yes |
-| Production Ready | ✅ Yes | ❌ No | ❌ No |
-| Debugging | Harder | Easy | Easiest |
-| MongoDB | Included | Local required | Local required |
-
----
-
-## 🔧 Environment Setup
-
-### For Docker:
-- Ensure `.env` exists in root directory
-- Ensure `backend/.env` exists
-
-### For Local Development:
-- Create Python virtual environment
-- Install dependencies: `pip install -r backend/requirements.txt`
-- Install Node modules: `cd frontend_next && npm install`
-- Start MongoDB: `sudo systemctl start mongod`
-
----
-
-## 🆘 Troubleshooting
-
-### Docker Issues
 ```bash
-# Check Docker status
-docker info
+# 1. Check onboarding status
+curl http://localhost:8000/api/v1/onboarding/status \
+  -H "Authorization: Bearer $TOKEN"
 
-# View logs
-docker-compose logs -f
+# 2. Enable voice agent
+curl -X POST http://localhost:8000/api/v1/voice-agent/enable \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": true}'
 
-# Rebuild containers
-docker-compose build --no-cache
-docker-compose up -d
+# 3. Issue LiveKit preview
+curl -X POST http://localhost:8000/api/v1/voice-agent/webrtc/test \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
 ```
 
-### Local Development Issues
-```bash
-# Check MongoDB
-sudo systemctl status mongod
-
-# Check Python version
-python3 --version
-
-# Check Node version
-node --version
-
-# Reinstall dependencies
-cd backend && pip install -r requirements.txt
-cd frontend_next && npm install
-```
+Use the returned token + room in the LiveKit prebuilt agent UI.
 
 ---
 
-## 📖 More Information
+## 💰 Pricing Snapshot
 
-- **Docker Guide**: [DOCKER.md](DOCKER.md)
-- **Installation Guide**: [INSTALLATION.md](INSTALLATION.md)
-- **Main README**: [README.md](README.md)
-- **API Documentation**: http://localhost:8000/docs
+| Plan | Included Minutes | Notes |
+| --- | --- | --- |
+| Starter $49 | 150 | LiveKit minutes bundled |
+| Pro $149 | 800 | Priority queue |
+| Enterprise | Custom | Dedicated queue + BYOK discounts |
+
+---
+
+## 📚 Reference Docs
+
+- `docs/architecture/ARCHITECTURE_OVERVIEW.md`
+- `docs/api_docs/API_TESTING_GUIDE.md`
+- `docs/user_guides/USER_API_KEYS_GUIDE.md`
+
+---
+
+**Ship it!** 🎉

@@ -1,0 +1,264 @@
+{
+  "name": "WhatsApp Appointment Reminders (1 Hour Before)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every Hour Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "find",
+        "collection": "appointments",
+        "query": "={\n  \"status\": \"confirmed\",\n  \"datetime\": {\n    \"$gte\": \"{{$now.toISO()}}\",\n    \"$lte\": \"{{$now.plus({hours: 1, minutes: 15}).toISO()}}\"\n  },\n  \"reminder_sent\": { \"$ne\": true }\n}",
+        "options": {}
+      },
+      "id": "find-upcoming",
+      "name": "Find Appointments (Next Hour)",
+      "type": "n8n-nodes-base.mongodb",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "mongoDb": {
+          "id": "global-mongodb",
+          "name": "MongoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "loop-appointments",
+      "name": "For Each Appointment",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "url": "=http://backend:8000/api/v1/tenants/{{$json.tenant_id}}",
+        "authentication": "none",
+        "options": {}
+      },
+      "id": "get-tenant-config",
+      "name": "Get Tenant Config",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "reminders-enabled",
+              "leftValue": "={{$node[\"Get Tenant Config\"].json[\"automations\"][\"whatsapp_reminders\"]}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-reminders-enabled",
+      "name": "Reminders Enabled?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate time until appointment\nconst appointmentData = $node[\"For Each Appointment\"].item.json;\nconst appointmentTime = new Date(appointmentData.datetime);\nconst now = new Date();\nconst minutesUntil = Math.floor((appointmentTime - now) / 1000 / 60);\n\nreturn {\n  ...appointmentData,\n  minutes_until: minutesUntil,\n  formatted_time: appointmentTime.toLocaleString('en-US', {\n    weekday: 'long',\n    month: 'long',\n    day: 'numeric',\n    hour: 'numeric',\n    minute: '2-digit'\n  })\n};"
+      },
+      "id": "calc-time",
+      "name": "Calculate Time Until",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 250]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/{{$node[\"Get Tenant Config\"].json[\"whatsapp_phone_number_id\"]}}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$node[\"Get Tenant Config\"].json[\"whatsapp_token\"]}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{$node[\"Calculate Time Until\"].json[\"client_phone\"].replace(/[^0-9]/g, '')}}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"⏰ Reminder: Your appointment is in {{$node[\"Calculate Time Until\"].json[\"minutes_until\"]}} minutes!\\n\\n📅 {{$node[\"Calculate Time Until\"].json[\"formatted_time\"]}}\\n💇 Service: {{$node[\"Calculate Time Until\"].json[\"service\"]}}\\n\\nSee you soon! - {{$node[\"Get Tenant Config\"].json[\"business_name\"]}}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "send-reminder",
+      "name": "Send WhatsApp Reminder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1560, 250]
+    },
+    {
+      "parameters": {
+        "operation": "updateOne",
+        "collection": "appointments",
+        "query": "={\"_id\": {\"$oid\": \"{{$node[\"Calculate Time Until\"].json[\"_id\"]}}\"}}",
+        "update": "={\"$set\": {\"reminder_sent\": true, \"reminder_sent_at\": \"{{$now.toISO()}}\"}}",
+        "options": {}
+      },
+      "id": "mark-sent",
+      "name": "Mark Reminder Sent",
+      "type": "n8n-nodes-base.mongodb",
+      "typeVersion": 1,
+      "position": [1780, 250],
+      "credentials": {
+        "mongoDb": {
+          "id": "global-mongodb",
+          "name": "MongoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "loop-back",
+      "name": "Loop Back",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [2000, 300]
+    }
+  ],
+  "connections": {
+    "Every Hour Check": {
+      "main": [
+        [
+          {
+            "node": "Find Appointments (Next Hour)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Appointments (Next Hour)": {
+      "main": [
+        [
+          {
+            "node": "For Each Appointment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "For Each Appointment": {
+      "main": [
+        [
+          {
+            "node": "Get Tenant Config",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Back",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Tenant Config": {
+      "main": [
+        [
+          {
+            "node": "Reminders Enabled?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reminders Enabled?": {
+      "main": [
+        [
+          {
+            "node": "Calculate Time Until",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Time Until": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Reminder": {
+      "main": [
+        [
+          {
+            "node": "Mark Reminder Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Reminder Sent": {
+      "main": [
+        [
+          {
+            "node": "For Each Appointment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-12-01T00:00:00.000Z",
+  "versionId": "1"
+}

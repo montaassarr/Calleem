@@ -62,7 +62,11 @@ export interface BusinessConfig {
     business_email?: string;
     business_phone?: string;
     business_address?: string;
+    email?: string;
+    phone_number?: string;
+    address?: string;
     timezone: string;
+    currency?: string;
     business_hours: BusinessHours;
     services: ServiceDefinition[];
     ai_config: AIConfiguration;
@@ -74,6 +78,11 @@ export interface BusinessConfig {
     logo_url?: string;
     primary_color?: string;
     secondary_color?: string;
+    vapi_api_key?: string;
+    twilio_account_sid?: string;
+    twilio_auth_token?: string;
+    twilio_phone_number?: string;
+    is_configured?: boolean;
 }
 
 export interface BusinessConfigUpdate {
@@ -82,12 +91,21 @@ export interface BusinessConfigUpdate {
     business_phone?: string;
     business_address?: string;
     timezone?: string;
+    email?: string;
+    phone_number?: string;
+    address?: string;
+    currency?: string;
     business_hours?: BusinessHours;
     services?: ServiceDefinition[];
     ai_config?: AIConfiguration;
     whatsapp_config?: WhatsAppConfiguration;
     features_enabled?: FeatureFlags;
     automations?: { [key: string]: boolean };
+    vapi_api_key?: string;
+    twilio_account_sid?: string;
+    twilio_auth_token?: string;
+    twilio_phone_number?: string;
+    is_configured?: boolean;
 }
 
 export const businessConfigApi = {

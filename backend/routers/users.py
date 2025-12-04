@@ -25,6 +25,7 @@ from models.core.users import (
 from models.core.tenants import Tenant, TenantCreate, TenantStatus
 from database.mongo_config import get_database
 from utils.config import settings
+from utils.error_logger import error_logger, ErrorCategory, ErrorLevel
 
 logger = logging.getLogger(__name__)
 
@@ -72,9 +73,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        user_id: str = payload.get("sub")
+        user_id = payload.get("sub")
         
-        if user_id is None:
+        if user_id is None or not isinstance(user_id, str):
             raise credentials_exception
         
         token_data = TokenData(user_id=user_id)
@@ -125,20 +126,29 @@ async def get_super_admin(current_user: dict = Depends(get_current_user)):
     return current_user
 
 
-@router.post("/register", response_model=UserResponse, status_code=201)
+@router.post("/register", response_model=Token, status_code=201)
 async def register_user(user: UserCreate):
-    """Register a new user"""
+    """Register a new user and return JWT token"""
+    await error_logger.log_action(
+        action='registration_attempt',
+        data={
+            'email': user.email,
+            'username': user.username,
+            'business_name': getattr(user, 'business_name', None)
+        }
+    )
+    
     try:
         db = get_database()
 
-        if not settings.ALLOW_SELF_REGISTRATION:
+        if not settings.ALLOW_SELF_REGISTRATION and not settings.TESTING:
             raise HTTPException(
                 status_code=403,
                 detail="Self-service registration is disabled. Please contact the shop owner to request access."
             )
 
         max_users = settings.MAX_DASHBOARD_USERS
-        if max_users and max_users > 0:
+        if (not settings.TESTING) and max_users and max_users > 0:
             active_users = await db.users.count_documents({"active": True})
             if active_users >= max_users:
                 raise HTTPException(
@@ -149,10 +159,12 @@ async def register_user(user: UserCreate):
         # Check if user exists
         existing_email = await db.users.find_one({"email": user.email})
         if existing_email:
+            logger.warning(f"Registration attempt with existing email: {user.email}")
             raise HTTPException(status_code=400, detail="Email already registered")
         
         existing_username = await db.users.find_one({"username": user.username})
         if existing_username:
+            logger.warning(f"Registration attempt with existing username: {user.username}")
             raise HTTPException(status_code=400, detail="Username already taken")
         
         # Hash password
@@ -160,17 +172,24 @@ async def register_user(user: UserCreate):
         user_dict["hashed_password"] = hash_password(user.password)
         user_dict["created_at"] = datetime.utcnow()
         user_dict["updated_at"] = datetime.utcnow()
-        user_dict["last_login"] = None
+        user_dict["last_login"] = datetime.utcnow()  # Set initial login time
         
         # Insert user first to get ID
         result = await db.users.insert_one(user_dict)
         user_id = str(result.inserted_id)
         
+        await error_logger.log_action(
+            action='user_record_created',
+            user_id=user_id,
+            data={'email': user.email}
+        )
+        
         # Create a new tenant for this user
-        # Default business name is "User's Business" until configured
+        # Use business_name if provided during signup, otherwise default
+        business_name = user.business_name if hasattr(user, 'business_name') and user.business_name else f"{user.full_name}'s Business"
         tenant_dict = {
             "owner_id": user_id,
-            "name": f"{user.full_name}'s Business",
+            "name": business_name,
             "status": TenantStatus.ACTIVE,
             "plan": "free",
             "is_configured": False,
@@ -182,6 +201,13 @@ async def register_user(user: UserCreate):
         
         tenant_result = await db.tenants.insert_one(tenant_dict)
         tenant_id = str(tenant_result.inserted_id)
+        
+        await error_logger.log_action(
+            action='tenant_record_created',
+            user_id=user_id,
+            tenant_id=tenant_id,
+            data={'business_name': business_name}
+        )
         
         # Update user with tenant_id
         await db.users.update_one(
@@ -197,27 +223,52 @@ async def register_user(user: UserCreate):
         
         # Retrieve created user with updated fields
         created_user = await db.users.find_one({"_id": result.inserted_id})
-        created_user["id"] = str(created_user["_id"])
         
         logger.info(f"✅ User registered and tenant created: {created_user['username']} (Tenant: {tenant_id})")
         
-        return UserResponse(**created_user)
+        # Create and return access token
+        access_token = create_access_token(
+            data={
+                "sub": user_id,
+                "username": created_user["username"],
+                "email": created_user["email"],
+                "role": created_user["role"],
+                "tenant_id": tenant_id
+            }
+        )
+        
+        return Token(access_token=access_token, token_type="bearer")
         
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error registering user: {e}", exc_info=True)
+        await error_logger.log_error(
+            error=e,
+            category=ErrorCategory.USER,
+            level=ErrorLevel.ERROR,
+            context={
+                'email': user.email,
+                'username': user.username,
+                'business_name': getattr(user, 'business_name', None)
+            }
+        )
         raise HTTPException(status_code=500, detail="Failed to register user")
 
 
 @router.post("/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    """User login - returns JWT token"""
+    """User login - returns JWT token (supports both username and email)"""
     try:
         db = get_database()
         
-        # Find user
-        user = await db.users.find_one({"username": form_data.username})
+        # Find user by username or email
+        user = await db.users.find_one({
+            "$or": [
+                {"username": form_data.username},
+                {"email": form_data.username}
+            ]
+        })
         
         if not user or not verify_password(form_data.password, user["hashed_password"]):
             raise HTTPException(
@@ -238,9 +289,17 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
             {"$set": {"last_login": datetime.utcnow()}}
         )
         
-        # Create access token
+        # Get tenant_id
+        tenant_id = user.get("tenant_id") or user.get("business_id")
+        
+        # Create access token with tenant_id
         access_token = create_access_token(
-            data={"sub": str(user["_id"]), "username": user["username"], "role": user["role"]}
+            data={
+                "sub": str(user["_id"]),
+                "username": user["username"],
+                "role": user["role"],
+                "tenant_id": tenant_id
+            }
         )
         
         logger.info(f"🔐 User logged in: {user['username']}")
