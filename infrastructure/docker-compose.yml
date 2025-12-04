@@ -25,7 +25,7 @@ services:
   # Core Service (Python FastAPI)
   core-service:
     build:
-      context: ../services/core/app
+      context: ../backend
       dockerfile: Dockerfile
     container_name: ai-receptionist-core
     restart: unless-stopped
@@ -46,7 +46,7 @@ services:
       mongodb:
         condition: service_healthy
     volumes:
-      - ../services/core/app/logs:/app/logs
+      - ../backend/logs:/app/logs
     networks:
       - ai-receptionist-network
     healthcheck:
@@ -101,6 +101,32 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  parker_agent:
+    build:
+      context: ../Parker_165
+      dockerfile: Dockerfile
+    container_name: ai-receptionist-parker-agent
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      LIVEKIT_URL: ${LIVEKIT_URL}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
+      LIVEKIT_AGENT_QUEUE: ${LIVEKIT_AGENT_QUEUE:-voice-agents}
+      LIVEKIT_AGENT_NAME: ${LIVEKIT_AGENT_NAME:-Parker_165}
+    depends_on:
+      core-service:
+        condition: service_healthy
+    networks:
+      - ai-receptionist-network
+    healthcheck:
+      test: [ "CMD-SHELL", "ps -ef | grep -v grep | grep 'src/agent.py'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
 
 volumes:
   mongodb_data:

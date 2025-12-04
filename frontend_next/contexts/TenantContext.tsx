@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { BusinessConfig } from '@/lib/types';
+import { BusinessConfig } from '@/lib/api/business-config';
 import { useConfig } from './ConfigContext';
 
 interface TenantContextType {

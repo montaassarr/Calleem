@@ -67,6 +67,12 @@ async def create_appointment(
         client_name = appointment.client_name or appointment.customer_name
         client_phone = appointment.client_phone or appointment.customer_phone
         
+        # Validate required fields
+        if not client_name:
+            raise HTTPException(status_code=400, detail="Client name is required")
+        if not client_phone:
+            raise HTTPException(status_code=400, detail="Client phone is required")
+        
         # Prepare appointment document
         appointment_dict = {
             "client_name": client_name,

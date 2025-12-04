@@ -19,6 +19,25 @@ const nextConfig = {
       },
     ]
   },
+  async redirects() {
+    return [
+      {
+        source: '/dashboard/voice-agent/settings',
+        destination: '/dashboard/settings/ai',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/settings/services',
+        destination: '/dashboard/services',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/integrations',
+        destination: '/dashboard/settings/api-keys',
+        permanent: true,
+      },
+    ];
+  },
 }
 
 export default nextConfig

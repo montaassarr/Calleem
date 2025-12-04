@@ -49,7 +49,7 @@ class MockStripeService:
             "active": True
         }
     
-    def create_customer(self, email: str, name: str, metadata: Dict[str, Any] = None) -> Dict[str, Any]:
+    def create_customer(self, email: str, name: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Create mock Stripe customer"""
         customer_id = f"cus_mock_{secrets.token_hex(8)}"
         
@@ -74,7 +74,7 @@ class MockStripeService:
         price_id: str,
         success_url: str,
         cancel_url: str,
-        metadata: Dict[str, Any] = None
+        metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Create mock checkout session - instant success"""
         session_id = f"cs_mock_{secrets.token_hex(12)}"

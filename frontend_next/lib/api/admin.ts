@@ -6,7 +6,7 @@ import {
     ConversationResponse,
     TenantResponse,
     BusinessConfig,
-    CrewJobResponse
+    Token,
 } from '@/lib/types';
 
 export type User = UserResponse;
@@ -14,126 +14,178 @@ export type Appointment = AppointmentResponse;
 export type Service = ServiceResponse;
 export type Conversation = ConversationResponse;
 export type Tenant = TenantResponse;
-export type CrewJob = CrewJobResponse;
 export type { BusinessConfig };
+
+export interface CrewJob {
+    id: string;
+    status: 'queued' | 'running' | 'completed' | 'failed';
+    task?: string;
+    created_at?: string;
+    updated_at?: string;
+    metadata?: Record<string, unknown>;
+}
+
+type Paginated<T> = {
+    items: T[];
+    total: number;
+    page?: number;
+    limit?: number;
+};
+
+type PaginatedOrList<T> = Paginated<T> | T[];
+
+interface GlobalAnalytics {
+    tenants: {
+        total: number;
+        active: number;
+    };
+    users: number;
+    appointments: number;
+    conversations: number;
+}
+
+interface JobTriggerResponse {
+    message: string;
+    job_id?: string;
+}
+
+interface JobStatusResponse {
+    job_id: string;
+    status: CrewJob['status'];
+    progress?: number;
+    result?: Record<string, unknown>;
+    error?: string;
+}
 
 // Admin API Functions
 export const adminApi = {
     // Users
-    getUsers: async (skip = 0, limit = 100) => {
-        const response = await api.get(`/admin/users?skip=${skip}&limit=${limit}`);
-        return response; // ApiClient already returns .data
+    getUsers: async (skip = 0, limit = 100): Promise<UserResponse[]> => {
+        const response = await api.get<UserResponse[]>(`/admin/users?skip=${skip}&limit=${limit}`);
+        return response;
     },
-    createUser: async (data: any) => {
-        const response = await api.post('/admin/users', data);
-        return response; // ApiClient already returns .data
+    createUser: async (data: Partial<UserResponse>): Promise<UserResponse> => {
+        const response = await api.post<UserResponse>('/admin/users', data);
+        return response;
     },
-    updateUser: async (id: string, data: any) => {
-        const response = await api.put(`/admin/users/${id}`, data);
-        return response; // ApiClient already returns .data
+    updateUser: async (id: string, data: Partial<UserResponse>): Promise<UserResponse> => {
+        const response = await api.put<UserResponse>(`/admin/users/${id}`, data);
+        return response;
     },
     deleteUser: async (id: string) => {
         await api.delete(`/admin/users/${id}`);
     },
-    impersonateUser: async (id: string) => {
-        const response = await api.post(`/admin/users/${id}/impersonate`);
-        return response.data;
+    impersonateUser: async (id: string): Promise<Token> => {
+        const response = await api.post<Token>(`/admin/users/${id}/impersonate`);
+        return response;
     },
 
     // Appointments
-    getAppointments: async (skip = 0, limit = 100, status?: string) => {
+    getAppointments: async (
+        skip = 0,
+        limit = 100,
+        status?: string
+    ): Promise<PaginatedOrList<AppointmentResponse>> => {
         let url = `/admin/appointments?skip=${skip}&limit=${limit}`;
         if (status) url += `&status=${status}`;
-        const response = await api.get(url);
-        return response.data;
+        const response = await api.get<PaginatedOrList<AppointmentResponse>>(url);
+        return response;
     },
-    createAppointment: async (data: any) => {
-        const response = await api.post('/admin/appointments', data);
-        return response.data;
+    createAppointment: async (data: AppointmentResponse | Partial<AppointmentResponse>): Promise<AppointmentResponse> => {
+        const response = await api.post<AppointmentResponse>('/admin/appointments', data);
+        return response;
     },
-    updateAppointment: async (id: string, data: any) => {
-        const response = await api.put(`/admin/appointments/${id}`, data);
-        return response.data;
+    updateAppointment: async (id: string, data: Partial<AppointmentResponse>): Promise<AppointmentResponse> => {
+        const response = await api.put<AppointmentResponse>(`/admin/appointments/${id}`, data);
+        return response;
     },
     deleteAppointment: async (id: string) => {
         await api.delete(`/admin/appointments/${id}`);
     },
 
     // Services
-    getServices: async (skip = 0, limit = 100) => {
-        const response = await api.get(`/admin/services?skip=${skip}&limit=${limit}`);
-        return response.data;
+    getServices: async (skip = 0, limit = 100): Promise<PaginatedOrList<ServiceResponse>> => {
+        const response = await api.get<PaginatedOrList<ServiceResponse>>(`/admin/services?skip=${skip}&limit=${limit}`);
+        return response;
     },
-    createService: async (data: any) => {
-        const response = await api.post('/admin/services', data);
-        return response.data;
+    createService: async (data: ServiceResponse | Partial<ServiceResponse>): Promise<ServiceResponse> => {
+        const response = await api.post<ServiceResponse>('/admin/services', data);
+        return response;
     },
-    updateService: async (id: string, data: any) => {
-        const response = await api.put(`/admin/services/${id}`, data);
-        return response.data;
+    updateService: async (id: string, data: Partial<ServiceResponse>): Promise<ServiceResponse> => {
+        const response = await api.put<ServiceResponse>(`/admin/services/${id}`, data);
+        return response;
     },
     deleteService: async (id: string) => {
         await api.delete(`/admin/services/${id}`);
     },
 
     // Conversations
-    getConversations: async (skip = 0, limit = 100, phone?: string) => {
+    getConversations: async (
+        skip = 0,
+        limit = 100,
+        phone?: string
+    ): Promise<PaginatedOrList<ConversationResponse>> => {
         let url = `/admin/conversations?skip=${skip}&limit=${limit}`;
         if (phone) url += `&phone=${phone}`;
-        const response = await api.get(url);
-        return response.data;
+        const response = await api.get<PaginatedOrList<ConversationResponse>>(url);
+        return response;
     },
     deleteConversation: async (id: string) => {
         await api.delete(`/admin/conversations/${id}`);
     },
 
     // Business Config
-    getConfig: async () => {
-        const response = await api.get('/admin/config');
-        return response; // ApiClient already returns .data
+    getConfig: async (): Promise<BusinessConfig> => {
+        const response = await api.get<BusinessConfig>('/admin/config');
+        return response;
     },
-    updateConfig: async (data: any) => {
-        const response = await api.put('/admin/config', data);
-        return response; // ApiClient already returns .data
+    updateConfig: async (data: Partial<BusinessConfig>): Promise<BusinessConfig> => {
+        const response = await api.put<BusinessConfig>('/admin/config', data);
+        return response;
     },
 
     // Tenants
-    getTenants: async (skip = 0, limit = 100, search?: string) => {
+    getTenants: async (
+        skip = 0,
+        limit = 100,
+        search?: string
+    ): Promise<PaginatedOrList<TenantResponse>> => {
         let url = `/admin/tenants?skip=${skip}&limit=${limit}`;
         if (search) url += `&search=${search}`;
-        const response = await api.get(url);
-        return response.data;
+        const response = await api.get<PaginatedOrList<TenantResponse>>(url);
+        return response;
     },
-    createTenant: async (data: any) => {
-        const response = await api.post('/admin/tenants', data);
-        return response.data;
+    createTenant: async (data: Partial<TenantResponse>): Promise<TenantResponse> => {
+        const response = await api.post<TenantResponse>('/admin/tenants', data);
+        return response;
     },
-    updateTenant: async (id: string, data: any) => {
-        const response = await api.put(`/admin/tenants/${id}`, data);
-        return response.data;
+    updateTenant: async (id: string, data: Partial<TenantResponse>): Promise<TenantResponse> => {
+        const response = await api.put<TenantResponse>(`/admin/tenants/${id}`, data);
+        return response;
     },
 
     // Analytics
-    getGlobalAnalytics: async () => {
-        const response = await api.get('/admin/analytics/global');
-        return response.data;
+    getGlobalAnalytics: async (): Promise<GlobalAnalytics> => {
+        const response = await api.get<GlobalAnalytics>('/admin/analytics/global');
+        return response;
     },
 
     // CrewAI
-    triggerDataCleaning: async () => {
-        const response = await api.post('/crew/clean-data');
-        return response.data;
+    triggerDataCleaning: async (): Promise<JobTriggerResponse> => {
+        const response = await api.post<JobTriggerResponse>('/crew/clean-data');
+        return response;
     },
-    triggerAnalytics: async () => {
-        const response = await api.post('/crew/analyze');
-        return response.data;
+    triggerAnalytics: async (): Promise<JobTriggerResponse> => {
+        const response = await api.post<JobTriggerResponse>('/crew/analyze');
+        return response;
     },
-    getJobStatus: async (jobId: string) => {
-        const response = await api.get(`/crew/status/${jobId}`);
-        return response.data;
+    getJobStatus: async (jobId: string): Promise<JobStatusResponse> => {
+        const response = await api.get<JobStatusResponse>(`/crew/status/${jobId}`);
+        return response;
     },
-    getJobs: async (limit = 10) => {
-        const response = await api.get(`/crew/jobs?limit=${limit}`);
-        return response.data;
+    getJobs: async (limit = 10): Promise<CrewJob[]> => {
+        const response = await api.get<CrewJob[]>(`/crew/jobs?limit=${limit}`);
+        return response;
     }
 };

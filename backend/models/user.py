@@ -27,6 +27,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """Model for creating a new user"""
     password: str = Field(..., min_length=8)
+    business_name: Optional[str] = Field(None, min_length=2, max_length=100)  # Optional business name during signup
 
 
 class UserUpdate(BaseModel):
@@ -74,6 +75,7 @@ class UserResponse(BaseModel):
     active: bool
     created_at: datetime
     last_login: Optional[datetime] = None
+    tenant_id: Optional[str] = None  # Added for multi-tenant support
     
     class Config:
         json_schema_extra = {
@@ -84,7 +86,8 @@ class UserResponse(BaseModel):
                 "full_name": "Admin User",
                 "role": "admin",
                 "active": True,
-                "created_at": "2025-11-13T10:00:00"
+                "created_at": "2025-11-13T10:00:00",
+                "tenant_id": "507f1f77bcf86cd799439012"
             }
         }
 

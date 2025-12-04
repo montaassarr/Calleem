@@ -18,7 +18,7 @@ export const appointmentsApi = {
         const response = await api.get<AppointmentResponse[]>('/appointments', {
             params: filters,
         });
-        return response.data;
+            return response;
     },
 
     /**
@@ -26,7 +26,7 @@ export const appointmentsApi = {
      */
     get: async (appointmentId: string): Promise<AppointmentResponse> => {
         const response = await api.get<AppointmentResponse>(`/appointments/${appointmentId}`);
-        return response.data;
+        return response;
     },
 
     /**
@@ -34,7 +34,7 @@ export const appointmentsApi = {
      */
     create: async (data: AppointmentCreate): Promise<AppointmentResponse> => {
         const response = await api.post<AppointmentResponse>('/appointments', data);
-        return response.data;
+        return response;
     },
 
     /**
@@ -48,7 +48,7 @@ export const appointmentsApi = {
             `/appointments/${appointmentId}`,
             data
         );
-        return response.data;
+            return response;
     },
 
     /**
@@ -65,7 +65,7 @@ export const appointmentsApi = {
         const response = await api.post<AppointmentResponse>(
             `/appointments/${appointmentId}/cancel`
         );
-        return response.data;
+            return response;
     },
 
     /**
@@ -88,7 +88,7 @@ export const appointmentsApi = {
                 duration_minutes: durationMinutes,
             },
         });
-        return response.data;
+            return response;
     },
 
     /**
@@ -100,7 +100,7 @@ export const appointmentsApi = {
         by_status: Record<string, number>;
     }> => {
         const response = await api.get('/appointments/stats/summary');
-        return response.data;
+        return response;
     },
 
     /**

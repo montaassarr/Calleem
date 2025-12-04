@@ -1,140 +1,425 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import Optional, List, Dict, Any
-from pydantic import BaseModel
-import httpx
+from typing import Optional, Dict, Any, List
+from pydantic import BaseModel, Field
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
+from uuid import uuid4
 
 from database.mongo_config import get_database
 from routers.users import get_current_user
-from models.business.business_config import BusinessConfig
-from routers.api_keys import get_decrypted_key
+from services.livekit_service import livekit_service
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-class CallRequest(BaseModel):
-    customer_number: str
-    customer_name: Optional[str] = None
+
+class VoiceAgentToggleRequest(BaseModel):
+    enabled: bool = True
+
+
+class PreviewSessionRequest(BaseModel):
+    """Optional overrides when creating a LiveKit preview session."""
+    identity: Optional[str] = None
+    room_name: Optional[str] = None
+
+
+class OutboundCallRequest(BaseModel):
+    to_number: str = Field(..., pattern=r"^\+?[0-9]{7,15}$")
+    from_number: Optional[str] = Field(None, pattern=r"^\+?[0-9]{7,15}$")
     metadata: Optional[Dict[str, Any]] = None
 
-@router.get("/status")
-async def get_agent_status(current_user: dict = Depends(get_current_user)):
-    """Get Voice Agent status and details"""
-    tenant_id = str(current_user["tenant_id"])
-    api_key = await get_decrypted_key(tenant_id, "vapi")
+
+class NumberPurchaseRequest(BaseModel):
+    country: str = Field(..., min_length=2, max_length=2)
+    phone_number: str = Field(..., pattern=r"^\+?[0-9]{7,15}$")
+
+
+class NumberSearchResponse(BaseModel):
+    country: str
+    numbers: List[Dict[str, Any]]
+
+
+@router.get("/tenant-config/{tenant_id}")
+async def get_tenant_agent_config(tenant_id: str):
+    """
+    Get tenant's agent configuration for LiveKit agent workers.
+    This endpoint is called by self-hosted LiveKit agents to get tenant-specific settings.
     
-    async with httpx.AsyncClient() as client:
-        headers = {"Authorization": f"Bearer {api_key}"}
+    Returns decrypted API keys and agent configuration.
+    """
+    logger.info(f"🔍 Fetching tenant config for: {tenant_id}")
+    db = get_database()
+    
+    # Get tenant config
+    config = await db.business_config.find_one({"tenant_id": tenant_id})
+    logger.info(f"📊 Config found: {config is not None}")
+    if not config:
+        raise HTTPException(status_code=404, detail="Tenant configuration not found")
+    
+    # Get agent configuration
+    agent = await db.agents.find_one({"tenant_id": tenant_id, "status": "active"})
+    
+    # Decrypt API keys from the api_keys array
+    from utils.encryption import decrypt_value
+    
+    api_keys = {}
+    
+    # Check if api_keys array exists (new format)
+    if config.get("api_keys") and isinstance(config["api_keys"], list):
+        logger.info(f"Found {len(config['api_keys'])} API keys in array format")
+        for key_obj in config["api_keys"]:
+            provider = key_obj.get("provider", "").lower()
+            encrypted_key = key_obj.get("encrypted_key", "")
+            
+            logger.info(f"Processing {provider}: encrypted_key={encrypted_key[:20] if encrypted_key else None}...")
+            
+            if encrypted_key and provider:
+                try:
+                    decrypted_key = decrypt_value(encrypted_key)
+                    if decrypted_key:
+                        api_keys[provider] = decrypted_key
+                        logger.info(f"✅ Successfully decrypted {provider} API key")
+                    else:
+                        logger.error(f"❌ Decryption returned None for {provider}")
+                except Exception as e:
+                    logger.warning(f"Failed to decrypt {provider} key for tenant {tenant_id}: {e}")
+    
+    # Fallback: check old format (direct fields)
+    else:
+        encrypted_fields = ["groq_api_key", "openai_api_key", "elevenlabs_api_key"]
+        for field in encrypted_fields:
+            if config.get(field):
+                try:
+                    api_keys[field.replace("_api_key", "")] = decrypt_value(config[field])
+                except Exception as e:
+                    logger.warning(f"Failed to decrypt {field} for tenant {tenant_id}: {e}")
+    
+    # Determine which voice provider to use based on available API keys
+    voice_provider = "cartesia"  # Default to Cartesia
+    voice_id = None
+    
+    if agent:
+        agent_voice_settings = agent.get("voice_settings", {})
+        requested_provider = agent_voice_settings.get("provider", "").lower()
+        agent_voice_id = agent_voice_settings.get("voice_id")
         
-        # 1. Get Assistant
-        # We'll fetch the first assistant for now, or use a stored ID if we had one.
-        # Vapi API: GET /assistant
-        try:
-            resp = await client.get("https://api.vapi.ai/assistant", headers=headers)
-            if resp.status_code != 200:
-                logger.error(f"Vapi API Error: {resp.text}")
-                raise HTTPException(status_code=resp.status_code, detail="Failed to fetch Vapi assistants")
-            
-            assistants = resp.json()
-            if not assistants:
-                return {"status": "not_configured", "message": "No assistants found in Vapi account"}
-                
-            # Use the first assistant
-            assistant = assistants[0]
-            
-            return {
-                "status": "active",
-                "assistant_id": assistant.get("id"),
-                "groq_model": assistant.get("model", {}).get("model", "unknown"),
-                "voice_provider": assistant.get("voice", {}).get("provider", "unknown")
-            }
-            
-        except httpx.RequestError as e:
-            logger.error(f"Vapi connection error: {e}")
-            raise HTTPException(status_code=503, detail="Failed to connect to Vapi API")
+        # Use agent's requested provider if we have the API key for it
+        if requested_provider == "elevenlabs" and "elevenlabs" in api_keys:
+            voice_provider = "elevenlabs"
+            voice_id = agent_voice_id
+        elif requested_provider == "cartesia" or not requested_provider:
+            # Cartesia doesn't need an API key (or use default)
+            voice_provider = "cartesia"
+            voice_id = agent_voice_id or "79a125e8-cd45-4c13-8a67-188112f4dd22"
+        elif requested_provider == "openai" and "openai" in api_keys:
+            voice_provider = "openai"
+            voice_id = agent_voice_id or "alloy"
+    else:
+        # No agent configured, use Cartesia with default voice
+        voice_id = "79a125e8-cd45-4c13-8a67-188112f4dd22"
+    
+    # Build response with both nested and top-level fields for compatibility
+    llm_model = agent.get("llm_model", "llama-3.3-70b-versatile") if agent else "llama-3.3-70b-versatile"
+    system_prompt = agent.get("system_prompt") if agent else "You are a helpful AI assistant."
+    
+    return {
+        "tenant_id": tenant_id,
+        "api_keys": api_keys,
+        "business_name": config.get("business_name", ""),
+        # Top-level fields for easy access
+        "llm_model": llm_model,
+        "voice_provider": voice_provider,
+        "voice_id": voice_id,
+        "system_prompt": system_prompt,
+        # Nested config for backwards compatibility
+        "agent_config": {
+            "system_prompt": system_prompt,
+            "llm_model": llm_model,
+            "voice_id": voice_id,
+            "voice_provider": voice_provider,
+        },
+    }
+
+
+@router.get("/status")
+async def get_voice_agent_status(current_user: dict = Depends(get_current_user)):
+    """Return LiveKit readiness plus tenant feature toggle."""
+
+    db = get_database()
+    tenant_id = str(current_user["tenant_id"])
+    config = await db.business_config.find_one({"tenant_id": tenant_id}) or {}
+    features = config.get("features_enabled", {})
+
+    status_payload = livekit_service.get_status()
+    status_payload.update(
+        {
+            "voice_agent_enabled": features.get("voice_agent", False),
+            "tenant_id": tenant_id,
+        }
+    )
+
+    primary_number = await db.voice_numbers.find_one(
+        {"tenant_id": tenant_id},
+        sort=[("status", 1), ("created_at", -1)],
+    )
+    if primary_number:
+        status_payload["phone_number"] = primary_number.get("phone_number")
+        status_payload["number_status"] = primary_number.get("status", "unknown")
+        status_payload["country"] = primary_number.get("country")
+        status_payload["sip_trunks"] = primary_number.get("trunks")
+
+    return status_payload
+
 
 @router.get("/history")
-async def get_call_history(limit: int = 25, current_user: dict = Depends(get_current_user)):
-    """Get call history from Vapi"""
-    tenant_id = str(current_user["tenant_id"])
-    api_key = await get_decrypted_key(tenant_id, "vapi")
-    
-    async with httpx.AsyncClient() as client:
-        headers = {"Authorization": f"Bearer {api_key}"}
-        
-        try:
-            resp = await client.get(f"https://api.vapi.ai/call?limit={limit}", headers=headers)
-            if resp.status_code != 200:
-                raise HTTPException(status_code=resp.status_code, detail="Failed to fetch call history")
-            
-            calls = resp.json()
-            
-            # Transform to match frontend expectation if needed
-            # Frontend expects: items: VoiceCallHistoryItem[]
-            # VoiceCallHistoryItem: { id, status, created_at, customer: { name, number }, metadata: { notes } }
-            
-            items = []
-            for call in calls:
-                items.append({
-                    "id": call.get("id"),
-                    "status": call.get("status"),
-                    "created_at": call.get("createdAt"),
-                    "customer": {
-                        "name": call.get("customer", {}).get("name"),
-                        "number": call.get("customer", {}).get("number")
-                    },
-                    "metadata": call.get("metadata", {}) # Assuming metadata is passed through
-                })
-                
-            return {"items": items}
-            
-        except httpx.RequestError as e:
-            raise HTTPException(status_code=503, detail="Failed to connect to Vapi API")
+async def get_voice_history(current_user: dict = Depends(get_current_user)):
+    """Return recorded call history from MongoDB voice_calls collection."""
+
+    db = get_database()
+    tenant_id = current_user.get("tenant_id")
+    cursor = db.voice_calls.find({"tenant_id": tenant_id}).sort("created_at", -1).limit(100)
+    calls = await cursor.to_list(None)
+    for call in calls:
+        call["id"] = str(call.pop("_id"))
+    return calls
+
 
 @router.post("/call")
-async def start_outbound_call(data: CallRequest, current_user: dict = Depends(get_current_user)):
-    """Start an outbound call"""
+async def start_outbound_call(
+    payload: OutboundCallRequest,
+    current_user: dict = Depends(get_current_user),
+):
     tenant_id = str(current_user["tenant_id"])
-    api_key = await get_decrypted_key(tenant_id, "vapi")
-    
-    # Get assistant ID (reuse logic or fetch again)
-    # Ideally we should store this in DB to avoid extra API call
-    async with httpx.AsyncClient() as client:
-        headers = {"Authorization": f"Bearer {api_key}"}
-        
-        # Fetch assistant first
-        resp = await client.get("https://api.vapi.ai/assistant", headers=headers)
-        assistants = resp.json()
-        if not assistants:
-            raise HTTPException(status_code=400, detail="No assistants found")
-        assistant_id = assistants[0].get("id")
-        
-        # Start Call
-        payload = {
-            "assistantId": assistant_id,
-            "customer": {
-                "number": data.customer_number,
-                "name": data.customer_name
-            },
-            "metadata": data.metadata or {}
-        }
-        
-        # If we have a phone number ID configured, use it.
-        # For now, let Vapi use default or configured in assistant.
-        
-        logger.info(f"Initiating Vapi call to {data.customer_number}")
-        call_resp = await client.post("https://api.vapi.ai/call", json=payload, headers=headers)
-        
-        if call_resp.status_code != 201:
-            logger.error(f"Vapi Call Error: {call_resp.text}")
-            raise HTTPException(status_code=call_resp.status_code, detail=f"Failed to start call: {call_resp.text}")
-            
-        return call_resp.json()
+    db = get_database()
+
+    number_doc = await db.voice_numbers.find_one({"tenant_id": tenant_id}, sort=[("status", 1), ("created_at", -1)])
+    caller_id = payload.from_number or (number_doc or {}).get("phone_number")
+
+    if not caller_id:
+        raise HTTPException(status_code=400, detail="Provision a LiveKit number before placing outbound calls")
+
+    livekit_response = await livekit_service.start_outbound_call(
+        tenant_id=tenant_id,
+        to_number=payload.to_number,
+        from_number=caller_id,
+        metadata=payload.metadata,
+    )
+
+    call_record = {
+        "tenant_id": tenant_id,
+        "livekit_room": livekit_response.get("room") or livekit_response.get("call_id"),
+        "status": "queued",
+        "direction": "outbound",
+        "customer_number": payload.to_number,
+        "caller_id": caller_id,
+        "metadata": payload.metadata or {},
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+    }
+    await db.voice_calls.insert_one(call_record)
+
+    return {
+        "status": "queued",
+        "call": livekit_response,
+    }
+
 
 @router.post("/webrtc/test")
-async def webrtc_test(current_user: dict = Depends(get_current_user)):
-    """Test WebRTC endpoint (placeholder)"""
-    return {"status": "ready"}
+async def create_preview_session(
+    body: PreviewSessionRequest = PreviewSessionRequest(),
+    current_user: dict = Depends(get_current_user),
+):
+    """Create a temporary LiveKit room + token so the dashboard can run a test call."""
+
+    tenant_id = str(current_user["tenant_id"])
+    user_id = str(current_user.get("id", tenant_id))
+
+    # First, create the room with tenant metadata
+    room_name = f"preview-{tenant_id}-{uuid4().hex[:6]}" if not body.room_name else body.room_name
+    
+    try:
+        await livekit_service.create_room(
+            room_name=room_name,
+            metadata={
+                "tenant_id": tenant_id,
+                "session_type": "preview",
+                "agent_name": livekit_service.config.agent_name,
+            }
+        )
+        logger.info(f"Created room {room_name} with tenant_id {tenant_id}")
+    except Exception as e:
+        logger.warning(f"Failed to create room (might already exist): {e}")
+
+    # Then build the session with token
+    session = livekit_service.build_preview_session(tenant_id=tenant_id, user_id=user_id)
+    
+    # Override with custom values if provided
+    if body.room_name:
+        session["room_name"] = body.room_name
+    else:
+        session["room_name"] = room_name
+
+    if body.identity:
+        session["token"] = livekit_service.create_access_token(
+            identity=body.identity,
+            room=session["room_name"],
+            ttl_seconds=900,
+            metadata={"tenant_id": tenant_id, "agent_name": livekit_service.config.agent_name},
+        )
+
+    return session
+
+
+@router.post("/enable")
+async def toggle_voice_agent(
+    payload: VoiceAgentToggleRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Enable or disable the voice agent feature flag for the current tenant"""
+    tenant_id = str(current_user["tenant_id"])
+    db = get_database()
+
+    update_doc = {
+        "$set": {
+            "tenant_id": tenant_id,
+            "features_enabled.voice_agent": payload.enabled,
+            "updated_at": datetime.utcnow()
+        },
+        "$setOnInsert": {
+            "business_name": current_user.get("business_name", "My Business"),
+            "timezone": "UTC"
+        }
+    }
+
+    await db.business_config.update_one(
+        {"tenant_id": tenant_id},
+        update_doc,
+        upsert=True
+    )
+
+    updated_config = await db.business_config.find_one({"tenant_id": tenant_id})
+    if not updated_config:
+        raise HTTPException(status_code=500, detail="Failed to update voice agent setting")
+
+    features = updated_config.get("features_enabled", {})
+
+    return {
+        "success": True,
+        "features_enabled": features,
+        "voice_agent": features.get("voice_agent", False)
+    }
+
+
+@router.get("/stats")
+async def get_call_stats(current_user: dict = Depends(get_current_user)):
+    """
+    Get call statistics for tenant dashboard
+    """
+    db = get_database()
+    tenant_id = current_user.get("tenant_id")
+    
+    # Calculate date ranges
+    now = datetime.utcnow()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = now - timedelta(days=7)
+    month_start = now - timedelta(days=30)
+    
+    # Get calls from MongoDB
+    all_calls = await db.voice_calls.find({"tenant_id": tenant_id}).to_list(None)
+    
+    # Calculate stats
+    today_calls = [c for c in all_calls if c.get("created_at") and c["created_at"] >= today_start]
+    week_calls = [c for c in all_calls if c.get("created_at") and c["created_at"] >= week_start]
+    month_calls = [c for c in all_calls if c.get("created_at") and c["created_at"] >= month_start]
+    
+    # Duration calculations
+    total_duration = sum(c.get("duration_seconds", 0) for c in all_calls)
+    total_duration_minutes = total_duration / 60
+    avg_duration = (total_duration / len(all_calls)) / 60 if all_calls else 0
+    
+    # Success rate (calls that completed successfully)
+    successful = len([c for c in all_calls if c.get("status") == "completed"])
+    success_rate = (successful / len(all_calls) * 100) if all_calls else 0
+    
+    return {
+        "today": len(today_calls),
+        "this_week": len(week_calls),
+        "this_month": len(month_calls),
+        "total_duration_minutes": round(total_duration_minutes, 2),
+        "average_duration_minutes": round(avg_duration, 2),
+        "successful_calls": successful,
+        "success_rate": round(success_rate, 2)
+    }
+
+
+@router.get("/numbers/countries")
+async def list_supported_countries(current_user: dict = Depends(get_current_user)):
+    return await livekit_service.list_supported_countries()
+
+
+@router.get("/numbers/available", response_model=NumberSearchResponse)
+async def search_available_numbers(
+    country: str,
+    area_code: Optional[str] = None,
+    current_user: dict = Depends(get_current_user),
+):
+    numbers = await livekit_service.list_available_numbers(country=country, area_code=area_code)
+    return {"country": country, "numbers": numbers}
+
+
+@router.get("/numbers")
+async def list_purchased_numbers(current_user: dict = Depends(get_current_user)):
+    tenant_id = str(current_user["tenant_id"])
+    db = get_database()
+    numbers = await db.voice_numbers.find({"tenant_id": tenant_id}).sort("created_at", -1).to_list(None)
+    for item in numbers:
+        item["id"] = str(item.pop("_id"))
+    return numbers
+
+
+@router.post("/numbers/purchase")
+async def purchase_number(
+    payload: NumberPurchaseRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    tenant_id = str(current_user["tenant_id"])
+    db = get_database()
+
+    config = await db.business_config.find_one({"tenant_id": tenant_id}) or {}
+    credits = config.get("voice_minutes_balance", 100)
+    if credits <= 0:
+        raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, detail="Add voice credits before purchasing numbers")
+
+    number = await livekit_service.purchase_number(
+        tenant_id=tenant_id,
+        phone_number=payload.phone_number,
+        country=payload.country,
+    )
+
+    trunks = await livekit_service.ensure_voice_trunks(tenant_id=tenant_id, phone_number=payload.phone_number)
+
+    record = {
+        "tenant_id": tenant_id,
+        "phone_number": payload.phone_number,
+        "country": payload.country,
+        "livekit_number_id": number.get("id") or number.get("number_id"),
+        "status": number.get("status", "active"),
+        "monthly_cost": number.get("monthly_cost"),
+        "setup_cost": number.get("setup_cost"),
+        "trunks": trunks or number.get("trunks"),
+        "metadata": number.get("metadata", {}),
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+    }
+
+    await db.voice_numbers.update_one(
+        {"tenant_id": tenant_id, "phone_number": payload.phone_number},
+        {"$set": record},
+        upsert=True,
+    )
+
+    return record
+
+

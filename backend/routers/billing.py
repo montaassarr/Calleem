@@ -65,8 +65,9 @@ async def create_checkout_session(
         
         if not stripe_customer_id:
             # Create new customer
+            email = current_user.get("email") or ""
             customer = await stripe_service.create_customer(
-                email=current_user.get("email"),
+                email=email,
                 name=current_user.get("full_name", ""),
                 tenant_id=tenant_id
             )

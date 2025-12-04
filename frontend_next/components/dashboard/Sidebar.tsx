@@ -38,16 +38,14 @@ const menuItems = [
     { icon: Calendar, label: "Appointments", path: "/dashboard/appointments" },
     { icon: Scissors, label: "Services", path: "/dashboard/services" },
     { icon: MessageSquare, label: "Conversations", path: "/dashboard/conversations" },
-    { icon: Bot, label: "Agents", path: "/dashboard/agents" },
     {
         icon: Mic,
         label: "Voice AI",
-        path: "/dashboard/voice-agent",
+        path: "/dashboard/voice-agent/control-center",
         subItems: [
-            { icon: PhoneCall, label: "Control Room", path: "/dashboard/voice-agent" },
+            { icon: PhoneCall, label: "Control Center", path: "/dashboard/voice-agent/control-center" },
             { icon: Mic, label: "Voice Chat", path: "/dashboard/voice-agent/chat" },
             { icon: Waves, label: "WebRTC Test", path: "/dashboard/voice-agent/test" },
-            { icon: Settings, label: "Voice Settings", path: "/dashboard/voice-agent/settings" },
         ]
     },
     { icon: MessageCircle, label: "WhatsApp", path: "/dashboard/whatsapp" },
@@ -63,9 +61,8 @@ const generalItems = [
         subItems: [
             { icon: Settings, label: "Settings Hub", path: "/dashboard/settings" },
             { icon: Building2, label: "Business", path: "/dashboard/settings/business" },
+            { icon: Brain, label: "AI Configuration", path: "/dashboard/settings/ai" },
             { icon: Key, label: "API Keys", path: "/dashboard/settings/api-keys" },
-            { icon: Brain, label: "AI Config", path: "/dashboard/settings/ai" },
-            { icon: Plug, label: "Integrations", path: "/dashboard/integrations" },
         ]
     },
     { icon: HelpCircle, label: "Help", path: "/dashboard/help" },

@@ -41,13 +41,13 @@ export function HeroBackground({
       */}
             <div className="absolute inset-0 w-full h-full">
                 {children || (
-                    // Default placeholder if no children provided
-                    <div className="w-full h-full bg-gradient-to-br from-indigo-900 via-purple-900 to-black animate-pulse" />
+                    // Simple blue/black gradient - high performance
+                    <div className="w-full h-full bg-gradient-to-br from-blue-950 via-slate-900 to-black" />
                 )}
             </div>
 
             {/* Optional Overlay for text readability */}
-            <div className="absolute inset-0 bg-black/30" />
+            <div className="absolute inset-0 bg-black/20" />
         </div>
     )
 }

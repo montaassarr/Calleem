@@ -3,7 +3,7 @@ Intent Classification and Recognition
 """
 
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import re
 from models.communication.conversations import ConversationIntent
 
@@ -57,7 +57,7 @@ class IntentClassifier:
     """
     
     @staticmethod
-    def classify(message: str, conversation_history: List[Dict] = None) -> ConversationIntent:
+    def classify(message: str, conversation_history: Optional[List[Dict[str, Any]]] = None) -> ConversationIntent:
         """
         Classify user message intent
         
@@ -106,7 +106,7 @@ class IntentClassifier:
         return ConversationIntent.GENERAL_QUESTION
     
     @staticmethod
-    def _is_greeting(message: str, history: List[Dict] = None) -> bool:
+    def _is_greeting(message: str, history: Optional[List[Dict[str, Any]]] = None) -> bool:
         """Check if message is a greeting"""
         # Only consider it a greeting if it's the first message or very short
         if history and len(history) > 1:
@@ -116,7 +116,7 @@ class IntentClassifier:
         return any(keyword in message for keyword in IntentKeywords.GREETING_KEYWORDS)
     
     @staticmethod
-    def _is_in_booking_flow(history: List[Dict]) -> bool:
+    def _is_in_booking_flow(history: List[Dict[str, Any]]) -> bool:
         """
         Check if conversation is currently in booking flow
         """
@@ -142,7 +142,7 @@ class IntentClassifier:
         Returns:
             Dictionary of extracted entities
         """
-        entities = {
+        entities: Dict[str, Optional[str]] = {
             "name": None,
             "phone": None,
             "email": None,

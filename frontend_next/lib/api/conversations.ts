@@ -13,15 +13,15 @@ export const conversationsApi = {
         const response = await api.get<ConversationResponse[]>('/conversations', {
             params: filters,
         });
-        return response.data;
+        return response;
     },
 
     /**
      * Get a single conversation by ID
      */
     get: async (conversationId: string): Promise<ConversationResponse> => {
-        const response = await api.get<ConversationResponse>(`/conversations/${conversationId}`);
-        return response.data;
+    const response = await api.get<ConversationResponse>(`/conversations/${conversationId}`);
+    return response;
     },
 
     /**

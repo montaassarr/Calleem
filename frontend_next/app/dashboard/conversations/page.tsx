@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, MessageSquare, User, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -91,6 +90,7 @@ export default function ConversationsPage() {
                     conversations.map((conversation: ConversationResponse) => {
                         const lastMessage = conversation.messages[conversation.messages.length - 1];
                         const messageCount = conversation.messages.length;
+                        const status = conversation.state.completed ? 'completed' : 'active';
 
                         return (
                             <div
@@ -130,11 +130,11 @@ export default function ConversationsPage() {
                                 {/* Footer */}
                                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                                     <span>{messageCount} messages</span>
-                                    <span className={`px-2 py-1 rounded-full border ${conversation.status === 'active' ? 'bg-green-100 text-green-700 border-green-200' :
-                                            conversation.status === 'completed' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                    <span className={`px-2 py-1 rounded-full border ${status === 'active' ? 'bg-green-100 text-green-700 border-green-200' :
+                                            status === 'completed' ? 'bg-blue-100 text-blue-700 border-blue-200' :
                                                 'bg-gray-100 text-gray-700 border-gray-200'
                                         }`}>
-                                        {conversation.status || 'active'}
+                                        {status}
                                     </span>
                                 </div>
 

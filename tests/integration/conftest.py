@@ -72,6 +72,7 @@ def authenticated_client(mock_user_owner, mock_db_connection, auth_headers):
         # Headers are automatically included
     """
     from backend.database.mongo_config import get_database
+    import backend.database.mongo_config as mongo_config
     
     # Mock the database to return our mock user when JWT validation looks up the user
     mock_db_connection.users.find_one = AsyncMock(return_value={
@@ -80,52 +81,46 @@ def authenticated_client(mock_user_owner, mock_db_connection, auth_headers):
         "id": str(mock_user_owner["_id"])
     })
     
-    # Override get_database dependency - FastAPI's built-in way
-    async def override_get_database():
-        return mock_db_connection
-    
-    app.dependency_overrides[get_database] = override_get_database
-    
-    # Create client AFTER override is set
-    client = TestClient(app)
-    
-    # Monkey-patch client methods to automatically include auth headers
-    original_get = client.get
-    original_post = client.post
-    original_put = client.put
-    original_delete = client.delete
-    original_patch = client.patch
-    
-    def get_with_auth(url, **kwargs):
-        kwargs.setdefault('headers', {}).update(auth_headers)
-        return original_get(url, **kwargs)
-    
-    def post_with_auth(url, **kwargs):
-        kwargs.setdefault('headers', {}).update(auth_headers)
-        return original_post(url, **kwargs)
-    
-    def put_with_auth(url, **kwargs):
-        kwargs.setdefault('headers', {}).update(auth_headers)
-        return original_put(url, **kwargs)
-    
-    def delete_with_auth(url, **kwargs):
-        kwargs.setdefault('headers', {}).update(auth_headers)
-        return original_delete(url, **kwargs)
-    
-    def patch_with_auth(url, **kwargs):
-        kwargs.setdefault('headers', {}).update(auth_headers)
-        return original_patch(url, **kwargs)
-    
-    client.get = get_with_auth
-    client.post = post_with_auth
-    client.put = put_with_auth
-    client.delete = delete_with_auth
-    client.patch = patch_with_auth
-    
-    yield client
-    
-    # Clean up after test completes
-    app.dependency_overrides.clear()
+    # CRITICAL: Patch the module-level database variable
+    with patch.object(mongo_config, 'database', mock_db_connection):
+        
+        # Create client
+        client = TestClient(app)
+        
+        # Monkey-patch client methods to automatically include auth headers
+        original_get = client.get
+        original_post = client.post
+        original_put = client.put
+        original_delete = client.delete
+        original_patch = client.patch
+        
+        def get_with_auth(url, **kwargs):
+            kwargs.setdefault('headers', {}).update(auth_headers)
+            return original_get(url, **kwargs)
+        
+        def post_with_auth(url, **kwargs):
+            kwargs.setdefault('headers', {}).update(auth_headers)
+            return original_post(url, **kwargs)
+        
+        def put_with_auth(url, **kwargs):
+            kwargs.setdefault('headers', {}).update(auth_headers)
+            return original_put(url, **kwargs)
+        
+        def delete_with_auth(url, **kwargs):
+            kwargs.setdefault('headers', {}).update(auth_headers)
+            return original_delete(url, **kwargs)
+        
+        def patch_with_auth(url, **kwargs):
+            kwargs.setdefault('headers', {}).update(auth_headers)
+            return original_patch(url, **kwargs)
+        
+        client.get = get_with_auth
+        client.post = post_with_auth
+        client.put = put_with_auth
+        client.delete = delete_with_auth
+        client.patch = patch_with_auth
+        
+        yield client
 
 
 @pytest.fixture
@@ -211,3 +206,26 @@ def sample_appointment_data():
         "duration_minutes": 30,
         "status": "confirmed"
     }
+
+
+@pytest.fixture(autouse=True, scope="function")
+def clean_test_database():
+    """
+    Automatically clean the test database before each test function.
+    This ensures test isolation for integration tests.
+    """
+    import subprocess
+    
+    # Clean before test
+    subprocess.run(
+        [
+            "mongosh", "ai_receptionist_test", "--quiet", "--eval",
+            "db.users.deleteMany({}); db.tenants.deleteMany({}); db.api_keys.deleteMany({}); db.conversations.deleteMany({}); db.appointments.deleteMany({});"
+        ],
+        capture_output=True,
+        text=True
+    )
+    
+    yield  # Run the test
+    
+    # No cleanup after - let next test handle it for inspection if needed

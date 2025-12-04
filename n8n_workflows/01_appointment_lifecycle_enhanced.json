@@ -1,0 +1,376 @@
+{
+  "name": "Appointment Lifecycle - ENHANCED (Calendar + History Check)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "appointment-action",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "appointment-webhook-enhanced"
+    },
+    {
+      "parameters": {
+        "url": "=http://backend:8000/api/v1/tenants/{{$json.body.tenant_id}}",
+        "authentication": "none",
+        "options": {}
+      },
+      "id": "get-tenant-config",
+      "name": "Get Tenant Config",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "operation": "find",
+        "collection": "appointments",
+        "query": "={\n  \"tenant_id\": \"{{$json.body.tenant_id}}\",\n  \"client_phone\": \"{{$json.body.appointment.client_phone}}\",\n  \"status\": { \"$in\": [\"confirmed\", \"completed\"] }\n}",
+        "options": {
+          "sort": "{\"datetime\": -1}",
+          "limit": 5
+        }
+      },
+      "id": "check-customer-history",
+      "name": "Check Customer History",
+      "type": "n8n-nodes-base.mongodb",
+      "typeVersion": 1,
+      "position": [680, 200],
+      "credentials": {
+        "mongoDb": {
+          "id": "global-mongodb",
+          "name": "MongoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": "primary",
+        "timeMin": "={{DateTime.fromISO($node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"datetime\"]).toISO()}}",
+        "timeMax": "={{DateTime.fromISO($node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"datetime\"]).plus({minutes: parseInt($node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"duration_minutes\"])}).toISO()}}",
+        "options": {}
+      },
+      "id": "check-calendar-availability",
+      "name": "Check Calendar Availability",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "={{$node[\"Get Tenant Config\"].json[\"google_credential_id\"]}}",
+          "name": "Google Calendar OAuth2 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "find",
+        "collection": "appointments",
+        "query": "={\n  \"tenant_id\": \"{{$json.body.tenant_id}}\",\n  \"datetime\": {\n    \"$gte\": \"{{DateTime.fromISO($node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"datetime\"]).toISO()}}\",\n    \"$lt\": \"{{DateTime.fromISO($node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"datetime\"]).plus({minutes: parseInt($node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"duration_minutes\"])}).toISO()}}\"\n  },\n  \"status\": { \"$in\": [\"confirmed\", \"pending\"] }\n}",
+        "options": {}
+      },
+      "id": "check-db-conflicts",
+      "name": "Check DB for Conflicts",
+      "type": "n8n-nodes-base.mongodb",
+      "typeVersion": 1,
+      "position": [680, 400],
+      "credentials": {
+        "mongoDb": {
+          "id": "global-mongodb",
+          "name": "MongoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const calendarEvents = $input.all().find(n => n.json.node === 'check-calendar-availability')?.json || { items: [] };\nconst dbConflicts = $input.all().find(n => n.json.node === 'check-db-conflicts')?.json || [];\nconst customerHistory = $input.all().find(n => n.json.node === 'check-customer-history')?.json || [];\n\nconst hasCalendarConflict = calendarEvents.items && calendarEvents.items.length > 0;\nconst hasDbConflict = dbConflicts.length > 0;\nconst isReturningCustomer = customerHistory.length > 0;\n\nconst metadata = {\n  slot_available: !hasCalendarConflict && !hasDbConflict,\n  calendar_conflicts: calendarEvents.items?.length || 0,\n  db_conflicts: dbConflicts.length,\n  is_returning_customer: isReturningCustomer,\n  previous_appointments: customerHistory.length,\n  last_visit: customerHistory.length > 0 ? customerHistory[0].datetime : null,\n  conflict_details: hasCalendarConflict || hasDbConflict ? {\n    google_calendar: calendarEvents.items?.map(e => ({\n      summary: e.summary,\n      start: e.start.dateTime || e.start.date,\n      end: e.end.dateTime || e.end.date\n    })) || [],\n    database: dbConflicts.map(a => ({\n      client: a.client_name,\n      datetime: a.datetime,\n      service: a.service\n    }))\n  } : null\n};\n\nreturn { json: metadata };"
+      },
+      "id": "analyze-availability",
+      "name": "Analyze Availability & History",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "slot-available",
+              "leftValue": "={{$json.slot_available}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "is-slot-available",
+      "name": "Is Slot Available?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "calendar": "primary",
+        "start": "={{$node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"datetime\"]}}",
+        "end": "={{DateTime.fromISO($node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"datetime\"]).plus({minutes: parseInt($node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"duration_minutes\"])}).toISO()}}",
+        "title": "={{$node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"service\"]}} - {{$node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"client_name\"]}}{{$node[\"Analyze Availability & History\"].json[\"is_returning_customer\"] ? ' (RETURNING)' : ''}}",
+        "description": "=📞 Phone: {{$node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"client_phone\"]}}\n{{$node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"client_email\"] ? '📧 Email: ' + $node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"client_email\"] : ''}}\n\n{{$node[\"Analyze Availability & History\"].json[\"is_returning_customer\"] ? '🎉 RETURNING CUSTOMER\\nLast visit: ' + DateTime.fromISO($node[\"Analyze Availability & History\"].json[\"last_visit\"]).toFormat('MMMM d, yyyy') + '\\nTotal visits: ' + $node[\"Analyze Availability & History\"].json[\"previous_appointments\"] + '\\n\\n' : ''}}📝 Notes: {{$node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"notes\"] || 'No notes'}}",
+        "options": {}
+      },
+      "id": "add-to-calendar",
+      "name": "Add to Google Calendar",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 2,
+      "position": [1340, 200],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "={{$node[\"Get Tenant Config\"].json[\"google_credential_id\"]}}",
+          "name": "Google Calendar OAuth2 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/={{$node[\"Get Tenant Config\"].json[\"whatsapp_phone_number_id\"]}}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$node[\"Get Tenant Config\"].json[\"whatsapp_token\"]}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{$node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"client_phone\"].replace(/[^0-9]/g, '')}}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"✅ Appointment Confirmed!\\n\\n{{$node[\"Analyze Availability & History\"].json[\"is_returning_customer\"] ? 'Welcome back ' : ''}}{{$node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"client_name\"]}}{{$node[\"Analyze Availability & History\"].json[\"is_returning_customer\"] ? '! 🎉\\n\\n(Your ' + ($node[\"Analyze Availability & History\"].json[\"previous_appointments\"] + 1) + 'th visit with us)\\n\\n' : ', '}}your appointment is confirmed for:\\n\\n📅 {{DateTime.fromISO($node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"datetime\"]).toFormat('cccc, MMMM d at h:mm a')}}\\n⏱️ Duration: {{$node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"duration_minutes\"]}} minutes\\n💇 Service: {{$node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"][\"service\"]}}\\n\\n{{$node[\"Analyze Availability & History\"].json[\"is_returning_customer\"] ? 'Thank you for your continued trust!\\n\\n' : ''}}Looking forward to seeing you! - {{$node[\"Get Tenant Config\"].json[\"business_name\"]}}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "send-whatsapp",
+      "name": "Send WhatsApp (Personalized)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "collection": "appointments",
+        "updateKey": "_id",
+        "fieldsToUpdate": "={\n  \"metadata\": {\n    \"calendar_synced\": true,\n    \"whatsapp_sent\": true,\n    \"is_returning_customer\": {{$node[\"Analyze Availability & History\"].json[\"is_returning_customer\"]}},\n    \"previous_visits\": {{$node[\"Analyze Availability & History\"].json[\"previous_appointments\"]}},\n    \"processed_at\": \"{{$now.toISO()}}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "update-metadata",
+      "name": "Update Appointment Metadata",
+      "type": "n8n-nodes-base.mongodb",
+      "typeVersion": 1,
+      "position": [1560, 250],
+      "credentials": {
+        "mongoDb": {
+          "id": "global-mongodb",
+          "name": "MongoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/api/v1/appointments/conflict-alert",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"tenant_id\": \"{{$node[\"Webhook Trigger\"].json[\"body\"][\"tenant_id\"]}}\",\n  \"appointment\": {{$node[\"Webhook Trigger\"].json[\"body\"][\"appointment\"]}},\n  \"conflict_details\": {{$node[\"Analyze Availability & History\"].json[\"conflict_details\"]}}\n}",
+        "options": {}
+      },
+      "id": "alert-conflict",
+      "name": "Alert Owner of Conflict",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1340, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": {{$node[\"Analyze Availability & History\"].json[\"slot_available\"]}},\n  \"slot_available\": {{$node[\"Analyze Availability & History\"].json[\"slot_available\"]}},\n  \"is_returning_customer\": {{$node[\"Analyze Availability & History\"].json[\"is_returning_customer\"]}},\n  \"previous_appointments\": {{$node[\"Analyze Availability & History\"].json[\"previous_appointments\"]}},\n  \"actions_taken\": {{$node[\"Analyze Availability & History\"].json[\"slot_available\"] ? '[\"Google Calendar: Added\", \"WhatsApp: Sent\", \"Metadata: Updated\"]' : '[\"Conflict Alert: Sent to Owner\"]'}},\n  \"conflict_details\": {{$node[\"Analyze Availability & History\"].json[\"conflict_details\"] || 'null'}}\n}",
+        "options": {}
+      },
+      "id": "response",
+      "name": "Return Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1780, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Tenant Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Tenant Config": {
+      "main": [
+        [
+          {
+            "node": "Check Customer History",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Calendar Availability",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check DB for Conflicts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Customer History": {
+      "main": [
+        [
+          {
+            "node": "Analyze Availability & History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Calendar Availability": {
+      "main": [
+        [
+          {
+            "node": "Analyze Availability & History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check DB for Conflicts": {
+      "main": [
+        [
+          {
+            "node": "Analyze Availability & History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Availability & History": {
+      "main": [
+        [
+          {
+            "node": "Is Slot Available?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Slot Available?": {
+      "main": [
+        [
+          {
+            "node": "Add to Google Calendar",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send WhatsApp (Personalized)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alert Owner of Conflict",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add to Google Calendar": {
+      "main": [
+        [
+          {
+            "node": "Update Appointment Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp (Personalized)": {
+      "main": [
+        [
+          {
+            "node": "Update Appointment Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Appointment Metadata": {
+      "main": [
+        [
+          {
+            "node": "Return Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert Owner of Conflict": {
+      "main": [
+        [
+          {
+            "node": "Return Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["enhanced", "calendar-check", "customer-history"],
+  "triggerCount": 1,
+  "updatedAt": "2025-12-02T00:00:00.000Z",
+  "versionId": "2"
+}

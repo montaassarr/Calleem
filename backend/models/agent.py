@@ -21,6 +21,7 @@ class VoiceProvider(str, Enum):
     ELEVENLABS = "elevenlabs"
     OPENAI = "openai"
     DEEPGRAM = "deepgram"
+    CARTESIA = "cartesia"
 
 
 class WebhookUrls(BaseModel):
@@ -33,8 +34,8 @@ class WebhookUrls(BaseModel):
 
 class VoiceSettings(BaseModel):
     """Voice configuration for the agent"""
-    provider: VoiceProvider = VoiceProvider.ELEVENLABS
-    voice_id: str  # ElevenLabs voice ID or OpenAI voice name
+    provider: VoiceProvider = VoiceProvider.CARTESIA
+    voice_id: str = "79a125e8-cd45-4c13-8a67-188112f4dd22"  # Default Cartesia voice
     model: Optional[str] = None  # For providers that support multiple models
     stability: Optional[float] = 0.5
     similarity_boost: Optional[float] = 0.75
@@ -50,8 +51,12 @@ class AgentBase(BaseModel):
     voice_settings: VoiceSettings
     
     # LLM configuration
-    llm_model: str = Field(default="gpt-4", description="LLM model to use")
+    llm_model: str = Field(default="llama-3.3-70b-versatile", description="LLM model to use (e.g., llama-3.3-70b-versatile for Groq, gpt-4 for OpenAI)")
     llm_temperature: float = Field(default=0.7, ge=0.0, le=2.0)
+    
+    # Greeting configuration
+    greeting_enabled: bool = Field(default=True, description="Whether to play a greeting message when user connects")
+    greeting_message: str = Field(default="Hello! I'm your AI receptionist. How can I help you today?", description="Greeting message to play when user connects")
     
     # Webhook configuration
     webhook_urls: WebhookUrls = Field(default_factory=WebhookUrls)
@@ -77,6 +82,8 @@ class AgentUpdate(BaseModel):
     voice_settings: Optional[VoiceSettings] = None
     llm_model: Optional[str] = None
     llm_temperature: Optional[float] = Field(None, ge=0.0, le=2.0)
+    greeting_enabled: Optional[bool] = None
+    greeting_message: Optional[str] = None
     webhook_urls: Optional[WebhookUrls] = None
     avatar_url: Optional[str] = None
     phone_number: Optional[str] = None
@@ -87,11 +94,12 @@ class AgentUpdate(BaseModel):
 class Agent(AgentBase):
     """Agent model with database fields"""
     id: str = Field(alias="_id")
-    
-    # VAPI integration
-    vapi_assistant_id: Optional[str] = None
-    vapi_phone_number_id: Optional[str] = None
-    
+
+    # LiveKit metadata
+    livekit_agent_name: str = Field(default="Parker_165")
+    livekit_queue: str = Field(default="voice-agents")
+    livekit_room_template: Optional[str] = Field(default=None)
+
     # Metadata
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -124,7 +132,7 @@ class Agent(AgentBase):
                     "cancel": "http://localhost:5678/webhook/cancelslots"
                 },
                 "status": "active",
-                "vapi_assistant_id": "asst_abc123",
+                "livekit_agent_name": "Parker_165",
                 "created_at": "2025-11-30T10:00:00"
             }
         }
@@ -140,19 +148,22 @@ class AgentResponse(BaseModel):
     voice_settings: VoiceSettings
     llm_model: str
     llm_temperature: float
+    greeting_enabled: Optional[bool] = True
+    greeting_message: Optional[str] = None
     webhook_urls: WebhookUrls
-    avatar_url: Optional[str]
-    phone_number: Optional[str]
-    description: Optional[str]
+    avatar_url: Optional[str] = None
+    phone_number: Optional[str] = None
+    description: Optional[str] = None
     status: AgentStatus
-    vapi_assistant_id: Optional[str]
-    vapi_phone_number_id: Optional[str]
+    livekit_agent_name: str
+    livekit_queue: str
+    livekit_room_template: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-    last_deployed_at: Optional[datetime]
-    total_calls: int
-    total_minutes: float
-    successful_calls: int
+    last_deployed_at: Optional[datetime] = None
+    total_calls: int = 0
+    total_minutes: float = 0.0
+    successful_calls: int = 0
     
     model_config = ConfigDict(
         json_schema_extra={
@@ -167,6 +178,7 @@ class AgentResponse(BaseModel):
                 },
                 "llm_model": "gpt-4",
                 "status": "active",
+                "livekit_agent_name": "Parker_165",
                 "total_calls": 150
             }
         }

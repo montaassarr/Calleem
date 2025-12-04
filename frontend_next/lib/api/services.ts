@@ -18,31 +18,31 @@ export const servicesApi = {
         const response = await api.get<ServiceResponse[]>('/services', {
             params: filters,
         });
-        return response.data;
+        return response;
     },
 
     /**
      * Get a single service by ID
      */
     get: async (serviceId: string): Promise<ServiceResponse> => {
-        const response = await api.get<ServiceResponse>(`/services/${serviceId}`);
-        return response.data;
+    const response = await api.get<ServiceResponse>(`/services/${serviceId}`);
+    return response;
     },
 
     /**
      * Create a new service
      */
     create: async (data: ServiceCreate): Promise<ServiceResponse> => {
-        const response = await api.post<ServiceResponse>('/services', data);
-        return response.data;
+    const response = await api.post<ServiceResponse>('/services', data);
+    return response;
     },
 
     /**
      * Update an existing service
      */
     update: async (serviceId: string, data: ServiceUpdate): Promise<ServiceResponse> => {
-        const response = await api.put<ServiceResponse>(`/services/${serviceId}`, data);
-        return response.data;
+    const response = await api.put<ServiceResponse>(`/services/${serviceId}`, data);
+    return response;
     },
 
     /**

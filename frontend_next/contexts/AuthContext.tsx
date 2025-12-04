@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useRouter, usePathname } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import { UserResponse, LoginCredentials, UserCreate } from '@/lib/types';
+import { logUserAction, logClientError } from '@/lib/errorLogging';
 
 interface AuthContextType {
     user: UserResponse | null;
@@ -37,6 +38,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const userData = await authApi.getCurrentUser();
                 setUser(userData);
 
+                // Store user data in localStorage for components that need it
+                localStorage.setItem('user', JSON.stringify(userData));
+
                 // Store tenant_id for API interceptor
                 if (userData.tenant_id) {
                     localStorage.setItem('tenant_id', userData.tenant_id);
@@ -45,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 console.error('Failed to restore session:', error);
                 localStorage.removeItem('access_token');
                 localStorage.removeItem('tenant_id');
+                localStorage.removeItem('user');
             } finally {
                 setIsLoading(false);
             }
@@ -55,6 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const login = async (credentials: LoginCredentials) => {
         setIsLoading(true);
+        logUserAction('login_attempt', { email: credentials.email });
+        
         try {
             const token = await authApi.login(credentials);
             localStorage.setItem('access_token', token.access_token);
@@ -63,18 +70,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const userData = await authApi.getCurrentUser();
             setUser(userData);
 
+            // Store user data in localStorage for components that need it
+            localStorage.setItem('user', JSON.stringify(userData));
+
             if (userData.tenant_id) {
                 localStorage.setItem('tenant_id', userData.tenant_id);
             }
 
+            logUserAction('login_success', { 
+                user_id: userData.id,
+                tenant_id: userData.tenant_id,
+                role: userData.role 
+            }, {
+                userId: userData.id,
+                tenantId: userData.tenant_id,
+            });
+
             // Redirect based on role
             if (userData.role === 'super_admin') {
-                router.push('/admin/dashboard');
+                window.location.href = '/admin/dashboard';
             } else {
-                router.push('/dashboard');
+                window.location.href = '/dashboard';
             }
         } catch (error) {
             console.error('Login failed:', error);
+            await logClientError('Login failed', {
+                metadata: { email: credentials.email },
+                stack: error instanceof Error ? error.stack : undefined,
+            });
+            logUserAction('login_failed', { email: credentials.email }, {
+                userId: user?.id,
+                tenantId: user?.tenant_id,
+                success: false,
+            });
             throw error;
         } finally {
             setIsLoading(false);
@@ -83,15 +111,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const register = async (data: UserCreate) => {
         setIsLoading(true);
+        logUserAction('registration_attempt', { 
+            email: data.email,
+            username: data.username,
+            business_name: data.business_name 
+        });
+        
         try {
-            await authApi.register(data);
-            // Auto login after registration
-            await login({
-                username: data.email, // Assuming email is username
-                password: data.password
+            // Backend returns token on registration
+            const token = await authApi.register(data);
+            localStorage.setItem('access_token', token.access_token);
+
+            logUserAction('registration_token_received');
+
+            // Fetch user profile immediately after registration
+            const userData = await authApi.getCurrentUser();
+            setUser(userData);
+
+            // Store user data in localStorage for components that need it
+            localStorage.setItem('user', JSON.stringify(userData));
+
+            if (userData.tenant_id) {
+                localStorage.setItem('tenant_id', userData.tenant_id);
+            }
+
+            logUserAction('registration_success', { 
+                user_id: userData.id,
+                tenant_id: userData.tenant_id,
+                business_name: data.business_name 
+            }, {
+                userId: userData.id,
+                tenantId: userData.tenant_id,
             });
+
+            // Redirect to dashboard after successful registration
+            window.location.href = '/dashboard';
         } catch (error) {
             console.error('Registration failed:', error);
+            await logClientError('Registration failed', {
+                metadata: {
+                    email: data.email,
+                    username: data.username,
+                    business_name: data.business_name,
+                },
+                stack: error instanceof Error ? error.stack : undefined,
+            });
+            logUserAction('registration_failed', { 
+                email: data.email,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            }, {
+                userId: null,
+                tenantId: null,
+                success: false,
+            });
             throw error;
         } finally {
             setIsLoading(false);
@@ -99,8 +171,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const logout = () => {
+        logUserAction('logout', { user_id: user?.id }, {
+            userId: user?.id ?? undefined,
+            tenantId: user?.tenant_id ?? undefined,
+        });
         authApi.logout();
         localStorage.removeItem('tenant_id');
+        localStorage.removeItem('user');
         setUser(null);
         router.push('/login');
     };

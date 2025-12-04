@@ -22,27 +22,27 @@ export function ProOnboardingChecklist() {
     const [isVisible, setIsVisible] = useState(true);
     const [steps, setSteps] = useState<OnboardingStep[]>([
         {
-            id: "connect_vapi",
-            title: "Connect Vapi API",
-            description: "Add your Vapi API key to enable voice calls",
-            action: "Add API Key",
-            link: "/dashboard/settings/integrations",
+            id: "enable_voice_agent",
+            title: "Enable LiveKit Voice Agent",
+            description: "Flip on the managed LiveKit queue in the Control Room so Parker can answer calls",
+            action: "Open Control Room",
+            link: "/dashboard/voice-agent/control-center",
             completed: false
         },
         {
             id: "setup_automations",
             title: "Enable Smart Automations",
-            description: "Turn on Google Calendar, Airtable, or WhatsApp confirmations",
+            description: "Trigger Slack, WhatsApp, or calendar workflows when LiveKit calls wrap up",
             action: "Configure Automations",
             link: "/dashboard/automations",
             completed: false
         },
         {
             id: "test_voice",
-            title: "Test Your AI Voice",
-            description: "Make a test call to hear your AI receptionist in action",
-            action: "Test Now",
-            link: "/dashboard/voice-agent/test",
+            title: "Preview LiveKit Call",
+            description: "Use the WebRTC test page to issue a LiveKit token and hear Parker live",
+            action: "Launch Preview",
+            link: "/dashboard/voice-agent/chat",
             completed: false
         },
         {
@@ -71,8 +71,8 @@ export function ProOnboardingChecklist() {
             let completed = false;
 
             switch (step.id) {
-                case "connect_vapi":
-                    completed = !!(config as any).vapi_api_key;
+                case "enable_voice_agent":
+                    completed = Boolean((config as any)?.features_enabled?.voice_agent);
                     break;
                 case "setup_automations":
                     const automations = (config as any).automations || {};

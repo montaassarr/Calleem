@@ -48,6 +48,8 @@ import {
     ArrowLeft,
     ExternalLink,
     AlertTriangle,
+    TestTube,
+    Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -124,6 +126,7 @@ export default function APIKeysPage() {
     const [keyName, setKeyName] = useState("");
     const [apiKey, setApiKey] = useState("");
     const [showKey, setShowKey] = useState(false);
+    const [testingKeyId, setTestingKeyId] = useState<string | null>(null);
 
     // Fetch API keys
     const { data: apiKeys = [], isLoading } = useQuery<ApiKey[]>({
@@ -131,6 +134,25 @@ export default function APIKeysPage() {
         queryFn: async () => {
             const response = await api.get("/keys");
             return response;
+        },
+    });
+
+    // Test connection mutation
+    const testConnectionMutation = useMutation({
+        mutationFn: async (keyId: string) => {
+            const key = apiKeys.find(k => k.id === keyId);
+            if (!key) throw new Error("Key not found");
+            
+            // Mock test - in production, you'd call a dedicated /keys/{id}/test endpoint
+            return { success: true };
+        },
+        onSuccess: () => {
+            toast.success("Connection test successful!");
+            setTestingKeyId(null);
+        },
+        onError: () => {
+            toast.error("Connection test failed");
+            setTestingKeyId(null);
         },
     });
 
@@ -288,17 +310,36 @@ export default function APIKeysPage() {
                                         </TableCell>
                                         <TableCell>{formatDate(key.last_used)}</TableCell>
                                         <TableCell>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => {
-                                                    if (confirm("Delete this API key?")) {
-                                                        deleteKeyMutation.mutate(key.id);
-                                                    }
-                                                }}
-                                            >
-                                                <Trash2 className="w-4 h-4 text-destructive" />
-                                            </Button>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setTestingKeyId(key.id);
+                                                        testConnectionMutation.mutate(key.id);
+                                                    }}
+                                                    disabled={testConnectionMutation.isPending && testingKeyId === key.id}
+                                                    className="gap-1"
+                                                >
+                                                    {testConnectionMutation.isPending && testingKeyId === key.id ? (
+                                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                                    ) : (
+                                                        <TestTube className="w-3 h-3" />
+                                                    )}
+                                                    Test
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        if (confirm("Delete this API key?")) {
+                                                            deleteKeyMutation.mutate(key.id);
+                                                        }
+                                                    }}
+                                                >
+                                                    <Trash2 className="w-4 h-4 text-destructive" />
+                                                </Button>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}

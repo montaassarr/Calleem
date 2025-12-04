@@ -93,6 +93,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                 });
                 // Redirect is handled in AuthContext
             } else if (step === "signup") {
+                // Register returns a token and auto-logs in
                 await register({
                     email: formData.email,
                     username: formData.email,
@@ -102,7 +103,8 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                     phone: formData.phone,
                     role: "owner"
                 });
-                setStep("success");
+                // Redirect is handled in AuthContext after successful registration
+                // No need to show success screen
             } else if (step === "forgot-password") {
                 // TODO: Implement forgot password API
                 setStep("reset-password")
@@ -114,8 +116,22 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
             }
         } catch (error: any) {
             console.error("Auth error:", error);
-            // Show error (using alert for now, should use toast)
-            alert(error.response?.data?.detail || "Authentication failed");
+            // Better error messages for users
+            let errorMessage = "An error occurred. Please try again.";
+            if (error.response?.data?.detail) {
+                errorMessage = error.response.data.detail;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            // Show specific errors for common issues
+            if (errorMessage.includes("already registered") || errorMessage.includes("already taken")) {
+                errorMessage = "This email or username is already registered. Please try logging in instead.";
+            } else if (errorMessage.includes("Incorrect username") || errorMessage.includes("Incorrect password")) {
+                errorMessage = "Invalid email or password. Please check your credentials.";
+            }
+            
+            alert(errorMessage);
         } finally {
             setIsLoading(false)
         }

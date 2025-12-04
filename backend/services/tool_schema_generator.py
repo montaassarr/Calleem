@@ -137,33 +137,3 @@ def generate_tool_schemas(webhook_urls: Dict[str, str]) -> List[Dict[str, Any]]:
     
     return schemas
 
-
-def format_for_vapi(schemas: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """
-    Format tool schemas for VAPI API
-    
-    Args:
-        schemas: List of OpenAI function schemas
-        
-    Returns:
-        List of VAPI-formatted tool schemas
-    """
-    vapi_tools = []
-    
-    for schema in schemas:
-        func = schema["function"]
-        vapi_tools.append({
-            "type": "function",
-            "function": {
-                "name": func["name"],
-                "description": func["description"],
-                "parameters": func["parameters"]
-            },
-            "server": {
-                "url": func["url"],
-                "timeout_seconds": 20
-            },
-            "async": False
-        })
-    
-    return vapi_tools

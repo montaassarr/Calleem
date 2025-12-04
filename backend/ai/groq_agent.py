@@ -1,11 +1,17 @@
 """
 Groq API Integration for Natural Language Understanding
+
+NOW INTEGRATED WITH AI PROXY:
+- Automatically uses tenant BYOK if available
+- Falls back to platform Groq key if tenant has none
+- Tracks usage for billing attribution
 """
 
 from groq import Groq
 import logging
 import re
-from typing import List, Dict, Any
+import json
+from typing import List, Dict, Any, Optional
 from utils.config import settings
 
 logger = logging.getLogger(__name__)
@@ -27,18 +33,25 @@ class GroqAgent:
     async def generate_response(
         self,
         messages: List[Dict[str, str]],
-        api_key: str = None,
-        model: str = None,
-        system_prompt: str = None,
+        tenant_id: Optional[str] = None,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
+        system_prompt: Optional[str] = None,
         temperature: float = 0.7,
         max_tokens: int = 500
     ) -> str:
         """
         Generate AI response using Groq API
         
+        NOW USES AI PROXY when tenant_id is provided:
+        - Tries tenant's BYOK Groq key first
+        - Falls back to platform Groq key
+        - Tracks usage for billing (if using platform key)
+        
         Args:
             messages: List of conversation messages
-            api_key: Tenant-specific Groq API key (REQUIRED for multi-tenant)
+            tenant_id: Tenant ID (for AI Proxy routing)
+            api_key: Explicit API key (legacy, bypasses proxy)
             model: AI model to use (defaults to mixtral-8x7b-32768)
             system_prompt: Optional system prompt to guide the AI
             temperature: Creativity level (0.0 to 1.0)
@@ -48,10 +61,30 @@ class GroqAgent:
             AI-generated response text
         """
         try:
-            # Use tenant's API key if provided, otherwise fall back to system default
-            if not api_key:
+            # Priority 1: Use AI Proxy if tenant_id provided (RECOMMENDED)
+            if tenant_id and not api_key:
+                from services.ai_proxy import ai_proxy
+                from models.core.platform_api_keys import KeyProvider
+                
+                try:
+                    api_key, is_byok, platform_key_id = await ai_proxy.get_api_key(
+                        tenant_id,
+                        KeyProvider.GROQ
+                    )
+                    
+                    if is_byok:
+                        logger.info(f"✅ Using tenant's Groq key for {tenant_id}")
+                    else:
+                        logger.info(f"🔑 Using platform Groq key for {tenant_id}")
+                
+                except Exception as e:
+                    logger.warning(f"AI Proxy failed, falling back to system default: {e}")
+                    api_key = settings.GROQ_API_KEY
+            
+            # Priority 2: Use explicit API key (legacy behavior)
+            elif not api_key:
                 api_key = settings.GROQ_API_KEY
-                logger.warning("⚠️ No tenant API key provided, using system default")
+                logger.warning("⚠️ Using system default Groq key (no tenant_id provided)")
             
             if not api_key:
                 raise ValueError("Groq API key is required")
@@ -60,8 +93,6 @@ class GroqAgent:
             if not model:
                 model = settings.GROQ_MODEL
             
-            # Create client with tenant's API key
-            client = Groq(api_key=api_key)
             # Create client with tenant's API key
             client = Groq(api_key=api_key)
             
@@ -89,6 +120,10 @@ class GroqAgent:
             )
             
             ai_response = response.choices[0].message.content
+            if ai_response is None:
+                logger.warning("Groq API returned None content")
+                return self._get_fallback_response()
+            
             logger.debug(f"Groq API response: {ai_response[:100]}...")
             
             return ai_response
@@ -98,13 +133,20 @@ class GroqAgent:
             # Return fallback response
             return self._get_fallback_response()
     
-    async def classify_intent(self, user_message: str, api_key: str = None, model: str = None) -> Dict[str, Any]:
+    async def classify_intent(
+        self, 
+        user_message: str, 
+        tenant_id: Optional[str] = None,
+        api_key: Optional[str] = None, 
+        model: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Classify the intent of a user message
         
         Args:
             user_message: The user's message text
-            api_key: Tenant-specific Groq API key
+            tenant_id: Tenant ID (for AI Proxy routing)
+            api_key: Explicit API key (legacy)
             model: AI model to use
             
         Returns:
@@ -129,6 +171,7 @@ class GroqAgent:
             
             response = await self.generate_response(
                 messages=messages,
+                tenant_id=tenant_id,
                 api_key=api_key,
                 model=model,
                 system_prompt=system_prompt,
@@ -137,7 +180,6 @@ class GroqAgent:
             )
             
             # Parse JSON response
-            import json
             result = json.loads(response)
             
             logger.info(f"Intent classified: {result}")
@@ -147,7 +189,7 @@ class GroqAgent:
             logger.error(f"Error classifying intent: {e}")
             return {"intent": "unknown", "confidence": 0.0}
     
-    async def extract_booking_info(self, conversation_text: str, api_key: str = None, model: str = None) -> Dict[str, Any]:
+    async def extract_booking_info(self, conversation_text: str, api_key: Optional[str] = None, model: Optional[str] = None) -> Dict[str, Any]:
         """
         Extract booking information from conversation
         
@@ -189,10 +231,11 @@ class GroqAgent:
         - "Book me for tomorrow" → {"client_name": null, "date": "tomorrow", ...}
         """
         
+        response_text = ""
         try:
             messages = [{"role": "user", "content": conversation_text}]
-            
-            response = await self.generate_response(
+
+            response_text = await self.generate_response(
                 messages=messages,
                 api_key=api_key,
                 model=model,
@@ -202,20 +245,19 @@ class GroqAgent:
             )
             
             # Clean response - sometimes Groq adds extra text
-            import json
-            response = response.strip()
+            response_text = response_text.strip()
             
             # Try to extract JSON if there's extra text
-            if not response.startswith('{'):
+            if not response_text.startswith('{'):
                 # Look for JSON object in response
-                json_match = re.search(r'\{[^}]+\}', response, re.DOTALL)
+                json_match = re.search(r'\{[^}]+\}', response_text, re.DOTALL)
                 if json_match:
-                    response = json_match.group(0)
+                    response_text = json_match.group(0)
                 else:
-                    logger.error(f"No JSON found in response: {response}")
+                    logger.error(f"No JSON found in response: {response_text}")
                     return {}
             
-            info = json.loads(response)
+            info = json.loads(response_text)
             
             # Additional validation: remove name if it contains booking keywords
             if info.get("client_name"):
@@ -229,7 +271,8 @@ class GroqAgent:
             return info
             
         except json.JSONDecodeError as e:
-            logger.error(f"JSON decode error: {e}. Response was: {response[:200] if 'response' in locals() else 'N/A'}")
+            preview = response_text[:200] if response_text else 'N/A'
+            logger.error(f"JSON decode error: {e}. Response was: {preview}")
             return {}
         except Exception as e:
             logger.error(f"Error extracting booking info: {e}")

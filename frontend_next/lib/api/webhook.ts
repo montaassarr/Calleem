@@ -10,7 +10,7 @@ export const webhookApi = {
      * Get webhook status
      */
     getStatus: async (): Promise<WebhookStatus> => {
-        const response = await api.get<WebhookStatus>('/webhook/status');
-        return response.data;
+    const response = await api.get<WebhookStatus>('/webhook/status');
+    return response;
     },
 };
