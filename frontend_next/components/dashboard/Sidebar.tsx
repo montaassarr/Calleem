@@ -44,8 +44,7 @@ const menuItems = [
         path: "/dashboard/voice-agent/control-center",
         subItems: [
             { icon: PhoneCall, label: "Control Center", path: "/dashboard/voice-agent/control-center" },
-            { icon: Mic, label: "Voice Chat", path: "/dashboard/voice-agent/chat" },
-            { icon: Waves, label: "WebRTC Test", path: "/dashboard/voice-agent/test" },
+            { icon: TestTube, label: "Test Voice Agent", path: "/dashboard/voice-agent/test" },
         ]
     },
     { icon: MessageCircle, label: "WhatsApp", path: "/dashboard/whatsapp" },

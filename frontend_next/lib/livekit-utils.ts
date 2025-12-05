@@ -112,33 +112,16 @@ export function getSandboxTokenSource(appConfig: AppConfig) {
       : undefined;
 
     try {
-      // Get auth token from localStorage
-      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-      
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'X-Sandbox-Id': sandboxId,
-      };
-      
-      // Add Authorization header if token exists
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
       const res = await fetch(url.toString(), {
         method: 'POST',
-        headers,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Sandbox-Id': sandboxId,
+        },
         body: JSON.stringify({
           room_config: roomConfig,
         }),
       });
-      
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error('Connection details error:', res.status, errorText);
-        throw new Error(`Failed to get connection details: ${res.status} ${errorText}`);
-      }
-      
       return await res.json();
     } catch (error) {
       console.error('Error fetching connection details:', error);

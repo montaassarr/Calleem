@@ -1,4 +1,5 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE = `${BASE_URL}/api/v1`;
 const LEVELS = ["debug", "info", "warning", "error", "critical"] as const;
 export type LogLevel = (typeof LEVELS)[number];
 

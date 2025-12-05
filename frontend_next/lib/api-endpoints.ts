@@ -15,7 +15,8 @@ import type {
 } from "@/lib/types"
 
 // API Base URL for direct fetch calls
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = `${BASE_URL}/api/v1`;
 
 export const appointmentsApi = {
     list: async (filters?: AppointmentFilters): Promise<AppointmentResponse[]> => {

@@ -221,6 +221,21 @@ async def register_user(user: UserCreate):
             }
         )
         
+        # Create default business_config for the tenant
+        business_config = {
+            "tenant_id": tenant_id,
+            "business_name": business_name,
+            "timezone": "UTC",
+            "api_keys": [],
+            "features_enabled": {
+                "voice_agent": False
+            },
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        await db.business_config.insert_one(business_config)
+        logger.info(f"✅ Created default business_config for tenant {tenant_id}")
+        
         # Retrieve created user with updated fields
         created_user = await db.users.find_one({"_id": result.inserted_id})
         
@@ -291,6 +306,34 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         
         # Get tenant_id
         tenant_id = user.get("tenant_id") or user.get("business_id")
+        
+        # Ensure business_config exists (auto-create if missing)
+        if tenant_id:
+            existing_config = await db.business_config.find_one({"tenant_id": tenant_id})
+            if not existing_config:
+                logger.info(f"⚠️  business_config missing for tenant {tenant_id}, creating default...")
+                # Get tenant info for business name
+                try:
+                    tenant = await db.tenants.find_one({"_id": ObjectId(tenant_id)})
+                except:
+                    # If tenant_id is not a valid ObjectId, try as string
+                    tenant = await db.tenants.find_one({"tenant_id": tenant_id}) or await db.tenants.find_one({"_id": tenant_id})
+                
+                business_name = tenant.get("name", "My Business") if tenant else "My Business"
+                
+                business_config = {
+                    "tenant_id": tenant_id,
+                    "business_name": business_name,
+                    "timezone": "UTC",
+                    "api_keys": [],
+                    "features_enabled": {
+                        "voice_agent": False
+                    },
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                }
+                await db.business_config.insert_one(business_config)
+                logger.info(f"✅ Created business_config for tenant {tenant_id} during login")
         
         # Create access token with tenant_id
         access_token = create_access_token(

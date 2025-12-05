@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///home/montassar/Desktop/ai_receptionist/frontend_next/app/dashboard/voice-agent/page.tsx"],"sourcesContent":["\"use client\";\n\nimport { useEffect } from \"react\";\nimport { useRouter } from \"next/navigation\";\n\n/**\n * Redirect to Control Center\n * This page is kept for backward compatibility\n * All voice agent features are now in the Control Center\n */\nexport default function VoiceAgentPage() {\n    const router = useRouter();\n\n    useEffect(() => {\n        router.replace(\"/dashboard/voice-agent/control-center\");\n    }, [router]);\n\n    return (\n        <div className=\"flex items-center justify-center h-screen\">\n            <div className=\"animate-spin rounded-full h-12 w-12 border-b-2 border-primary\" />\n        </div>\n    );\n}\n"],"names":[],"mappings":";;;;;AAEA;AACA;;;AAHA;;;AAUe,SAAS;;IACpB,MAAM,SAAS,IAAA,mKAAS;IAExB,IAAA,2LAAS;oCAAC;YACN,OAAO,OAAO,CAAC;QACnB;mCAAG;QAAC;KAAO;IAEX,qBACI,8MAAC;QAAI,WAAU;kBACX,cAAA,8MAAC;YAAI,WAAU;;;;;;;;;;;AAG3B;GAZwB;;QACL,mKAAS;;;KADJ"}}]
+}

@@ -42,7 +42,7 @@ export function ProOnboardingChecklist() {
             title: "Preview LiveKit Call",
             description: "Use the WebRTC test page to issue a LiveKit token and hear Parker live",
             action: "Launch Preview",
-            link: "/dashboard/voice-agent/chat",
+            link: "/dashboard/voice-agent/test",
             completed: false
         },
         {

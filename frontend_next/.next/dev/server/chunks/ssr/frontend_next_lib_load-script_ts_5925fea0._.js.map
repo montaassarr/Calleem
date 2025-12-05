@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///home/montassar/Desktop/ai_receptionist/frontend_next/lib/load-script.ts"],"sourcesContent":["export function loadScript(src: string): Promise<void> {\n  return new Promise((resolve, reject) => {\n    const script = document.createElement(\"script\")\n    script.src = src\n    script.onload = () => resolve()\n    script.onerror = () => reject(new Error(`Failed to load script: ${src}`))\n    document.head.appendChild(script)\n  })\n}\n"],"names":[],"mappings":";;;;AAAO,SAAS,WAAW,GAAW;IACpC,OAAO,IAAI,QAAQ,CAAC,SAAS;QAC3B,MAAM,SAAS,SAAS,aAAa,CAAC;QACtC,OAAO,GAAG,GAAG;QACb,OAAO,MAAM,GAAG,IAAM;QACtB,OAAO,OAAO,GAAG,IAAM,OAAO,IAAI,MAAM,CAAC,uBAAuB,EAAE,KAAK;QACvE,SAAS,IAAI,CAAC,WAAW,CAAC;IAC5B;AACF"}}]
+}

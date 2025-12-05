@@ -1,30 +1,5 @@
-# LiveKit Agent Worker Requirements
-# Compatible with LiveKit Agents SDK v0.9.0+
-
-# Core LiveKit
-livekit-agents>=0.9.0
-livekit>=0.11.0
-
-# LLM Providers
-livekit-plugins-openai>=0.7.0
-livekit-plugins-groq>=0.2.0
-livekit-plugins-anthropic>=0.1.0
-
-# TTS Providers
-livekit-plugins-elevenlabs>=0.6.0
-livekit-plugins-cartesia>=0.2.0
-
-# STT Providers
-livekit-plugins-deepgram>=0.6.0
-
-# VAD (Voice Activity Detection)
-livekit-plugins-silero>=0.6.0
-
-# HTTP Client for backend API
-httpx>=0.27.0
-
-# Environment variables
-python-dotenv>=1.0.0
-
-# Async utilities
-aiohttp>=3.9.0
+# Based on agent-starter-python requirements
+livekit-agents[silero,turn-detector]~=1.3
+livekit-plugins-noise-cancellation~=0.2
+python-dotenv
+httpx

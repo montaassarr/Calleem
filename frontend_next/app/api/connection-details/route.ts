@@ -1,4 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { AccessToken, type AccessTokenOptions, type VideoGrant } from 'livekit-server-sdk';
+import { RoomConfiguration } from '@livekit/protocol';
 
 type ConnectionDetails = {
   serverUrl: string;
@@ -7,75 +9,89 @@ type ConnectionDetails = {
   participantToken: string;
 };
 
-// Don't cache the results
+const API_KEY = process.env.LIVEKIT_API_KEY;
+const API_SECRET = process.env.LIVEKIT_API_SECRET;
+const LIVEKIT_URL = process.env.LIVEKIT_URL;
+
 export const revalidate = 0;
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    // Get authentication token from Authorization header (client will pass from localStorage)
-    const authHeader = req.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '') || 
-                  req.cookies.get('access_token')?.value || 
-                  req.cookies.get('token')?.value;
-
-    if (!token) {
-      console.error('No authentication token found');
-      return new NextResponse('Unauthorized - Please log in', { status: 401 });
+    if (!LIVEKIT_URL || !API_KEY || !API_SECRET) {
+      throw new Error('LiveKit configuration missing. Check LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET');
     }
 
-    // Parse request body for agent configuration
     const body = await req.json();
-    const agentName = body?.room_config?.agents?.[0]?.agent_name;
+    const tenantId: string = body?.tenant_id;
+    const agentName: string = body?.room_config?.agents?.[0]?.agent_name;
 
-    console.log('Creating LiveKit session...');
-
-    // Call your backend API to create LiveKit session
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    const response = await fetch(`${backendUrl}/api/v1/voice-agent/webrtc/test`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        room_name: body.roomName,
-        identity: body.identity,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Backend error:', errorText);
-      return new NextResponse(`Backend error: ${errorText}`, { status: response.status });
+    if (!tenantId) {
+      throw new Error('tenant_id is required');
     }
 
-    const sessionData = await response.json();
-    console.log('Backend response:', sessionData);
+    // Generate room name with tenant prefix for agent to extract
+    const participantName = 'user';
+    const participantIdentity = `user_${Math.floor(Math.random() * 10_000)}`;
+    const roomName = `preview-${tenantId}-${Math.floor(Math.random() * 10_000)}`;
 
-    // Transform backend response to match LiveKit frontend expectations
-    const connectionDetails: ConnectionDetails = {
-      serverUrl: sessionData.url || sessionData.server_url || sessionData.serverUrl,
-      roomName: sessionData.room_name || sessionData.roomName,
-      participantToken: sessionData.token || sessionData.participantToken,
-      participantName: sessionData.identity || body.identity || 'user',
+    // Room metadata for agent to identify tenant
+    const roomMetadata = JSON.stringify({ tenant_id: tenantId });
+
+    const participantToken = await createParticipantToken(
+      { identity: participantIdentity, name: participantName },
+      roomName,
+      roomMetadata,
+      agentName
+    );
+
+    const data: ConnectionDetails = {
+      serverUrl: LIVEKIT_URL,
+      roomName,
+      participantToken,
+      participantName,
     };
 
-    console.log('Returning connection details:', {
-      serverUrl: connectionDetails.serverUrl,
-      roomName: connectionDetails.roomName,
-      participantName: connectionDetails.participantName,
+    return NextResponse.json(data, {
+      headers: { 'Cache-Control': 'no-store' },
     });
-
-    const headers = new Headers({
-      'Cache-Control': 'no-store',
-    });
-
-    return NextResponse.json(connectionDetails, { headers });
   } catch (error) {
     console.error('Connection details error:', error);
-    if (error instanceof Error) {
-      return new NextResponse(error.message, { status: 500 });
-    }
-    return new NextResponse('Internal server error', { status: 500 });
+    return new NextResponse(
+      error instanceof Error ? error.message : 'Internal error',
+      { status: 500 }
+    );
   }
+}
+
+async function createParticipantToken(
+  userInfo: AccessTokenOptions,
+  roomName: string,
+  roomMetadata: string,
+  agentName?: string
+): Promise<string> {
+  const at = new AccessToken(API_KEY, API_SECRET, {
+    ...userInfo,
+    ttl: '15m',
+  });
+
+  const grant: VideoGrant = {
+    room: roomName,
+    roomJoin: true,
+    roomCreate: true,
+    canPublish: true,
+    canPublishData: true,
+    canSubscribe: true,
+  };
+  at.addGrant(grant);
+
+  // Set room metadata with tenant info
+  at.metadata = roomMetadata;
+
+  if (agentName) {
+    at.roomConfig = new RoomConfiguration({
+      agents: [{ agentName }],
+    });
+  }
+
+  return at.toJwt();
 }

@@ -15,8 +15,15 @@ export default function SettingsPage() {
             color: "from-blue-500 to-cyan-500",
         },
         {
-            title: "API Keys",
-            description: "Manage API keys for AI services (VAPI, Groq, WhatsApp)",
+            title: "AI Configuration",
+            description: "Select STT/LLM/TTS models (FREE via LiveKit Cloud)",
+            icon: Bot,
+            path: "/dashboard/settings/ai",
+            color: "from-green-500 to-emerald-500",
+        },
+        {
+            title: "API Keys (Optional)",
+            description: "Bring your own keys for external AI providers",
             icon: Key,
             path: "/dashboard/settings/api-keys",
             color: "from-red-500 to-orange-500",
@@ -27,13 +34,6 @@ export default function SettingsPage() {
             icon: Clock,
             path: "/dashboard/settings/hours",
             color: "from-amber-500 to-yellow-500",
-        },
-        {
-            title: "AI Configuration",
-            description: "Configure AI behavior and prompts",
-            icon: Bot,
-            path: "/dashboard/settings/ai",
-            color: "from-green-500 to-emerald-500",
         },
         {
             title: "Team Members",

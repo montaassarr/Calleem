@@ -1,0 +1,12 @@
+var R=require("../../../chunks/[turbopack]_runtime.js")("server/app/api/connection-details/route.js")
+R.c("server/chunks/[root-of-the-server]__85aceb16._.js")
+R.c("server/chunks/5f223_next_77e7d250._.js")
+R.c("server/chunks/5f223_@opentelemetry_api_build_esm_db38ca48._.js")
+R.c("server/chunks/5f223_@bufbuild_protobuf_dist_esm_ac26e009._.js")
+R.c("server/chunks/5f223_@livekit_protocol_dist_index_mjs_06427f3f._.js")
+R.c("server/chunks/fa776_jose_dist_node_esm_0e433230._.js")
+R.c("server/chunks/5f223_livekit-server-sdk_dist_3b4a3dcd._.js")
+R.c("server/chunks/[root-of-the-server]__c0a8efc9._.js")
+R.c("server/chunks/ceffb_next__next-internal_server_app_api_connection-details_route_actions_af47da61.js")
+R.m("[project]/frontend_next/node_modules/next/dist/esm/build/templates/app-route.js { INNER_APP_ROUTE => \"[project]/frontend_next/app/api/connection-details/route.ts [app-route] (ecmascript)\" } [app-route] (ecmascript)")
+module.exports=R.m("[project]/frontend_next/node_modules/next/dist/esm/build/templates/app-route.js { INNER_APP_ROUTE => \"[project]/frontend_next/app/api/connection-details/route.ts [app-route] (ecmascript)\" } [app-route] (ecmascript)").exports

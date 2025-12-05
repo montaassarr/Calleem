@@ -369,6 +369,12 @@ export interface VoiceStartCallResponse {
     assistant_id?: string;
 }
 
+export interface VoiceTestResponse {
+    status: string;
+    message: string;
+    agent_id?: string;
+}
+
 export interface VoiceAgentStatus {
     configured: boolean;
     url: string;

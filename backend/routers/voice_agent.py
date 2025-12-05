@@ -4,10 +4,12 @@ from pydantic import BaseModel, Field
 import logging
 from datetime import datetime, timedelta
 from uuid import uuid4
+from bson import ObjectId
 
 from database.mongo_config import get_database
 from routers.users import get_current_user
 from services.livekit_service import livekit_service
+from utils.error_logger import error_logger, ErrorCategory, ErrorLevel
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -55,8 +57,35 @@ async def get_tenant_agent_config(tenant_id: str):
     # Get tenant config
     config = await db.business_config.find_one({"tenant_id": tenant_id})
     logger.info(f"📊 Config found: {config is not None}")
+    
+    # Auto-create business_config if it doesn't exist
     if not config:
-        raise HTTPException(status_code=404, detail="Tenant configuration not found")
+        logger.warning(f"⚠️  business_config not found for tenant {tenant_id}, creating default...")
+        
+        # Try to get tenant info for business name
+        try:
+            tenant = await db.tenants.find_one({"_id": ObjectId(tenant_id)})
+        except:
+            # If tenant_id is not a valid ObjectId, try as string
+            tenant = await db.tenants.find_one({"tenant_id": tenant_id}) or await db.tenants.find_one({"_id": tenant_id})
+        
+        business_name = tenant.get("name", "My Business") if tenant else "My Business"
+        
+        # Create default business_config
+        config = {
+            "tenant_id": tenant_id,
+            "business_name": business_name,
+            "timezone": "UTC",
+            "api_keys": [],
+            "features_enabled": {
+                "voice_agent": False
+            },
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        
+        await db.business_config.insert_one(config)
+        logger.info(f"✅ Created default business_config for tenant {tenant_id}")
     
     # Get agent configuration
     agent = await db.agents.find_one({"tenant_id": tenant_id, "status": "active"})
@@ -232,44 +261,117 @@ async def create_preview_session(
     current_user: dict = Depends(get_current_user),
 ):
     """Create a temporary LiveKit room + token so the dashboard can run a test call."""
-
-    tenant_id = str(current_user["tenant_id"])
-    user_id = str(current_user.get("id", tenant_id))
-
-    # First, create the room with tenant metadata
-    room_name = f"preview-{tenant_id}-{uuid4().hex[:6]}" if not body.room_name else body.room_name
     
     try:
-        await livekit_service.create_room(
-            room_name=room_name,
-            metadata={
-                "tenant_id": tenant_id,
-                "session_type": "preview",
-                "agent_name": livekit_service.config.agent_name,
+        # Validate tenant_id
+        tenant_id = current_user.get("tenant_id")
+        if not tenant_id:
+            logger.error("User has no tenant_id", extra={"user_id": current_user.get("id")})
+            raise HTTPException(
+                status_code=400,
+                detail="User account is missing tenant_id. Please contact support."
+            )
+        
+        tenant_id = str(tenant_id)
+        user_id = str(current_user.get("id", tenant_id))
+        
+        logger.info(f"Creating preview session for tenant {tenant_id}, user {user_id}")
+
+        # First, create the room with tenant metadata
+        room_name = f"preview-{tenant_id}-{uuid4().hex[:6]}" if not body.room_name else body.room_name
+        
+        # Try to create room (may already exist, which is fine)
+        try:
+            await livekit_service.create_room(
+                room_name=room_name,
+                metadata={
+                    "tenant_id": tenant_id,
+                    "session_type": "preview",
+                    "agent_name": livekit_service.config.agent_name,
+                }
+            )
+            logger.info(f"✅ Created room {room_name} with tenant_id {tenant_id}")
+        except Exception as room_error:
+            logger.warning(f"⚠️  Room creation warning (may already exist): {room_error}")
+            # Continue - room might already exist, which is acceptable
+
+        # Build the session with token
+        try:
+            session = livekit_service.build_preview_session(tenant_id=tenant_id, user_id=user_id)
+            logger.info(f"✅ Built preview session for tenant {tenant_id}")
+        except Exception as session_error:
+            logger.error(f"❌ Failed to build preview session: {session_error}", exc_info=True)
+            await error_logger.log_error(
+                error=session_error,
+                category=ErrorCategory.VOICE_AGENT,
+                level=ErrorLevel.ERROR,
+                context={
+                    "tenant_id": tenant_id,
+                    "user_id": user_id,
+                    "endpoint": "/webrtc/test",
+                    "action": "build_preview_session"
+                }
+            )
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to create preview session: {str(session_error)}"
+            )
+        
+        # Override with custom values if provided
+        if body.room_name:
+            session["room_name"] = body.room_name
+        else:
+            session["room_name"] = room_name
+
+        # Generate custom token if identity provided
+        if body.identity:
+            try:
+                session["token"] = livekit_service.create_access_token(
+                    identity=body.identity,
+                    room=session["room_name"],
+                    ttl_seconds=900,
+                    metadata={"tenant_id": tenant_id, "agent_name": livekit_service.config.agent_name},
+                )
+                logger.info(f"✅ Generated custom token for identity {body.identity}")
+            except Exception as token_error:
+                logger.error(f"❌ Failed to create access token: {token_error}", exc_info=True)
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to generate access token: {str(token_error)}"
+                )
+
+        # Validate session has all required fields
+        required_fields = ["room_name", "token", "url"]
+        missing_fields = [field for field in required_fields if not session.get(field)]
+        if missing_fields:
+            logger.error(f"❌ Session missing required fields: {missing_fields}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Session creation incomplete. Missing: {', '.join(missing_fields)}"
+            )
+
+        logger.info(f"✅ Preview session created successfully: {session.get('room_name')}")
+        return session
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Unexpected error in create_preview_session: {e}", exc_info=True)
+        await error_logger.log_error(
+            error=e,
+            category=ErrorCategory.VOICE_AGENT,
+            level=ErrorLevel.CRITICAL,
+            context={
+                "tenant_id": current_user.get("tenant_id"),
+                "user_id": current_user.get("id"),
+                "endpoint": "/webrtc/test",
+                "action": "create_preview_session"
             }
         )
-        logger.info(f"Created room {room_name} with tenant_id {tenant_id}")
-    except Exception as e:
-        logger.warning(f"Failed to create room (might already exist): {e}")
-
-    # Then build the session with token
-    session = livekit_service.build_preview_session(tenant_id=tenant_id, user_id=user_id)
-    
-    # Override with custom values if provided
-    if body.room_name:
-        session["room_name"] = body.room_name
-    else:
-        session["room_name"] = room_name
-
-    if body.identity:
-        session["token"] = livekit_service.create_access_token(
-            identity=body.identity,
-            room=session["room_name"],
-            ttl_seconds=900,
-            metadata={"tenant_id": tenant_id, "agent_name": livekit_service.config.agent_name},
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error while creating preview session: {str(e)}"
         )
-
-    return session
 
 
 @router.post("/enable")

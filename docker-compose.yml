@@ -98,9 +98,9 @@ services:
 
   parker_agent:
     build:
-      context: ./Parker_165
+      context: ./livekit-agent-worker
       dockerfile: Dockerfile
-    container_name: ai-receptionist-parker-agent
+    container_name: ai-receptionist-agent-worker
     restart: unless-stopped
     env_file:
       - .env
@@ -111,6 +111,7 @@ services:
       LIVEKIT_AGENT_QUEUE: ${LIVEKIT_AGENT_QUEUE:-voice-agents}
       LIVEKIT_AGENT_NAME: ${LIVEKIT_AGENT_NAME:-Parker_165}
       N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://n8n:5678/webhook}
+      BACKEND_URL: http://core-service:8000
     depends_on:
       core-service:
         condition: service_healthy

@@ -20,11 +20,11 @@ export default function WhatsAppPage() {
         });
     };
 
-    const getWebhookUrl = (endpoint: string) => {
+    const getWebhookUrl = (endpoint: string) =>{
         // In Next.js, we use NEXT_PUBLIC_ prefix for client-side env vars
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         // Replace localhost with ngrok URL if available (logic handled by user or env var)
-        return `${baseUrl}${endpoint}`;
+        return `${baseUrl}/api/v1${endpoint}`;
     };
 
     return (
