@@ -1,0 +1,3 @@
+module.exports=[16029,a=>{"use strict";var b=a.i(54928),c=a.i(9462),d=a.i(74433);function e(){let a=(0,d.useRouter)();return(0,c.useEffect)(()=>{a.replace("/dashboard/settings/ai")},[a]),(0,b.jsx)("div",{className:"flex items-center justify-center min-h-screen",children:(0,b.jsxs)("div",{className:"text-center",children:[(0,b.jsx)("div",{className:"animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"}),(0,b.jsx)("p",{className:"text-muted-foreground",children:"Redirecting to AI Configuration..."})]})})}a.s(["default",()=>e])}];
+
+//# sourceMappingURL=frontend_next_app_dashboard_voice-agent_create_page_tsx_a6f42fa3._.js.map

@@ -1,0 +1,3 @@
+module.exports=[91994,a=>{"use strict";var b=a.i(54928),c=a.i(9462),d=a.i(74433);function e(){let a=(0,d.useRouter)();return(0,c.useEffect)(()=>{a.replace("/dashboard/voice-agent/control-center")},[a]),(0,b.jsx)("div",{className:"flex items-center justify-center h-screen",children:(0,b.jsx)("div",{className:"animate-spin rounded-full h-12 w-12 border-b-2 border-primary"})})}a.s(["default",()=>e])}];
+
+//# sourceMappingURL=frontend_next_app_dashboard_voice-agent_page_tsx_af705178._.js.map

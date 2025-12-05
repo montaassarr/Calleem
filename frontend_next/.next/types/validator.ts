@@ -128,15 +128,6 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
-// Validate ../../app/dashboard/ai-receptionist/page.tsx
-{
-  type __IsExpected<Specific extends AppPageConfig<"/dashboard/ai-receptionist">> = Specific
-  const handler = {} as typeof import("../../app/dashboard/ai-receptionist/page.js")
-  type __Check = __IsExpected<typeof handler>
-  // @ts-ignore
-  type __Unused = __Check
-}
-
 // Validate ../../app/dashboard/appointments/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/dashboard/appointments">> = Specific
@@ -267,15 +258,6 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends AppPageConfig<"/dashboard/settings/team">> = Specific
   const handler = {} as typeof import("../../app/dashboard/settings/team/page.js")
-  type __Check = __IsExpected<typeof handler>
-  // @ts-ignore
-  type __Unused = __Check
-}
-
-// Validate ../../app/dashboard/voice-agent/chat/page.tsx
-{
-  type __IsExpected<Specific extends AppPageConfig<"/dashboard/voice-agent/chat">> = Specific
-  const handler = {} as typeof import("../../app/dashboard/voice-agent/chat/page.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

@@ -1,8 +1,9 @@
 {
+  "/_not-found/page": "app/_not-found/page.js",
   "/api/connection-details/route": "app/api/connection-details/route.js",
   "/dashboard/appointments/page": "app/dashboard/appointments/page.js",
-  "/dashboard/conversations/page": "app/dashboard/conversations/page.js",
-  "/dashboard/services/page": "app/dashboard/services/page.js",
-  "/dashboard/settings/ai/page": "app/dashboard/settings/ai/page.js",
-  "/dashboard/voice-agent/test/page": "app/dashboard/voice-agent/test/page.js"
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/voice-agent/test/page": "app/dashboard/voice-agent/test/page.js",
+  "/page": "app/page.js",
+  "/signup/page": "app/signup/page.js"
 }
