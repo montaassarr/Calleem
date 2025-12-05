@@ -150,8 +150,15 @@ async def get_tenant_agent_config(tenant_id: str):
         voice_id = "79a125e8-cd45-4c13-8a67-188112f4dd22"
     
     # Build response with both nested and top-level fields for compatibility
-    llm_model = agent.get("llm_model", "llama-3.3-70b-versatile") if agent else "llama-3.3-70b-versatile"
+    llm_model = agent.get("llm_model", "openai/gpt-4o-mini") if agent else "openai/gpt-4o-mini"
+    stt_model = agent.get("stt_model", "deepgram/nova-3") if agent else "deepgram/nova-3"
+    tts_model = agent.get("tts_model", "cartesia/sonic-2") if agent else "cartesia/sonic-2"
+    agent_voice_id = agent.get("voice_id", "79a125e8-cd45-4c13-8a67-188112f4dd22") if agent else "79a125e8-cd45-4c13-8a67-188112f4dd22"
     system_prompt = agent.get("system_prompt") if agent else "You are a helpful AI assistant."
+    
+    # Use agent's voice_id if set, otherwise use provider default
+    if not voice_id:
+        voice_id = agent_voice_id
     
     return {
         "tenant_id": tenant_id,
@@ -159,6 +166,8 @@ async def get_tenant_agent_config(tenant_id: str):
         "business_name": config.get("business_name", ""),
         # Top-level fields for easy access
         "llm_model": llm_model,
+        "stt_model": stt_model,
+        "tts_model": tts_model,
         "voice_provider": voice_provider,
         "voice_id": voice_id,
         "system_prompt": system_prompt,
@@ -166,6 +175,8 @@ async def get_tenant_agent_config(tenant_id: str):
         "agent_config": {
             "system_prompt": system_prompt,
             "llm_model": llm_model,
+            "stt_model": stt_model,
+            "tts_model": tts_model,
             "voice_id": voice_id,
             "voice_provider": voice_provider,
         },

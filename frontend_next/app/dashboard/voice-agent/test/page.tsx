@@ -15,7 +15,7 @@ import type { AppConfig } from '@/app-config';
 
 /**
  * Multi-tenant Voice Agent Test Page
- * Uses the full agent-starter-react template components
+ * Uses the full agent-starter-react template design
  */
 
 interface VoiceAgentAppProps {
@@ -23,7 +23,7 @@ interface VoiceAgentAppProps {
 }
 
 function VoiceAgentApp({ tenantId }: VoiceAgentAppProps) {
-  // App configuration for this tenant
+  // App configuration matching agent-starter-react style
   const appConfig: AppConfig = useMemo(() => ({
     companyName: 'AI Receptionist',
     pageTitle: 'Voice Agent Test',
@@ -62,9 +62,10 @@ function VoiceAgentApp({ tenantId }: VoiceAgentAppProps) {
 
   return (
     <SessionProvider session={session}>
-      <main className="grid h-screen grid-cols-1 place-content-center bg-background">
+      {/* Full height container that respects dashboard layout */}
+      <div className="relative w-full h-[calc(100vh-4rem)] overflow-hidden bg-background">
         <ViewController appConfig={appConfig} />
-      </main>
+      </div>
       <StartAudio label="Start Audio" />
       <RoomAudioRenderer />
       <Toaster />
@@ -82,7 +83,7 @@ export default function VoiceAgentTestPage() {
 
   if (!mounted || isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-background">
+      <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
@@ -90,7 +91,7 @@ export default function VoiceAgentTestPage() {
 
   if (!user?.tenant_id) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-background">
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] bg-background">
         <h2 className="text-2xl font-bold mb-4">No Tenant Found</h2>
         <p className="text-muted-foreground">Please log in to test the voice agent.</p>
       </div>
