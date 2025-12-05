@@ -12,7 +12,7 @@ import {
   VideoCameraSlashIcon,
 } from '@phosphor-icons/react/dist/ssr';
 import { Toggle } from '@/components/livekit/toggle';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/livekit-utils';
 
 function getSourceIcon(source: Track.Source, enabled: boolean, pending = false) {
   if (pending) {

@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/livekit/select';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/livekit-utils';
 
 type DeviceSelectProps = React.ComponentProps<typeof SelectTrigger> & {
   kind: MediaDeviceKind;

@@ -152,7 +152,7 @@ export default function DashboardPage() {
                         </div>
                         <Button
                             className="w-full gap-2"
-                            onClick={() => router.push('/dashboard/ai-receptionist/test')}
+                            onClick={() => router.push('/dashboard/voice-agent/test')}
                         >
                             <Phone className="w-4 h-4" />
                             Test AI Chat

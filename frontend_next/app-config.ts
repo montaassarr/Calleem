@@ -20,22 +20,22 @@ export interface AppConfig {
 }
 
 export const APP_CONFIG_DEFAULTS: AppConfig = {
-  companyName: 'AI Receptionist',
-  pageTitle: 'AI Receptionist - Voice Agent',
-  pageDescription: 'Talk to your AI receptionist for appointment booking and inquiries',
+  companyName: 'LiveKit',
+  pageTitle: 'LiveKit Voice Agent',
+  pageDescription: 'A voice agent built with LiveKit',
 
   supportsChatInput: true,
-  supportsVideoInput: false,
-  supportsScreenShare: false,
+  supportsVideoInput: true,
+  supportsScreenShare: true,
   isPreConnectBufferEnabled: true,
 
-  logo: '/logo.svg',
+  logo: '/lk-logo.svg',
   accent: '#002cf2',
-  logoDark: '/logo.svg',
+  logoDark: '/lk-logo-dark.svg',
   accentDark: '#1fd5f9',
-  startButtonText: 'Start Chat',
+  startButtonText: 'Start call',
 
-  // Agent configuration - will be set per tenant
+  // for LiveKit Cloud Sandbox
   sandboxId: undefined,
   agentName: undefined,
 };

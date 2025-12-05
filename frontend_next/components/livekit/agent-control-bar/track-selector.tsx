@@ -7,7 +7,7 @@ import {
 } from '@livekit/components-react';
 import { TrackDeviceSelect } from '@/components/livekit/agent-control-bar/track-device-select';
 import { TrackToggle } from '@/components/livekit/agent-control-bar/track-toggle';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/livekit-utils';
 
 interface TrackSelectorProps {
   kind: MediaDeviceKind;

@@ -175,8 +175,13 @@ class VoiceConversation:
                 # Convert to numpy array and push to LiveKit
                 import numpy as np
                 audio_array = np.frombuffer(data, dtype=np.int16)
-                audio_frame = rtc.AudioFrame.create(RATE, CHANNELS, len(audio_array))
-                audio_frame.data[:] = audio_array
+                # Create audio frame properly
+                audio_frame = rtc.AudioFrame(
+                    data=audio_array.tobytes(),
+                    sample_rate=RATE,
+                    num_channels=CHANNELS,
+                    samples_per_channel=len(audio_array)
+                )
                 
                 await self.audio_source.capture_frame(audio_frame)
                 
