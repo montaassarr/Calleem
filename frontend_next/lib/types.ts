@@ -547,3 +547,70 @@ export interface StaffMember {
 // ============================================
 // CRM (Customer Relationship Management)
 // ============================================
+// ============================================
+// AGENT (Voice & AI)
+// ============================================
+
+export type AgentStatus = 'draft' | 'active' | 'paused';
+export type VoiceProvider = 'elevenlabs' | 'openai' | 'deepgram' | 'cartesia';
+
+export interface VoiceSettings {
+    provider: VoiceProvider;
+    voice_id: string;
+    model?: string;
+    stability?: number;
+    similarity_boost?: number;
+}
+
+export interface AgentTools {
+    check_availability: boolean;
+    book_appointment: boolean;
+    cancel_appointment: boolean;
+    update_appointment: boolean;
+    get_business_info: boolean;
+}
+
+export interface Agent {
+    _id: string; // Alias for id in backend but generic here
+    id: string;
+    name: string;
+    tenant_id: string;
+    system_prompt: string;
+    voice_settings: VoiceSettings;
+    llm_model: string;
+    llm_temperature: number;
+    stt_model: string;
+    tts_model: string;
+    tools_config: AgentTools;
+    greeting_enabled: boolean;
+    greeting_message: string;
+    webhook_urls?: {
+        get_slots: string;
+        book: string;
+        update: string;
+        cancel: string;
+    };
+    avatar_url?: string;
+    phone_number?: string;
+    description?: string;
+    status: AgentStatus;
+    livekit_agent_name: string;
+    livekit_queue: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface AgentUpdate {
+    name?: string;
+    system_prompt?: string;
+    voice_settings?: VoiceSettings;
+    llm_model?: string;
+    llm_temperature?: number;
+    stt_model?: string;
+    tts_model?: string;
+    tools_config?: AgentTools;
+    greeting_enabled?: boolean;
+    greeting_message?: string;
+    avatar_url?: string;
+    status?: AgentStatus;
+}

@@ -38,10 +38,11 @@ openai>=1.12.0
 # Optional: CrewAI and Langchain (for advanced analytics features)
 # Uncomment these if you need the /api/v1/crew endpoints for data cleaning and analytics
 # These packages are VERY large and will significantly increase Docker build time
-# langchain>=0.1.0
-# langchain-community>=0.0.10
+langchain>=0.1.0
+langchain-community>=0.0.10
+langchain-groq>=0.0.1
 # crewai>=0.11.0
-# langchain-openai>=0.0.5
+langchain-openai>=0.0.5
 
 
 
@@ -54,3 +55,6 @@ httpx==0.26.0
 
 # Production Server
 gunicorn==21.2.0
+
+# LiveKit API (Room Management)
+livekit-api>=0.8.0

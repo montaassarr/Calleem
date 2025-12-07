@@ -1,138 +1,41 @@
 "use client"
 
-import { PixelCard } from "@/components/ui/pixelcards"
 import { geist } from "@/lib/fonts"
 import { cn } from "@/lib/utils"
-import { CloudLightning, MoveRight } from "lucide-react"
+import { Phone, Calendar, MessageSquare, Bot, MoveRight, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import HomeBadge from "@/components/ui/home-badge"
-import { Beam } from "@/components/ui/gridbeam"
-import { Sparkles } from "lucide-react"
-import { useEffect, useState } from "react"
-import { CardHoverEffect } from "@/components/ui/pulse-card"
 import { motion } from "framer-motion"
 import Link from "next/link"
-
-const PIXEL_SCRIPT_URL =
-  "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/pixel-RKkUKH2OXWk9adKbDnozmndkwseTQh.js"
+import ScrollingLogos from "@/components/ui/scrolling-logos"
+import { sampleLogos } from "@/lib/sample-logos"
 
 export default function Hero() {
-  const [isScriptLoaded, setIsScriptLoaded] = useState(false)
-
-  useEffect(() => {
-    // Use Intersection Observer to load the script only when the component is in view
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          import("@/lib/load-script").then(({ loadScript }) => {
-            loadScript(PIXEL_SCRIPT_URL)
-              .then(() => {
-                setIsScriptLoaded(true)
-              })
-              .catch((error) => {
-                console.error("Error loading pixel script:", error)
-              })
-          })
-          observer.disconnect()
-        }
-      },
-      { threshold: 0.1 },
-    )
-
-    const heroElement = document.getElementById("hero-section")
-    if (heroElement) {
-      observer.observe(heroElement)
-    }
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [])
-
-  const cards = [
-    {
-      title: "V0 Compatible",
-      description: "Edit and customize visually, instantly.",
-      icon: <CloudLightning className="h-full w-full" />,
-      variant: "rose",
-      showGridLines: true,
-    },
-    {
-      title: "Animated Out of Box",
-      description: "No setup and  smooth UI interactions.",
-      icon: <Sparkles className="h-full w-full" />,
-      variant: "rose",
-      showGridLines: true,
-    },
-  ] as const
-
-  const cardConfigurations = [
-    {
-      color: "rose",
-      icon: "Blocks",
-      label: "Command",
-      canvasProps: { gap: 3, speed: 80, colors: "#fff, #fda4af, #e11d48" },
-      number: 100,
-      desc: "Components available",
-    },
-    {
-      color: "rose",
-      icon: "f",
-      label: "Dropper",
-      canvasProps: { gap: 3, speed: 80, colors: "#fff, #fda4af, #e11d48" },
-      number: 15,
-      desc: "Categories available",
-    },
-  ]
-
   return (
-    <div id="hero-section" className="bg-background relative min-h-screen w-full overflow-x-hidden py-32 md:px-6">
-      <img
-        src="/vector1.webp"
-        alt="Vector"
-        width={300}
-        draggable={false}
-        height={300}
-        className="absolute top-0 right-0 z-[2] object-cover object-center select-none"
-      />
-      <img
-        src="/vector2.png"
-        alt="Vector"
-        width={300}
-        height={300}
-        draggable={false}
-        className="absolute top-0 left-0 z-[2] object-cover object-center select-none"
-      />
-      <img
-        src="/vector5.webp"
-        alt="Vector"
-        width={300}
-        draggable={false}
-        height={300}
-        className="absolute bottom-0 -left-44 z-[2] -rotate-90 object-cover object-center select-none"
-      />
-      <img
-        src="/vector6.png"
-        alt="Vector"
-        width={300}
-        draggable={false}
-        height={300}
-        className="absolute -right-44 bottom-0 z-[2] rotate-90 object-cover object-center select-none"
-      />
-      <div className="container mx-auto px-4 2xl:max-w-[1400px]">
+    <div id="hero-section" className="bg-background relative min-h-screen w-full overflow-x-hidden py-20 md:py-32 md:px-6">
+      {/* Gradient orbs for visual appeal */}
+      <div className="absolute top-20 right-10 w-72 h-72 bg-rose-500/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-20 left-10 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-radial from-primary/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+
+      <div className="container mx-auto px-4 2xl:max-w-[1400px] relative z-10">
+        {/* Badge */}
         <motion.div
           className="flex justify-center"
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.75, delay: 0.1 }}
         >
-          <HomeBadge />
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm font-medium backdrop-blur-sm">
+            <Sparkles className="w-4 h-4" />
+            <span>AI-Powered Receptionist Platform</span>
+          </div>
         </motion.div>
-        <div className="mx-auto mt-5 max-w-3xl text-center">
-          <Beam />
+
+        {/* Main Heading */}
+        <div className="mx-auto mt-8 max-w-4xl text-center">
           <motion.h1
             className={cn(
-              "from-foreground/60 via-foreground to-foreground/60 dark:from-muted-foreground/55 dark:via-foreground dark:to-muted-foreground/55 max-w-5xl bg-gradient-to-r bg-clip-text text-center text-4xl font-semibold tracking-tighter text-transparent sm:text-5xl xl:text-6xl/none",
+              "from-foreground/60 via-foreground to-foreground/60 dark:from-muted-foreground/55 dark:via-foreground dark:to-muted-foreground/55 max-w-5xl bg-gradient-to-r bg-clip-text text-center text-4xl font-semibold tracking-tighter text-transparent sm:text-5xl xl:text-7xl/none",
               geist.className,
             )}
             initial={{ opacity: 0, y: 50 }}
@@ -140,156 +43,107 @@ export default function Hero() {
             transition={{ duration: 0.75, delay: 0.2 }}
           >
             Intelligent
-            <img
-              src="/rose.webp"
-              alt="Logo"
-              draggable={false}
-              className="mx-4 mb-2 inline-block h-12 w-12 md:h-16 md:w-16"
-            />
+            <span className="mx-3 inline-flex items-center justify-center w-12 h-12 md:w-16 md:h-16 rounded-xl bg-gradient-to-br from-rose-500 to-rose-600 shadow-lg shadow-rose-500/25">
+              <Bot className="w-6 h-6 md:w-8 md:h-8 text-white" />
+            </span>
             Automation for Modern Agencies.
           </motion.h1>
         </div>
+
+        {/* Subtitle */}
         <motion.div
-          className="mx-auto mt-5 max-w-3xl text-center"
+          className="mx-auto mt-6 max-w-2xl text-center"
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.75, delay: 0.3 }}
         >
-          <p className="text-muted-foreground text-xl">
+          <p className="text-muted-foreground text-lg md:text-xl leading-relaxed">
             Deploy AI receptionists that work 24/7. Handle appointments, answer queries, and grow your business
             without increasing headcount.
           </p>
         </motion.div>
+
+        {/* CTA Buttons */}
         <motion.div
-          className="mt-8 flex justify-center gap-3"
+          className="mt-10 flex flex-col sm:flex-row justify-center gap-4"
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.75, delay: 0.4 }}
         >
-          <Link prefetch={false} href="/docs/introduction">
-            <Button className="bg-gradient-to-b from-rose-500 to-rose-700 text-sm text-white shadow-[0px_2px_0px_0px_rgba(255,255,255,0.3)_inset]">
-              Get started
+          <Link prefetch={false} href="/signup">
+            <Button size="lg" className="bg-gradient-to-b from-rose-500 to-rose-700 text-white shadow-[0px_2px_0px_0px_rgba(255,255,255,0.3)_inset] hover:from-rose-600 hover:to-rose-800 transition-all duration-300 w-full sm:w-auto">
+              Get Started Free
             </Button>
           </Link>
-          <Link prefetch={false} href="/about">
-            <Button variant={"secondary"}>
-              About <MoveRight className="ml-2 h-4 w-4" />
+          <Link prefetch={false} href="#features">
+            <Button variant="secondary" size="lg" className="w-full sm:w-auto group">
+              See Demo <MoveRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Button>
           </Link>
         </motion.div>
+
+        {/* Tech Stack - Animated Marquee */}
         <motion.div
-          className="mt-5 flex items-center justify-center gap-x-1"
+          className="mt-16"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.75, delay: 0.75 }}
+          transition={{ duration: 0.75, delay: 0.6 }}
         >
-          <motion.img
-            draggable={false}
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 1, delay: 1.25 }}
-            src="/vector4.webp"
-            alt="Next.js"
-            className="mt-4 mr-2 hidden w-96 brightness-[4] select-none xl:block"
-          />
-          <span className="text-sm text-gray-500">We use industry standards like </span>
-          <img
-            src="/nextjs.webp"
-            draggable={false}
-            alt="Next.js"
-            width={28}
-            height={28}
-            className="h-7 w-7 select-none"
-          />
-          <img
-            src="/tailwind.webp"
-            alt="Tailwind CSS"
-            width={28}
-            height={28}
-            className="h-7 w-7 select-none"
-            draggable={false}
-          />
-          <img
-            src="/framer.webp"
-            alt="Framer Motion"
-            width={24}
-            height={24}
-            className="h-6 w-6 select-none"
-            draggable={false}
-          />
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 1, delay: 1.25 }}
-            className="mt-4 ml-2 hidden w-96 select-none xl:block"
-          >
-            <img
-              src="/vector3.webp"
-              alt="Vector graphic"
-              width={384}
-              height={100}
-              draggable={false}
-              className="brightness-[4]"
-            />
-          </motion.div>
+          <div className="text-center mx-auto max-w-lg mb-8">
+            <h2 className="font-mono font-medium text-muted-foreground uppercase text-xs tracking-widest">
+              Built with industry-leading technology
+            </h2>
+          </div>
+          <ScrollingLogos logos={sampleLogos} />
         </motion.div>
-        <div className="mx-auto mt-5 max-w-2xl text-center">
-          <main className="bg-background dark:bg-background m-auto flex w-full flex-col items-center justify-center gap-8 p-6 text-left text-gray-800 sm:flex-row xl:p-4 dark:text-[#e3e3e3]">
-            {isScriptLoaded && (
-              <motion.div
-                className="bg-background absolute top-[45%] left-28 z-50 hidden h-[370px] w-[300px] xl:block"
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.75, delay: 0.5 }}
-              >
-                <PixelCard
-                  key={cardConfigurations[0].label}
-                  label={cardConfigurations[0].label}
-                  canvasProps={cardConfigurations[0].canvasProps}
-                  number={cardConfigurations[0].number}
-                  icon={cardConfigurations[0].icon}
-                  desc={cardConfigurations[0].desc}
-                  color={cardConfigurations[1].color}
-                />
-              </motion.div>
-            )}
-            {isScriptLoaded && (
-              <motion.div
-                className="bg-background absolute top-[45%] right-28 z-50 hidden h-[370px] w-[300px] xl:block"
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.75, delay: 0.5 }}
-              >
-                <PixelCard
-                  color={cardConfigurations[1].color}
-                  icon={cardConfigurations[1].icon}
-                  key={cardConfigurations[1].label}
-                  label={cardConfigurations[1].label}
-                  canvasProps={cardConfigurations[1].canvasProps}
-                  number={cardConfigurations[1].number}
-                  desc={cardConfigurations[1].desc}
-                />
-              </motion.div>
-            )}
-            {cards.map((card, i) => (
+
+        {/* Feature Cards */}
+        <div className="mx-auto mt-16 max-w-4xl">
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.75, delay: 0.8 }}
+          >
+            {[
+              {
+                icon: Phone,
+                title: "Voice AI",
+                description: "Natural conversations with callers",
+                color: "from-rose-500/20 to-rose-500/5",
+                iconColor: "text-rose-400",
+              },
+              {
+                icon: Calendar,
+                title: "Smart Booking",
+                description: "Automated appointment scheduling",
+                color: "from-cyan-500/20 to-cyan-500/5",
+                iconColor: "text-cyan-400",
+              },
+              {
+                icon: MessageSquare,
+                title: "24/7 Support",
+                description: "Always-on customer assistance",
+                color: "from-purple-500/20 to-purple-500/5",
+                iconColor: "text-purple-400",
+              },
+            ].map((feature, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 1, delay: 1.25 }}
+                className={cn(
+                  "group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br p-6 backdrop-blur-sm transition-all duration-300 hover:border-white/20 hover:scale-[1.02]",
+                  feature.color
+                )}
+                whileHover={{ y: -4 }}
               >
-                <CardHoverEffect
-                  title={card.title}
-                  description={card.description}
-                  icon={card.icon}
-                  variant={card.variant}
-                  glowEffect={true}
-                  size={"lg"}
-                  showGridLines={card.showGridLines}
-                />
+                <div className={cn("w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center mb-4", feature.iconColor)}>
+                  <feature.icon className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">{feature.title}</h3>
+                <p className="text-sm text-muted-foreground">{feature.description}</p>
               </motion.div>
             ))}
-          </main>
+          </motion.div>
         </div>
       </div>
     </div>

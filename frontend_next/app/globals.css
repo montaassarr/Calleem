@@ -241,3 +241,17 @@ body {
 .animate-shiny-text {
   animation: shiny-text 3s ease-in-out infinite;
 }
+
+/* Horizontal scroll animation for tech stack marquee */
+@keyframes scroll-x {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-scroll-x {
+  animation: scroll-x 25s linear infinite;
+}

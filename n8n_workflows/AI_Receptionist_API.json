@@ -1,0 +1,132 @@
+{
+  "name": "AI Receptionist API",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-receptionist/chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-chat",
+      "name": "Chat Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [300, 300],
+      "webhookId": "ai-chat-api"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.message }}",
+        "options": {
+          "systemMessage": "You are Parker, a friendly and professional AI receptionist.\n\nToday's date: {{ $now.format('YYYY-MM-DD') }}\nCurrent time: {{ $now.format('HH:mm') }}\n\nYour capabilities:\n- Help customers book appointments\n- Check availability for specific dates/times\n- Answer questions about services\n- Cancel existing appointments\n\nBusiness Hours:\n- Monday-Friday: 9:00 AM - 6:00 PM\n- Saturday: 10:00 AM - 4:00 PM\n- Sunday: Closed\n\nConversation Rules:\n- Be concise (2-3 sentences max per response)\n- Ask for one piece of info at a time\n- Collect: name, email, phone, preferred date/time, service type\n- Always confirm details before finalizing bookings\n- Be warm and professional\n\nWhen using tools:\n- Use check_availability before booking\n- Use book_appointment only when you have all required info\n- Format dates as YYYY-MM-DD\n- Format times as HH:MM (24-hour)"
+        }
+      },
+      "id": "ai-agent-node",
+      "name": "Receptionist Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [600, 300],
+      "typeVersion": 2.1
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"response\": {{ JSON.stringify($json.output) }}\n}",
+        "options": {}
+      },
+      "id": "respond-node",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "groq-model",
+      "name": "Groq AI",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "position": [500, 520],
+      "typeVersion": 1,
+      "credentials": {
+        "groqApi": {
+          "id": "dvToCrquUUPcrotB",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "check_availability",
+        "description": "Check if a specific date and time slot is available for booking an appointment.",
+        "method": "GET",
+        "url": "=https://nonsustainable-delaine-grabbable.ngrok-free.dev/api/v1/appointments/agent/availability?date={{ $fromAI('date', 'Date in YYYY-MM-DD format', 'string') }}&time={{ $fromAI('time', 'Time in HH:MM 24-hour format', 'string') }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {"name": "X-Tenant-ID", "value": "69319a0e7436614acd86b5d5"},
+            {"name": "ngrok-skip-browser-warning", "value": "true"}
+          ]
+        }
+      },
+      "id": "tool-availability",
+      "name": "Check Availability Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "position": [640, 520],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "name": "book_appointment",
+        "description": "Book a new appointment for a customer. Requires customer name, email, date, time.",
+        "method": "POST",
+        "url": "https://nonsustainable-delaine-grabbable.ngrok-free.dev/api/v1/appointments/agent/book",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {"name": "X-Tenant-ID", "value": "69319a0e7436614acd86b5d5"},
+            {"name": "Content-Type", "value": "application/json"},
+            {"name": "ngrok-skip-browser-warning", "value": "true"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_name\": \"{{ $fromAI('customer_name', 'Full name', 'string') }}\",\n  \"customer_email\": \"{{ $fromAI('customer_email', 'Email address', 'string') }}\",\n  \"customer_phone\": \"{{ $fromAI('customer_phone', 'Phone number', 'string') }}\",\n  \"date\": \"{{ $fromAI('date', 'Date YYYY-MM-DD', 'string') }}\",\n  \"time\": \"{{ $fromAI('time', 'Time HH:MM', 'string') }}\",\n  \"service\": \"{{ $fromAI('service', 'Service type', 'string') }}\"\n}"
+      },
+      "id": "tool-book",
+      "name": "Book Appointment Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "position": [780, 520],
+      "typeVersion": 1.1
+    }
+  ],
+  "connections": {
+    "Chat Webhook": {
+      "main": [[{"node": "Receptionist Agent", "type": "main", "index": 0}]]
+    },
+    "Receptionist Agent": {
+      "main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]
+    },
+    "Groq AI": {
+      "ai_languageModel": [[{"node": "Receptionist Agent", "type": "ai_languageModel", "index": 0}]]
+    },
+    "Check Availability Tool": {
+      "ai_tool": [[{"node": "Receptionist Agent", "type": "ai_tool", "index": 0}]]
+    },
+    "Book Appointment Tool": {
+      "ai_tool": [[{"node": "Receptionist Agent", "type": "ai_tool", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": ["ai", "receptionist", "groq"]
+}

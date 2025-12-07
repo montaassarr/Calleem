@@ -23,6 +23,7 @@ from services.whatsapp_cloud import whatsapp_cloud
 from services.whatsapp_cloud import whatsapp_cloud
 from utils.config import settings
 from routers.users import get_current_user
+from services.appointments_service import AppointmentsService
 
 logger = logging.getLogger(__name__)
 
@@ -30,13 +31,15 @@ router = APIRouter()
 
 
 # ============================================================================
-# AGENT-ACCESSIBLE ENDPOINTS (No JWT required, uses X-Tenant-ID header)
+# INTERNAL ENDPOINTS (Called by n8n workflows, not directly by agent)
+# These require X-Tenant-ID header for multi-tenant isolation
+# Flow: Agent → n8n webhook → these endpoints → MongoDB
 # ============================================================================
 
 from fastapi import Request
 
 def get_tenant_from_header(request: Request) -> str:
-    """Extract tenant_id from X-Tenant-ID header for agent calls"""
+    """Extract tenant_id from X-Tenant-ID header for n8n/internal calls"""
     tenant_id = request.headers.get("X-Tenant-ID")
     if not tenant_id:
         raise HTTPException(status_code=400, detail="X-Tenant-ID header required")
@@ -53,61 +56,17 @@ async def agent_check_availability(
     """Agent-accessible availability check (no JWT required)"""
     try:
         tenant_id = get_tenant_from_header(request)
-        db = get_database()
         
-        logger.info(f"Checking availability for tenant={tenant_id}, date={date}, time={time}")
-        
-        # Parse datetime
-        if date and time:
-            # Handle time with or without seconds
-            time_clean = time if ":" in time else f"{time}:00"
-            if len(time_clean.split(":")) == 2:
-                time_clean = f"{time_clean}:00"
-            datetime_str = f"{date}T{time_clean}"
-            try:
-                requested_datetime = datetime.fromisoformat(datetime_str)
-            except:
-                requested_datetime = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
-        elif date:
-            # Just date, assume morning slot
-            requested_datetime = datetime.fromisoformat(f"{date}T09:00:00")
-        else:
-            return {"available": False, "reason": "Date is required"}
-        
-        # Simple validation - not in past
-        now = datetime.now()
-        if requested_datetime < now:
-            return {"available": False, "reason": "Cannot book in the past"}
-        
-        # Check for overlapping appointments
-        end_datetime = requested_datetime + timedelta(minutes=duration_minutes)
-        
-        query = {
-            "tenant_id": tenant_id,
-            "status": {"$in": ["confirmed", "pending", "CONFIRMED", "PENDING"]},
-            "$or": [
-                {"datetime": {"$gte": requested_datetime, "$lt": end_datetime}},
-                {"start_time": {"$gte": requested_datetime, "$lt": end_datetime}}
-            ]
-        }
-        
-        overlapping = await db.appointments.count_documents(query)
-        is_available = overlapping == 0
-        
-        logger.info(f"Availability result: {is_available} (overlapping={overlapping})")
-        
-        return {
-            "available": is_available,
-            "slot_available": is_available,
-            "requested_datetime": requested_datetime.isoformat(),
-            "date": date,
-            "time": time,
-            "reason": "Available" if is_available else "Time slot is already booked"
-        }
+        result = await AppointmentsService.check_availability(
+            tenant_id=tenant_id,
+            date=date,
+            time=time,
+            duration_minutes=duration_minutes
+        )
+        return result
         
     except Exception as e:
         logger.error(f"Agent availability check error: {e}")
-        # On error, assume available (better UX)
         return {"available": True, "reason": "Slot appears available"}
 
 
@@ -120,57 +79,30 @@ async def agent_book_appointment(
     """Agent-accessible booking endpoint (no JWT required)"""
     try:
         tenant_id = get_tenant_from_header(request)
-        db = get_database()
         
-        # Extract booking details
+        # Extract details
         customer_name = data.get("customer_name") or data.get("name")
         customer_phone = data.get("customer_phone") or data.get("phone", "")
+        customer_email = data.get("customer_email") or data.get("email", "")
         date_str = data.get("date")
         time_str = data.get("time")
         service = data.get("service", "Appointment")
         notes = data.get("notes", "")
         duration = data.get("duration_minutes", 30)
+
+        result = await AppointmentsService.book_appointment(
+            tenant_id=tenant_id,
+            customer_name=customer_name,
+            customer_email=customer_email,
+            customer_phone=customer_phone,
+            date=date_str,
+            time=time_str,
+            service=service,
+            notes=notes,
+            duration_minutes=duration
+        )
         
-        if not customer_name:
-            return {"success": False, "message": "Customer name is required"}
-        if not date_str or not time_str:
-            return {"success": False, "message": "Date and time are required"}
-        
-        # Parse datetime
-        try:
-            start_time = datetime.fromisoformat(f"{date_str}T{time_str}:00")
-        except:
-            return {"success": False, "message": "Invalid date/time format"}
-        
-        end_time = start_time + timedelta(minutes=duration)
-        
-        # Create appointment
-        appointment_dict = {
-            "client_name": customer_name,
-            "client_phone": customer_phone,
-            "service": service,
-            "start_time": start_time,
-            "end_time": end_time,
-            "datetime": start_time,
-            "duration_minutes": duration,
-            "tenant_id": tenant_id,
-            "business_id": tenant_id,
-            "status": AppointmentStatus.CONFIRMED,
-            "source": "voice_agent",
-            "notes": notes,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        }
-        
-        result = await db.appointments.insert_one(appointment_dict)
-        
-        logger.info(f"✅ Agent booked appointment: {result.inserted_id}")
-        
-        return {
-            "success": True,
-            "message": f"Appointment booked for {customer_name} on {date_str} at {time_str}",
-            "appointment_id": str(result.inserted_id)
-        }
+        return result
         
     except Exception as e:
         logger.error(f"Agent booking error: {e}")
