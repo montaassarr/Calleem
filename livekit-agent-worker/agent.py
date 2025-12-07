@@ -1,355 +1,231 @@
-"""
-CallFlow AI - Multi-Tenant Voice Agent
-Uses LiveKit Cloud Inference + n8n Workflows for booking
-
-Reads configuration dynamically from backend API per session.
-Connects to n8n workflows for appointment management.
-"""
-
 import logging
 import os
+import json
+from typing import Any
+from datetime import datetime
 
 import httpx
 from dotenv import load_dotenv
-from livekit import rtc
+
 from livekit.agents import (
-    Agent,
-    AgentServer,
-    AgentSession,
+    AutoSubscribe,
     JobContext,
     JobProcess,
-    RunContext,
+    WorkerOptions,
     cli,
-    function_tool,
+    llm,
+    Agent,
     inference,
-    room_io,
 )
-from livekit.plugins import noise_cancellation, silero
+import uuid
+from livekit.agents.voice import AgentSession
+from livekit.plugins import silero
+
 
 load_dotenv()
 
 logger = logging.getLogger("callflow-agent")
 logging.basicConfig(level=logging.INFO)
 
-# n8n Cloud webhook URL (set in .env or use default)
-# Format: https://<instance>.app.n8n.cloud/webhook/<path>
-N8N_WEBHOOK_BASE = os.getenv("N8N_WEBHOOK_URL", "https://aimstudio.app.n8n.cloud/webhook")
+# Configuration
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+# Pointing to the new Python Backend Agent endpoint
+AGENT_API_URL = f"{BACKEND_URL}/api/v1/ai/chat"
+logger.info(f"Connecting to AI Agent at: {AGENT_API_URL}")
 
 
-
-class CallFlowAgent(Agent):
-    """Multi-tenant AI receptionist agent with n8n integration"""
-
-    def __init__(self, tenant_id: str, config: dict):
+class N8NLLM(llm.LLM):
+    """
+    Custom LLM adapter that offloads reasoning to n8n via webhook.
+    """
+    def __init__(self, tenant_id: str, business_name: str, session_id: str):
+        super().__init__()
         self.tenant_id = tenant_id
-        self.config = config
-        self.business_name = config.get("business_name", "Business")
-        self.backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
+        self.business_name = business_name
+        self.session_id = session_id
         
-        # Get system prompt from config
-        system_prompt = config.get("system_prompt", f"""You are a friendly AI receptionist for {self.business_name}.
-
-Your capabilities:
-- Book appointments for customers
-- Check available time slots
-- List available services
-- Answer questions about the business
-
-Always be helpful, polite, and professional. Keep responses brief and natural.""")
-
-        super().__init__(instructions=system_prompt)
-        logger.info(f"Agent initialized for tenant {tenant_id} - {self.business_name}")
-
-    def _get_date_from_text(self, date_text: str) -> str:
-        """Convert natural language date to YYYY-MM-DD format"""
-        from datetime import datetime, timedelta
-        today = datetime.now()
-        
-        date_lower = date_text.lower().strip()
-        
-        if "today" in date_lower:
-            return today.strftime("%Y-%m-%d")
-        elif "tomorrow" in date_lower:
-            return (today + timedelta(days=1)).strftime("%Y-%m-%d")
-        elif "monday" in date_lower:
-            days_ahead = 0 - today.weekday()
-            if days_ahead <= 0:
-                days_ahead += 7
-            return (today + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
-        elif "tuesday" in date_lower:
-            days_ahead = 1 - today.weekday()
-            if days_ahead <= 0:
-                days_ahead += 7
-            return (today + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
-        elif "wednesday" in date_lower:
-            days_ahead = 2 - today.weekday()
-            if days_ahead <= 0:
-                days_ahead += 7
-            return (today + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
-        elif "thursday" in date_lower:
-            days_ahead = 3 - today.weekday()
-            if days_ahead <= 0:
-                days_ahead += 7
-            return (today + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
-        elif "friday" in date_lower:
-            days_ahead = 4 - today.weekday()
-            if days_ahead <= 0:
-                days_ahead += 7
-            return (today + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
-        elif "saturday" in date_lower:
-            days_ahead = 5 - today.weekday()
-            if days_ahead <= 0:
-                days_ahead += 7
-            return (today + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
-        elif "sunday" in date_lower:
-            days_ahead = 6 - today.weekday()
-            if days_ahead <= 0:
-                days_ahead += 7
-            return (today + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
-        
-        # Try to parse as YYYY-MM-DD
-        try:
-            datetime.strptime(date_text, "%Y-%m-%d")
-            return date_text
-        except:
-            pass
-        
-        # Default to tomorrow if can't parse
-        return (today + timedelta(days=1)).strftime("%Y-%m-%d")
-
-    def _get_time_from_text(self, time_text: str) -> str:
-        """Convert spoken time to HH:MM format (24h)"""
-        import re
-        
-        time_lower = time_text.lower().strip()
-        
-        # Handle "3 PM", "3PM", "3:00 PM" etc
-        match = re.search(r'(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?', time_lower)
-        if match:
-            hour = int(match.group(1))
-            minute = int(match.group(2)) if match.group(2) else 0
-            meridiem = match.group(3)
-            
-            if meridiem and ('pm' in meridiem or 'p.m.' in meridiem):
-                if hour != 12:
-                    hour += 12
-            elif meridiem and ('am' in meridiem or 'a.m.' in meridiem):
-                if hour == 12:
-                    hour = 0
-            
-            return f"{hour:02d}:{minute:02d}"
-        
-        # If already in HH:MM format
-        if re.match(r'^\d{1,2}:\d{2}$', time_text):
-            parts = time_text.split(':')
-            return f"{int(parts[0]):02d}:{parts[1]}"
-        
-        # Default to 10 AM if can't parse
-        return "10:00"
-
-
-    @function_tool
-    async def check_availability(
+    def chat(
         self,
-        ctx: RunContext,
-        date: str,
-        time: str = "",
-    ) -> str:
-        """Check if a time slot is available for booking.
+        *,
+        chat_ctx: llm.ChatContext,
+        tools: list[llm.FunctionTool | llm.RawFunctionTool] | None = None,
+        conn_options: Any = None,
+        parallel_tool_calls: Any = None,
+        tool_choice: Any = None,
+        extra_kwargs: Any = None,
+    ) -> "N8NLLMStream":
+        return N8NLLMStream(self, chat_ctx=chat_ctx, conn_options=conn_options)
 
-        Args:
-            date: Date to check (e.g., "tomorrow", "Monday", or "2025-12-06")
-            time: Optional time in HH:MM format (e.g., "15:00" for 3 PM)
-        """
-        # Convert natural language date to YYYY-MM-DD
-        parsed_date = self._get_date_from_text(date)
-        logger.info(f"Checking availability for {parsed_date} {time} (original: {date})")
-        
+
+class N8NLLMStream(llm.LLMStream):
+    def __init__(self, n8n_llm: N8NLLM, chat_ctx: llm.ChatContext, conn_options: Any):
+        super().__init__(
+            llm=n8n_llm, 
+            chat_ctx=chat_ctx, 
+            tools=[], 
+            conn_options=conn_options or llm.APIConnectOptions()
+        )
+        self.n8n_llm = n8n_llm
+
+    async def _run(self) -> None:
+        # Get the last user message
+        if not self._chat_ctx.items:
+            return
+
+        last_msg = self._chat_ctx.items[-1]
+        if last_msg.role != "user":
+            return
+
+        user_text = last_msg.content
+        if isinstance(user_text, list):
+            user_text = " ".join([c for c in user_text if isinstance(c, str)])
+
+        logger.info(f"Sending to n8n: {user_text}")
+
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                # Use the public agent endpoint
-                response = await client.get(
-                    f"{self.backend_url}/api/v1/appointments/agent/availability",
-                    params={"date": parsed_date, "time": time},
-                    headers={"X-Tenant-ID": self.tenant_id}
-                )
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    if data.get("available"):
-                        return f"Yes, {parsed_date} at {time} is available! Would you like me to book it for you?"
-                    else:
-                        return f"Sorry, that time is not available. {data.get('reason', '')} Would you like to try a different time?"
-                        
-        except Exception as e:
-            logger.error(f"Availability check failed: {e}")
-            
-        return f"The time slot on {parsed_date} at {time} appears to be available. Would you like me to book it?"
-
-    @function_tool
-    async def book_appointment(
-        self,
-        ctx: RunContext,
-        customer_name: str,
-        date: str,
-        time: str,
-        service: str = "General",
-        customer_phone: str = "",
-        notes: str = "",
-    ) -> str:
-        """Book an appointment for a customer.
-
-        Args:
-            customer_name: Full name of the customer
-            date: Appointment date (e.g., "tomorrow", "Monday", or "2025-12-06")
-            time: Appointment time (e.g., "15:00" for 3 PM)
-            service: Service type requested
-            customer_phone: Customer's phone number
-            notes: Any additional notes
-        """
-        # Convert natural language date to YYYY-MM-DD
-        parsed_date = self._get_date_from_text(date)
-        logger.info(f"Booking appointment: {customer_name} on {parsed_date} at {time} (original date: {date})")
-        
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                # Use the public agent endpoint
+            async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
-                    f"{self.backend_url}/api/v1/appointments/agent/book",
+                    AGENT_API_URL,
                     json={
-                        "customer_name": customer_name,
-                        "customer_phone": customer_phone,
-                        "date": parsed_date,
-                        "time": time,
-                        "service": service,
-                        "notes": notes,
-                        "duration_minutes": 30,
-                    },
-                    headers={"X-Tenant-ID": self.tenant_id}
+                        "message": user_text,
+                        "session_id": self.n8n_llm.session_id,
+                        "tenant_id": self.n8n_llm.tenant_id,
+                        "business_name": self.n8n_llm.business_name,
+                        "chat_history": [
+                            {"role": m.role, "content": m.content} 
+                            for m in self._chat_ctx.items
+                        ]
+                    }
                 )
                 
+                logger.info(f"n8n raw response ({response.status_code}): {response.text}")
+
                 if response.status_code == 200:
-                    data = response.json()
-                    if data.get("success"):
-                        return f"I've booked your appointment for {parsed_date} at {time}. You're all set, {customer_name}!"
-                    else:
-                        return f"Sorry, I couldn't book that time: {data.get('message', 'Please try a different time.')}"
-                        
+                    try:
+                        data = response.json()
+                        text = data.get("response", "I'm sorry, I didn't catch that.")
+                    except json.JSONDecodeError:
+                        logger.error("Failed to parse n8n JSON response, likely workflow didn't hit 'Respond to Webhook' node")
+                        text = "I'm having trouble connecting to my brain right now."
+                    
+                    logger.info(f"Parsed response text: {text}")
+
+                    # Yield the full text as a single chunk
+                    chunk = llm.ChatChunk(
+                        id=str(uuid.uuid4()),
+                        delta=llm.ChoiceDelta(content=text, role="assistant")
+                    )
+                    await self._event_ch.send(chunk)
+                else:
+                    logger.error(f"n8n returned status {response.status_code}. Raw response: {response.text}")
+                    chunk = llm.ChatChunk(
+                        id=str(uuid.uuid4()),
+                        delta=llm.ChoiceDelta(content="I'm having trouble connecting to my brain right now.", role="assistant")
+                    )
+                    await self._event_ch.send(chunk)
+
         except Exception as e:
-            logger.error(f"Booking failed: {e}")
-            
-        return f"I'd be happy to book {customer_name} for {parsed_date} at {time}. Let me confirm with the business and get back to you."
+            logger.error(f"Failed to call n8n: {e}", exc_info=True)
+            chunk = llm.ChatChunk(
+                id=str(uuid.uuid4()),
+                delta=llm.ChoiceDelta(content="I'm sorry, I'm experiencing technical difficulties.", role="assistant")
+            )
+            await self._event_ch.send(chunk)
 
 
-    @function_tool
-    async def list_services(self, ctx: RunContext) -> str:
-        """List all available services that can be booked."""
-        logger.info("Listing services")
-        
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(
-                    f"{self.backend_url}/api/v1/services/",
-                    headers={"X-Tenant-ID": self.tenant_id}
-                )
-                
-                if response.status_code == 200:
-                    services = response.json()
-                    if services and len(services) > 0:
-                        service_list = ", ".join([s.get("name", "Service") for s in services[:5]])
-                        return f"We offer: {service_list}. Which service are you interested in?"
-                    else:
-                        return "We offer various services. What type of appointment are you looking for?"
-                        
-        except Exception as e:
-            logger.error(f"Service list failed: {e}")
-            
-        return "We have several services available. What type of service are you looking for today?"
-
-
-# Server setup
-server = AgentServer()
-
-
-def prewarm(proc: JobProcess):
-    proc.userdata["vad"] = silero.VAD.load()
-    logger.info("VAD model preloaded")
-
-
-server.setup_fnc = prewarm
+async def fetch_tenant_config(tenant_id: str) -> dict:
+    """Fetch tenant configuration from backend"""
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                f"{BACKEND_URL}/api/v1/voice-agent/tenant-config/{tenant_id}"
+            )
+            if response.status_code == 200:
+                config = response.json()
+                logger.info(f"Loaded config for tenant {tenant_id}")
+                return config
+    except Exception as e:
+        logger.warning(f"Could not fetch tenant config: {e}")
+    
+    return {"business_name": "Valued Business", "tenant_id": tenant_id}
 
 
 def extract_tenant_id(room_name: str) -> str:
-    """Extract tenant_id from room name: preview-{tenant_id}-{random}"""
     parts = room_name.split("-")
     if len(parts) >= 2 and parts[0] == "preview":
         return parts[1]
     return "default"
 
 
-async def fetch_tenant_config(tenant_id: str) -> dict:
-    """Fetch tenant configuration from backend"""
-    backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
-    
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get(
-                f"{backend_url}/api/v1/voice-agent/tenant-config/{tenant_id}"
-            )
-            if response.status_code == 200:
-                config = response.json()
-                logger.info(f"Loaded config for tenant {tenant_id}: LLM={config.get('llm_model')}, STT={config.get('stt_model')}, TTS={config.get('tts_model')}")
-                return config
-    except Exception as e:
-        logger.warning(f"Could not fetch tenant config: {e}")
-    
-    return {"business_name": "Business", "tenant_id": tenant_id}
+def prewarm(proc: JobProcess):
+    proc.userdata["vad"] = silero.VAD.load()
 
 
-@server.rtc_session()
-async def voice_agent(ctx: JobContext):
-    """Main entry point - uses LiveKit Cloud Inference with tenant config"""
-
+async def entrypoint(ctx: JobContext):
     tenant_id = extract_tenant_id(ctx.room.name)
-    logger.info(f"Starting agent for tenant: {tenant_id}, room: {ctx.room.name}")
+    logger.info(f"Starting agent job for tenant: {tenant_id}")
 
-    # Fetch tenant config (includes stt_model, llm_model, tts_model from dashboard settings)
+    # Fetch Config
     config = await fetch_tenant_config(tenant_id)
-    
-    # Get models from config (with defaults)
-    stt_model = config.get("stt_model", "deepgram/nova-3")
-    llm_model = config.get("llm_model", "openai/gpt-4o-mini")
-    tts_model = config.get("tts_model", "cartesia/sonic-2")
-    voice_id = config.get("voice_id", "79a125e8-cd45-4c13-8a67-188112f4dd22")
-    
-    logger.info(f"Using models: STT={stt_model}, LLM={llm_model}, TTS={tts_model}")
+    business_name = config.get("business_name", "Valued Business")
 
-    # Create session with tenant's configured models (LiveKit Cloud Inference)
-    session = AgentSession(
-        stt=inference.STT(model=stt_model),
-        llm=inference.LLM(model=llm_model),
-        tts=inference.TTS(model=tts_model, voice=voice_id),
+    # Initialize Models using Cloud Inference
+    # Extract provider from model string (e.g. "deepgram/nova-3" -> "deepgram")
+    stt_model_str = config.get("stt_model", "deepgram")
+    stt_provider = stt_model_str.split("/")[0] if "/" in stt_model_str else stt_model_str
+    
+    tts_model_str = config.get("tts_model", "cartesia")
+    tts_provider = tts_model_str.split("/")[0] if "/" in tts_model_str else tts_model_str
+
+    logger.info(f"Using STT Provider: {stt_provider}, TTS Provider: {tts_provider}")
+
+    stt = inference.STT(model=stt_provider) 
+    tts = inference.TTS(model=tts_provider)
+
+    # Custom N8N LLM
+    n8n_llm = N8NLLM(
+        tenant_id=tenant_id, 
+        business_name=business_name,
+        session_id=ctx.room.name
+    )
+
+    # Prepare System Prompt
+    system_prompt = config.get("system_prompt", f"You are a helpful AI receptionist for {business_name}.")
+    system_prompt += f"\nToday is {datetime.now().strftime('%A, %B %d, %Y')}."
+
+    # Voice Pipeline Config (Agent)
+    agent_config = Agent(
         vad=ctx.proc.userdata["vad"],
-        preemptive_generation=True,
+        stt=stt,
+        llm=n8n_llm,
+        tts=tts,
+        instructions=system_prompt  
     )
 
-    # Create agent with tenant config
-    agent = CallFlowAgent(tenant_id=tenant_id, config=config)
+    # Runner (AgentSession)
+    session = AgentSession()
+    session.update_agent(agent_config)
 
-    # Start with noise cancellation
-    await session.start(
-        agent=agent,
-        room=ctx.room,
-        room_options=room_io.RoomOptions(
-            audio_input=room_io.AudioInputOptions(
-                noise_cancellation=lambda params: noise_cancellation.BVC(),
-            ),
-        ),
-    )
+    # Connect to Room
+    await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
+    
+    # Wait for Participant
+    participant = await ctx.wait_for_participant()
+    logger.info(f"Participant joined: {participant.identity}")
 
-    await ctx.connect()
-    logger.info(f"Agent connected for tenant {tenant_id} using {llm_model}")
+    # Start Session
+    # Signature: start(agent, *, room=...)
+    await session.start(agent_config, room=ctx.room)
+    
+    # Initial Greeting
+    # Note: ensure session handles the greeting correctly
+    await session.say(f"Hi, thanks for calling {business_name}. How can I help you today?")
 
 
 if __name__ == "__main__":
-    cli.run_app(server)
+    cli.run_app(
+        WorkerOptions(
+            entrypoint_fnc=entrypoint,
+            prewarm_fnc=prewarm,
+        )
+    )

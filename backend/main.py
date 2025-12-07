@@ -230,6 +230,14 @@ app.include_router(
     tags=["Billing & Subscriptions"]
 )
 
+# LiveKit Token Server (equivalent to official livekit/token-server)
+from routers import livekit_token
+app.include_router(
+    livekit_token.router,
+    prefix=f"{settings.API_V1_PREFIX}/livekit",
+    tags=["LiveKit Token"]
+)
+
 # Monitoring endpoints for diagnostics
 app.include_router(
     monitoring.router,
@@ -249,6 +257,15 @@ app.include_router(
     onboarding.router,
     prefix=f"{settings.API_V1_PREFIX}",
     tags=["Onboarding"]
+)
+
+
+# AI Chat Router (Replaces n8n)
+from routers import ai_chat
+app.include_router(
+    ai_chat.router,
+    prefix=f"{settings.API_V1_PREFIX}",
+    tags=["AI Chat"]
 )
 
 

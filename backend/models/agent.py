@@ -41,6 +41,15 @@ class VoiceSettings(BaseModel):
     similarity_boost: Optional[float] = 0.75
 
 
+class AgentTools(BaseModel):
+    """Configuration for AI tools availability"""
+    check_availability: bool = Field(default=True, description="Enable availability checking")
+    book_appointment: bool = Field(default=True, description="Enable appointment booking")
+    cancel_appointment: bool = Field(default=True, description="Enable appointment cancellation")
+    update_appointment: bool = Field(default=False, description="Enable appointment updates")
+    get_business_info: bool = Field(default=True, description="Enable general business info queries")
+
+
 class AgentBase(BaseModel):
     """Base agent model"""
     name: str = Field(..., min_length=2, max_length=100, description="Agent name (e.g., 'Sarah - Hair Salon Receptionist')")
@@ -50,9 +59,14 @@ class AgentBase(BaseModel):
     # Voice configuration
     voice_settings: VoiceSettings
     
-    # LLM configuration
-    llm_model: str = Field(default="llama-3.3-70b-versatile", description="LLM model to use (e.g., llama-3.3-70b-versatile for Groq, gpt-4 for OpenAI)")
+    # Model Configurations
+    llm_model: str = Field(default="llama-3.3-70b-versatile", description="LLM model (e.g., llama-3.3-70b-versatile)")
     llm_temperature: float = Field(default=0.7, ge=0.0, le=2.0)
+    stt_model: str = Field(default="deepgram/nova-3", description="Speech-to-Text model")
+    tts_model: str = Field(default="cartesia/sonic-2", description="Text-to-Speech model")
+    
+    # Tools Configuration
+    tools_config: AgentTools = Field(default_factory=AgentTools)
     
     # Greeting configuration
     greeting_enabled: bool = Field(default=True, description="Whether to play a greeting message when user connects")
@@ -82,6 +96,9 @@ class AgentUpdate(BaseModel):
     voice_settings: Optional[VoiceSettings] = None
     llm_model: Optional[str] = None
     llm_temperature: Optional[float] = Field(None, ge=0.0, le=2.0)
+    stt_model: Optional[str] = None
+    tts_model: Optional[str] = None
+    tools_config: Optional[AgentTools] = None
     greeting_enabled: Optional[bool] = None
     greeting_message: Optional[str] = None
     webhook_urls: Optional[WebhookUrls] = None

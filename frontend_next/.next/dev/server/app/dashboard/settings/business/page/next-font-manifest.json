@@ -1,7 +1,7 @@
 {
   "pages": {},
   "app": {
-    "[project]/app/dashboard/settings/business/page": [
+    "[project]/frontend_next/app/dashboard/settings/business/page": [
       "static/media/Geist_Variable-s.p.f19e4721.woff2",
       "static/media/GeistMono_Variable.p.73882635.woff2",
       "static/media/75affa71d1e2f6a7-s.p.51cde8ff.woff2",

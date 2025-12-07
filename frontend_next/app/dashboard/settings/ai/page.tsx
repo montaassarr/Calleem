@@ -9,10 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, Mic, Brain, Volume2, TestTube, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Mic, Brain, Volume2, TestTube, Loader2, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { apiEndpoints } from "@/lib/api-endpoints";
 import { useToast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
 
 // LiveKit Cloud Inference Models (FREE - no API keys needed)
 const STT_MODELS = [
@@ -51,6 +52,13 @@ interface AgentConfig {
   tts_model: string;
   voice_id: string;
   status: string;
+  tools_config: {
+    check_availability: boolean;
+    book_appointment: boolean;
+    cancel_appointment: boolean;
+    update_appointment: boolean;
+    get_business_info: boolean;
+  };
 }
 
 export default function AISettingsPage() {
@@ -59,6 +67,8 @@ export default function AISettingsPage() {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState("models");
+  
   const [config, setConfig] = useState<AgentConfig>({
     name: "AI Receptionist",
     system_prompt: "You are a friendly AI receptionist. Help customers book appointments and answer questions.",
@@ -67,6 +77,13 @@ export default function AISettingsPage() {
     tts_model: "cartesia/sonic-2",
     voice_id: "79a125e8-cd45-4c13-8a67-188112f4dd22",
     status: "active",
+    tools_config: {
+      check_availability: true,
+      book_appointment: true,
+      cancel_appointment: true,
+      update_appointment: false,
+      get_business_info: true,
+    }
   });
 
   useEffect(() => {
@@ -84,12 +101,19 @@ export default function AISettingsPage() {
         const agent = await res.json();
         setConfig({
           name: agent.name || "AI Receptionist",
-          system_prompt: agent.system_prompt || config.system_prompt,
+          system_prompt: agent.system_prompt || "You are a friendly AI receptionist...",
           llm_model: agent.llm_model || "openai/gpt-4o-mini",
           stt_model: agent.stt_model || "deepgram/nova-3",
           tts_model: agent.tts_model || "cartesia/sonic-2",
-          voice_id: agent.voice_id || "79a125e8-cd45-4c13-8a67-188112f4dd22",
+          voice_id: agent.voice_settings?.voice_id || agent.voice_id || "79a125e8-cd45-4c13-8a67-188112f4dd22",
           status: agent.status || "active",
+          tools_config: agent.tools_config || {
+            check_availability: true,
+            book_appointment: true,
+            cancel_appointment: true,
+            update_appointment: false,
+            get_business_info: true,
+          }
         });
       }
     } catch (error) {
@@ -122,10 +146,10 @@ export default function AISettingsPage() {
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to save settings. Please try again.",
-        variant: "destructive",
-      });
+          title: "Error",
+          description: "Failed to save settings. Please try again.",
+          variant: "destructive",
+        });
     } finally {
       setSaving(false);
     }
@@ -172,11 +196,15 @@ export default function AISettingsPage() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="models" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="models">
             <Brain className="w-4 h-4 mr-2" />
             AI Models
+          </TabsTrigger>
+          <TabsTrigger value="tools">
+            <Zap className="w-4 h-4 mr-2" />
+            Tools
           </TabsTrigger>
           <TabsTrigger value="voice">
             <Volume2 className="w-4 h-4 mr-2" />
@@ -287,6 +315,76 @@ export default function AISettingsPage() {
           </Card>
         </TabsContent>
 
+        {/* Tools Tab */}
+        <TabsContent value="tools" className="space-y-4">
+           <Card>
+            <CardHeader>
+              <CardTitle>Agent Capabilities</CardTitle>
+              <CardDescription>
+                Control what your AI receptionist is authorized to do
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between space-x-2">
+                <div className="space-y-0.5">
+                  <Label className="text-base">Check Availability</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Allow the agent to check your calendar for free slots
+                  </p>
+                </div>
+                <Switch
+                  checked={config.tools_config.check_availability}
+                  onCheckedChange={(checked) => 
+                    setConfig({ ...config, tools_config: { ...config.tools_config, check_availability: checked } })
+                  }
+                />
+              </div>
+              <div className="flex items-center justify-between space-x-2">
+                <div className="space-y-0.5">
+                  <Label className="text-base">Book Appointments</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Allow the agent to create new appointments
+                  </p>
+                </div>
+                <Switch
+                  checked={config.tools_config.book_appointment}
+                  onCheckedChange={(checked) => 
+                    setConfig({ ...config, tools_config: { ...config.tools_config, book_appointment: checked } })
+                  }
+                />
+              </div>
+               <div className="flex items-center justify-between space-x-2">
+                <div className="space-y-0.5">
+                  <Label className="text-base">Cancel Appointments</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Allow the agent to cancel existing appointments
+                  </p>
+                </div>
+                <Switch
+                  checked={config.tools_config.cancel_appointment}
+                  onCheckedChange={(checked) => 
+                    setConfig({ ...config, tools_config: { ...config.tools_config, cancel_appointment: checked } })
+                  }
+                />
+              </div>
+              <div className="flex items-center justify-between space-x-2">
+                <div className="space-y-0.5">
+                  <Label className="text-base">Provide Business Info</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Answer general questions about your business
+                  </p>
+                </div>
+                <Switch
+                  checked={config.tools_config.get_business_info}
+                  onCheckedChange={(checked) => 
+                    setConfig({ ...config, tools_config: { ...config.tools_config, get_business_info: checked } })
+                  }
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Voice Tab */}
         <TabsContent value="voice" className="space-y-4">
           <Card>
@@ -349,7 +447,7 @@ export default function AISettingsPage() {
                 value={config.system_prompt}
                 onChange={(e) => setConfig({ ...config, system_prompt: e.target.value })}
                 placeholder="You are a friendly AI receptionist..."
-                rows={6}
+                rows={10}
               />
             </CardContent>
           </Card>

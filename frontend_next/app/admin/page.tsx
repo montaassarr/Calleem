@@ -122,7 +122,7 @@ export default function AdminDashboard() {
                     <CardTitle>Quick Actions</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                         <a
                             href="/admin/tenants"
                             className="flex flex-col items-center gap-2 p-4 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
@@ -150,6 +150,13 @@ export default function AdminDashboard() {
                         >
                             <MessageSquare className="w-8 h-8 text-cyan-600" />
                             <span className="text-sm font-medium">View Conversations</span>
+                        </a>
+                        <a
+                            href="/admin/rooms"
+                            className="flex flex-col items-center gap-2 p-4 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
+                        >
+                            <Activity className="w-8 h-8 text-orange-600" />
+                            <span className="text-sm font-medium">LiveKit Rooms</span>
                         </a>
                     </div>
                 </CardContent>

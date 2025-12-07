@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+import os
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 import logging
@@ -124,6 +125,33 @@ async def get_tenant_agent_config(tenant_id: str):
                     api_keys[field.replace("_api_key", "")] = decrypt_value(config[field])
                 except Exception as e:
                     logger.warning(f"Failed to decrypt {field} for tenant {tenant_id}: {e}")
+    
+    # SYSTEM FALLBACK: Use Platform Keys (Master Keys) if tenant keys are missing
+    # This allows "Test for Free" functionality
+    required_providers = ["deepgram", "cartesia", "openai"]
+    for provider in required_providers:
+        if provider not in api_keys:
+            # 1. Try Platform Keys in DB
+            platform_key = await db.platform_api_keys.find_one({
+                "provider": provider, 
+                "is_active": True
+            })
+            
+            if platform_key and platform_key.get("encrypted_key"):
+                try:
+                    decrypted = decrypt_value(platform_key["encrypted_key"])
+                    if decrypted:
+                        api_keys[provider] = decrypted
+                        logger.info(f"🔑 Using Platform Key for {provider}")
+                except Exception as e:
+                    logger.error(f"Failed to decrypt platform key for {provider}: {e}")
+
+            # 2. Try Environment Variables (Last Resort)
+            if provider not in api_keys:
+                env_key = os.getenv(f"{provider.upper()}_API_KEY")
+                if env_key:
+                    api_keys[provider] = env_key
+                    logger.info(f"🔑 Using Environment Key for {provider}")
     
     # Determine which voice provider to use based on available API keys
     voice_provider = "cartesia"  # Default to Cartesia

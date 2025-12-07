@@ -266,5 +266,229 @@ class LiveKitService:
         }
         return await self._request("POST", "/voice/v1/calls", json=payload)
 
+    # =========================================================================
+    # Room Management (using official livekit-api SDK)
+    # =========================================================================
+
+    async def list_rooms(self, tenant_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        List all active LiveKit rooms.
+        
+        If tenant_id is provided, filters rooms to only those matching the tenant prefix.
+        """
+        self.ensure_ready()
+        
+        try:
+            from livekit.api import LiveKitAPI
+            from livekit.api.room_service import ListRoomsRequest
+            
+            api = LiveKitAPI(
+                url=self._rest_url,
+                api_key=self._config.api_key,
+                api_secret=self._config.api_secret,
+            )
+            
+            async with api:
+                response = await api.room.list_rooms(ListRoomsRequest())
+                rooms = []
+                
+                for room in response.rooms:
+                    room_data = {
+                        "sid": room.sid,
+                        "name": room.name,
+                        "num_participants": room.num_participants,
+                        "max_participants": room.max_participants,
+                        "created_at": room.creation_time,
+                        "empty_timeout": room.empty_timeout,
+                        "metadata": room.metadata,
+                    }
+                    
+                    # Filter by tenant if specified
+                    if tenant_id:
+                        if f"tenant_{tenant_id}_" in room.name or f"preview-{tenant_id}-" in room.name:
+                            rooms.append(room_data)
+                    else:
+                        rooms.append(room_data)
+                
+                return rooms
+                
+        except ImportError:
+            logger.warning("livekit-api not installed, falling back to HTTP API")
+            # Fallback to HTTP API
+            data = await self._request("POST", "/twirp/livekit.RoomService/ListRooms", json={})
+            return data.get("rooms", [])
+        except Exception as e:
+            logger.error(f"Failed to list rooms: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to list rooms: {str(e)}")
+
+    async def get_room(self, room_name: str) -> Optional[Dict[str, Any]]:
+        """Get details of a specific room."""
+        self.ensure_ready()
+        
+        try:
+            from livekit.api import LiveKitAPI
+            from livekit.api.room_service import ListRoomsRequest
+            
+            api = LiveKitAPI(
+                url=self._rest_url,
+                api_key=self._config.api_key,
+                api_secret=self._config.api_secret,
+            )
+            
+            async with api:
+                response = await api.room.list_rooms(ListRoomsRequest(names=[room_name]))
+                if response.rooms:
+                    room = response.rooms[0]
+                    return {
+                        "sid": room.sid,
+                        "name": room.name,
+                        "num_participants": room.num_participants,
+                        "max_participants": room.max_participants,
+                        "created_at": room.creation_time,
+                        "empty_timeout": room.empty_timeout,
+                        "metadata": room.metadata,
+                    }
+                return None
+                
+        except ImportError:
+            data = await self._request("POST", "/twirp/livekit.RoomService/ListRooms", json={"names": [room_name]})
+            rooms = data.get("rooms", [])
+            return rooms[0] if rooms else None
+        except Exception as e:
+            logger.error(f"Failed to get room {room_name}: {e}")
+            return None
+
+    async def delete_room(self, room_name: str) -> bool:
+        """
+        Delete a room and disconnect all participants.
+        
+        Returns True if successful, False otherwise.
+        """
+        self.ensure_ready()
+        
+        try:
+            from livekit.api import LiveKitAPI
+            from livekit.api.room_service import DeleteRoomRequest
+            
+            api = LiveKitAPI(
+                url=self._rest_url,
+                api_key=self._config.api_key,
+                api_secret=self._config.api_secret,
+            )
+            
+            async with api:
+                await api.room.delete_room(DeleteRoomRequest(room=room_name))
+                logger.info(f"Deleted room: {room_name}")
+                return True
+                
+        except ImportError:
+            await self._request("POST", "/twirp/livekit.RoomService/DeleteRoom", json={"room": room_name})
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete room {room_name}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to delete room: {str(e)}")
+
+    async def list_participants(self, room_name: str) -> List[Dict[str, Any]]:
+        """List all participants in a room."""
+        self.ensure_ready()
+        
+        try:
+            from livekit.api import LiveKitAPI
+            from livekit.api.room_service import ListParticipantsRequest
+            
+            api = LiveKitAPI(
+                url=self._rest_url,
+                api_key=self._config.api_key,
+                api_secret=self._config.api_secret,
+            )
+            
+            async with api:
+                response = await api.room.list_participants(ListParticipantsRequest(room=room_name))
+                participants = []
+                
+                for p in response.participants:
+                    participants.append({
+                        "sid": p.sid,
+                        "identity": p.identity,
+                        "name": p.name,
+                        "state": str(p.state),
+                        "joined_at": p.joined_at,
+                        "metadata": p.metadata,
+                        "is_publisher": p.is_publisher,
+                    })
+                
+                return participants
+                
+        except ImportError:
+            data = await self._request("POST", "/twirp/livekit.RoomService/ListParticipants", json={"room": room_name})
+            return data.get("participants", [])
+        except Exception as e:
+            logger.error(f"Failed to list participants in {room_name}: {e}")
+            return []
+
+    async def remove_participant(self, room_name: str, identity: str) -> bool:
+        """Remove a participant from a room."""
+        self.ensure_ready()
+        
+        try:
+            from livekit.api import LiveKitAPI
+            from livekit.api.room_service import RemoveParticipantRequest
+            
+            api = LiveKitAPI(
+                url=self._rest_url,
+                api_key=self._config.api_key,
+                api_secret=self._config.api_secret,
+            )
+            
+            async with api:
+                await api.room.remove_participant(RemoveParticipantRequest(
+                    room=room_name,
+                    identity=identity,
+                ))
+                logger.info(f"Removed participant {identity} from room {room_name}")
+                return True
+                
+        except ImportError:
+            await self._request("POST", "/twirp/livekit.RoomService/RemoveParticipant", json={
+                "room": room_name,
+                "identity": identity,
+            })
+            return True
+        except Exception as e:
+            logger.error(f"Failed to remove participant {identity}: {e}")
+            return False
+
+    async def update_room_metadata(self, room_name: str, metadata: str) -> bool:
+        """Update room metadata."""
+        self.ensure_ready()
+        
+        try:
+            from livekit.api import LiveKitAPI
+            from livekit.api.room_service import UpdateRoomMetadataRequest
+            
+            api = LiveKitAPI(
+                url=self._rest_url,
+                api_key=self._config.api_key,
+                api_secret=self._config.api_secret,
+            )
+            
+            async with api:
+                await api.room.update_room_metadata(UpdateRoomMetadataRequest(
+                    room=room_name,
+                    metadata=metadata,
+                ))
+                return True
+                
+        except ImportError:
+            await self._request("POST", "/twirp/livekit.RoomService/UpdateRoomMetadata", json={
+                "room": room_name,
+                "metadata": metadata,
+            })
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update room metadata: {e}")
+            return False
+
 
 livekit_service = LiveKitService()
+

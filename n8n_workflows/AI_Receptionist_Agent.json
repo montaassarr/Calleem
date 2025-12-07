@@ -1,0 +1,691 @@
+{
+  "name": "ai_agent_recetionist",
+  "nodes": [
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "a8dcae09-1438-4be5-93c3-477a1dd753a1",
+      "name": "Respond Cancel",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nonsustainable-delaine-grabbable.ngrok-free.dev/api/v1/appointments/agent/cancel",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Tenant-ID",
+              "value": "={{ $json.body?.tenant_id || $json.tenant_id || '69319a0e7436614acd86b5d5' }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "ngrok-skip-browser-warning",
+              "value": "true"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_email\": \"{{ $json.body?.customer_email || $json.customer_email }}\",\n  \"date\": \"{{ $json.body?.date || $json.date }}\"\n}",
+        "options": {}
+      },
+      "id": "da09eb62-05ca-44ce-bf65-1e33411dec12",
+      "name": "Cancel via API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        448,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-receptionist/cancel",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "8096362c-ee8f-47d0-9a5d-aab94277350a",
+      "name": "Cancel Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        336
+      ],
+      "webhookId": "ai-cancel"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "969b7ce1-611a-45b3-a378-ae78ba805ae2",
+      "name": "Respond List",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        928,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "success",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "appointments",
+              "name": "appointments",
+              "value": "={{ $json }}",
+              "type": "array"
+            },
+            {
+              "id": "count",
+              "name": "count",
+              "value": "={{ Array.isArray($json) ? $json.length : 0 }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c3c89047-6a51-4684-940e-302543456d34",
+      "name": "Format List",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        688,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nonsustainable-delaine-grabbable.ngrok-free.dev/api/v1/appointments/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Tenant-ID",
+              "value": "={{ $json.body?.tenant_id || $json.tenant_id || '69319a0e7436614acd86b5d5' }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "ngrok-skip-browser-warning",
+              "value": "true"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"email\": \"{{ $json.body?.customer_email || $json.customer_email }}\" }",
+        "options": {}
+      },
+      "id": "2e92144d-2408-4174-9778-b5024bfd0194",
+      "name": "List via API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        448,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-receptionist/list",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "e14b8e4b-7d1c-413d-8a82-e2f0f52b6890",
+      "name": "List Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        128
+      ],
+      "webhookId": "ai-list"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "43e58811-8c70-4cee-b677-f8ed09f47b4c",
+      "name": "Respond Availability",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://nonsustainable-delaine-grabbable.ngrok-free.dev/api/v1/appointments/agent/availability?date={{ $json.body?.date || $json.date }}&time={{ $json.body?.time || $json.time || '10:00' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Tenant-ID",
+              "value": "={{ $json.body?.tenant_id || $json.tenant_id || '69319a0e7436614acd86b5d5' }}"
+            },
+            {
+              "name": "ngrok-skip-browser-warning",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "54be630c-0395-44c4-b003-b587a43e3c32",
+      "name": "Check via API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        448,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-receptionist/availability",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a32ee429-6e10-41a1-844a-4219efb18951",
+      "name": "Availability Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        -96
+      ],
+      "webhookId": "ai-availability"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "069bc98c-2864-4316-a1be-4251c0815369",
+      "name": "Respond Book",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        -288
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nonsustainable-delaine-grabbable.ngrok-free.dev/api/v1/appointments/agent/book",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Tenant-ID",
+              "value": "={{ $json.body?.tenant_id || $json.tenant_id || '69319a0e7436614acd86b5d5' }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "ngrok-skip-browser-warning",
+              "value": "true"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_name\": \"{{ $json.body?.customer_name || $json.customer_name }}\",\n  \"customer_email\": \"{{ $json.body?.customer_email || $json.customer_email }}\",\n  \"customer_phone\": \"{{ $json.body?.customer_phone || $json.customer_phone || '' }}\",\n  \"date\": \"{{ $json.body?.date || $json.date }}\",\n  \"time\": \"{{ $json.body?.time || $json.time }}\",\n  \"service\": \"{{ $json.body?.service || $json.service || 'Appointment' }}\"\n}",
+        "options": {}
+      },
+      "id": "386f8717-9307-4391-a48a-e3250c95ef1d",
+      "name": "Book via API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        448,
+        -288
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-receptionist/book",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f5f9cc1d-56e2-4b04-bcf0-bd60ef13dcb3",
+      "name": "Book Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        -288
+      ],
+      "webhookId": "ai-book"
+    },
+    {
+      "parameters": {
+        "description": "Cancel an existing appointment. Requires customer email and appointment date.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $workflow.id }}"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "customer_email": "={{ $fromAI('customer_email', 'Email of customer', 'string') }}",
+            "date": "={{ $fromAI('date', 'Date of appointment to cancel YYYY-MM-DD', 'string') }}"
+          }
+        }
+      },
+      "id": "f4167914-3baa-40b9-b4ae-36f7839615ea",
+      "name": "Cancel Appointment Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        848,
+        -576
+      ]
+    },
+    {
+      "parameters": {
+        "description": "List upcoming appointments for a customer by their email address.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $workflow.id }}"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "customer_email": "={{ $fromAI('customer_email', 'Email address to search', 'string') }}"
+          }
+        }
+      },
+      "id": "f1c1bfba-b066-487e-846f-0b27f8f2e743",
+      "name": "List Appointments Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        736,
+        -576
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Book a new appointment. Requires customer name, email, date, and time.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $workflow.id }}"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "customer_name": "={{ $fromAI('customer_name', 'Full name of the customer', 'string') }}",
+            "customer_email": "={{ $fromAI('customer_email', 'Email address', 'string') }}",
+            "customer_phone": "={{ $fromAI('customer_phone', 'Phone number (optional)', 'string', '') }}",
+            "date": "={{ $fromAI('date', 'Appointment date YYYY-MM-DD', 'string') }}",
+            "time": "={{ $fromAI('time', 'Appointment time HH:MM', 'string') }}",
+            "service": "={{ $fromAI('service', 'Type of service', 'string', 'Appointment') }}"
+          }
+        }
+      },
+      "id": "b215d30d-b742-4499-8391-304a79027878",
+      "name": "Book Appointment Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        608,
+        -576
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Check if a specific date and time is available for booking. Use YYYY-MM-DD format for date and HH:MM format for time.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $workflow.id }}"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date": "={{ $fromAI('date', 'Date in YYYY-MM-DD format', 'string') }}",
+            "time": "={{ $fromAI('time', 'Time in HH:MM format', 'string') }}"
+          }
+        }
+      },
+      "id": "d87b9e97-cfa5-4da1-bb40-5eecaaa29703",
+      "name": "Check Availability Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        496,
+        -576
+      ]
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10,
+        "sessionIdOption": "customKey",
+        "sessionKey": "={{ $json.body.session_id }}"
+      },
+      "id": "d8ecb085-152b-474e-9cd0-dc5fdac9a040",
+      "name": "Conversation Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        368,
+        -576
+      ]
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "bbd622f6-461d-482a-8a3b-90f86a918ac8",
+      "name": "Groq AI",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        256,
+        -576
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "dvToCrquUUPcrotB",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"response\": \"{{ $json.output }}\"\n}",
+        "options": {}
+      },
+      "id": "4ef9e7a5-b2e9-470d-b593-f832867280a2",
+      "name": "Respond to Chat",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        -800
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.message }}",
+        "options": {
+          "systemMessage": "You are Parker, a friendly and professional AI receptionist for businesses.\n\nYour role is to help customers with:\n- Booking appointments\n- Checking appointment availability\n- Canceling appointments\n- Viewing their upcoming appointments\n- Getting information about the business\n\nWhen interacting with customers:\n1. Always be polite, professional, and helpful\n2. Ask for necessary information (name, email, phone, preferred date/time)\n3. Confirm details before booking or canceling\n4. If a time is unavailable, suggest alternatives\n5. Use natural, conversational language\n\nThe current tenant_id is: 69319a0e7436614acd86b5d5\n\nWhen using tools, always include the tenant_id in your requests."
+        }
+      },
+      "id": "3b16eebf-b467-4471-9812-b57f3963c518",
+      "name": "Receptionist Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        448,
+        -800
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-receptionist/chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "e18192dd-2619-48a8-ba9d-ad555bd4aad2",
+      "name": "Chat Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        -800
+      ],
+      "webhookId": "ai-chat-webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cancel via API": {
+      "main": [
+        [
+          {
+            "node": "Respond Cancel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancel Webhook": {
+      "main": [
+        [
+          {
+            "node": "Cancel via API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format List": {
+      "main": [
+        [
+          {
+            "node": "Respond List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List via API": {
+      "main": [
+        [
+          {
+            "node": "Format List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Webhook": {
+      "main": [
+        [
+          {
+            "node": "List via API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check via API": {
+      "main": [
+        [
+          {
+            "node": "Respond Availability",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Availability Webhook": {
+      "main": [
+        [
+          {
+            "node": "Check via API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book via API": {
+      "main": [
+        [
+          {
+            "node": "Respond Book",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book Webhook": {
+      "main": [
+        [
+          {
+            "node": "Book via API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancel Appointment Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Receptionist Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Appointments Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Receptionist Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book Appointment Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Receptionist Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Availability Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Receptionist Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversation Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Receptionist Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq AI": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Receptionist Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receptionist Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Webhook": {
+      "main": [
+        [
+          {
+            "node": "Receptionist Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "8eb60123-50cf-47e1-99a3-ea3c9100bdbd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9b87c5bea3589686a0200b5a5fc9f207e89837afbf2f891d66c86f8dceaacf77"
+  },
+  "id": "Y1HAQSycHtcVvyUi",
+  "tags": []
+}
