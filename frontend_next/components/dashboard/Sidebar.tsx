@@ -41,10 +41,15 @@ const menuItems = [
     {
         icon: Mic,
         label: "Voice AI",
-        path: "/dashboard/voice-agent/control-center",
+        path: "/dashboard/voice-agent",
         subItems: [
             { icon: PhoneCall, label: "Control Center", path: "/dashboard/voice-agent/control-center" },
-            { icon: TestTube, label: "Test Voice Agent", path: "/dashboard/voice-agent/test" },
+            { icon: Waves, label: "Voice Config", path: "/dashboard/voice-agent/voice" },
+            { icon: Brain, label: "Knowledge Base", path: "/dashboard/voice-agent/knowledge-base" },
+            { icon: Plug, label: "Tools", path: "/dashboard/voice-agent/tools" },
+            { icon: BarChart3, label: "Analytics", path: "/dashboard/voice-agent/analytics" },
+            { icon: TestTube, label: "Test Call", path: "/dashboard/voice-agent/test" },
+            { icon: MessageSquare, label: "Chat Test", path: "/dashboard/voice-agent/chat" },
         ]
     },
     { icon: MessageCircle, label: "WhatsApp", path: "/dashboard/whatsapp" },
@@ -60,7 +65,7 @@ const generalItems = [
         subItems: [
             { icon: Settings, label: "Settings Hub", path: "/dashboard/settings" },
             { icon: Building2, label: "Business", path: "/dashboard/settings/business" },
-            { icon: Brain, label: "AI Configuration", path: "/dashboard/settings/ai" },
+
             { icon: Key, label: "API Keys", path: "/dashboard/settings/api-keys" },
         ]
     },

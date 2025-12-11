@@ -164,241 +164,6 @@ export const usersApi = {
     },
 }
 
-export const voiceApi = {
-    testAgent: async (): Promise<VoiceAgentStatus> => {
-        const response = await api.get<VoiceAgentStatus>("/voice-agent/status")
-        return response
-    },
-
-    callHistory: async (limit: number = 25): Promise<any> => {
-        const response = await api.get("/voice-agent/history", {
-            params: { limit }
-        })
-        return response
-    },
-
-    startCall: async (data: any): Promise<any> => {
-        const response = await api.post("/voice-agent/call", data)
-        return response
-    },
-
-    webrtcTest: async (): Promise<VoiceWebRTCResponse> => {
-        const response = await api.post<VoiceWebRTCResponse>("/voice-agent/webrtc/test")
-        return response
-    },
-
-    enableVoiceAgent: async (enabled: boolean = true): Promise<any> => {
-        const response = await api.post("/voice-agent/enable", { enabled })
-        return response
-    },
-
-    listCountries: async (): Promise<any[]> => {
-        const response = await api.get("/voice-agent/numbers/countries")
-        return response
-    },
-
-    searchNumbers: async (params: { country: string; area_code?: string }): Promise<any> => {
-        const response = await api.get("/voice-agent/numbers/available", { params })
-        return response
-    },
-
-    listNumbers: async (): Promise<any[]> => {
-        const response = await api.get("/voice-agent/numbers")
-        return response
-    },
-
-    purchaseNumber: async (payload: { country: string; phone_number: string }): Promise<any> => {
-        const response = await api.post("/voice-agent/numbers/purchase", payload)
-        return response
-    }
-}
-
-export const businessConfigApi = {
-    getConfig: async (): Promise<any> => {
-        const response = await api.get("/admin/config")
-        return response
-    },
-
-    updateFeatureFlags: async (features: any): Promise<any> => {
-        const response = await api.put("/admin/config", features)
-        return response
-    }
-}
-
-// ============================================================================
-// NEW: Onboarding API
-// ============================================================================
-export const onboardingApi = {
-    getStatus: (): string => `${API_BASE_URL}/onboarding/status`,
-
-    getVoiceProviders: async (): Promise<{
-        providers: Array<{
-            id: string
-            name: string
-            description: string
-            get_key_url: string
-            setup_steps: string[]
-        }>
-        recommendation: string
-    }> => {
-        const response = await api.get("/onboarding/voice-providers")
-        return response
-    },
-
-    setupVoiceKey: async (data: {
-        provider: string
-        api_key: string
-        name?: string
-    }): Promise<any> => {
-        const response = await api.post("/onboarding/setup-voice-key", data)
-        return response
-    },
-
-    getAgentOptions: async (): Promise<{
-        voice_providers: string[]
-        ai_models: string[]
-        voice_options: any[]
-    }> => {
-        const response = await api.get("/onboarding/agent-options")
-        return response
-    },
-
-    configureAgent: async (data: {
-        name: string
-        voice_provider: string
-        voice_id: string
-        llm_model: string
-        system_prompt?: string
-    }): Promise<any> => {
-        const response = await api.post("/onboarding/configure-agent", data)
-        return response
-    },
-
-    skip: async (): Promise<any> => {
-        const response = await api.post("/onboarding/skip")
-        return response
-    }
-}
-
-// ============================================================================
-// NEW: API Keys Management (BYOK)
-// ============================================================================
-export const apiKeysApi = {
-    list: async (): Promise<Array<{
-        id: string
-        provider: string
-        name: string
-        masked_key: string
-        created_at: string
-        last_used_at: string | null
-    }>> => {
-        const response = await api.get("/keys")
-        return response
-    },
-
-    create: async (data: {
-        provider: string
-        api_key: string
-        name: string
-    }): Promise<any> => {
-        const response = await api.post("/keys", data)
-        return response
-    },
-
-    delete: async (keyId: string): Promise<void> => {
-        await api.delete(`/keys/${keyId}`)
-    },
-
-    // Simple setup endpoints
-    setupKey: async (data: {
-        provider: string
-        api_key: string
-        key_name: string
-    }): Promise<any> => {
-        const response = await api.post("/setup/api-key", data)
-        return response
-    },
-
-    getMyKeys: async (): Promise<any> => {
-        const response = await api.get("/setup/my-keys")
-        return response
-    },
-
-    getProviders: async (): Promise<any> => {
-        const response = await api.get("/setup/providers")
-        return response
-    },
-
-    deleteByProvider: async (provider: string): Promise<void> => {
-        await api.delete(`/setup/api-key/${provider}`)
-    }
-}
-
-// ============================================================================
-// NEW: Agents API (Voice Agents)
-// ============================================================================
-export const agentsApi = {
-    list: async (params?: {
-        status?: string
-        skip?: number
-        limit?: number
-    }): Promise<Array<any>> => {
-        const response = await api.get("/agents/", { params })
-        return response
-    },
-
-    get: async (agentId: string): Promise<any> => {
-        const response = await api.get(`/agents/${agentId}`)
-        return response
-    },
-
-    create: async (data: {
-        name: string
-        description?: string
-        llm_model: string
-        llm_temperature: number
-        system_prompt: string
-        status: string
-        voice_settings: any
-        webhook_urls: any
-    }): Promise<any> => {
-        const response = await api.post("/agents/", data)
-        return response
-    },
-
-    update: async (agentId: string, data: Partial<any>): Promise<any> => {
-        const response = await api.put(`/agents/${agentId}`, data)
-        return response
-    },
-
-    delete: async (agentId: string): Promise<void> => {
-        await api.delete(`/agents/${agentId}`)
-    },
-
-    deploy: async (agentId: string): Promise<any> => {
-        const response = await api.post(`/agents/${agentId}/deploy`)
-        return response
-    },
-
-    pause: async (agentId: string): Promise<any> => {
-        const response = await api.post(`/agents/${agentId}/pause`)
-        return response
-    },
-
-    activate: async (agentId: string): Promise<any> => {
-        const response = await api.post(`/agents/${agentId}/activate`)
-        return response
-    }
-}
-
-// Voice Agent API endpoints (comprehensive dashboard)
-export const voiceAgentApi = {
-    stats: (): string => `${API_BASE_URL}/voice-agent/stats`,
-    phoneNumbers: (): string => `${API_BASE_URL}/voice-agent/numbers`,
-    searchNumbers: (): string => `${API_BASE_URL}/voice-agent/search-numbers`,
-    purchaseNumber: (): string => `${API_BASE_URL}/voice-agent/purchase-number`,
-}
-
 // Agents API with proper typing
 export const apiEndpoints = {
     agents: {
@@ -412,6 +177,7 @@ export const apiEndpoints = {
         delete: (id: string): string => `${API_BASE_URL}/agents/${id}`,
     },
     voiceAgent: {
+        // Temporarily keep but point to Vapi stats if possible, or dead endpoint
         stats: (): string => `${API_BASE_URL}/voice-agent/stats`,
         phoneNumbers: (): string => `${API_BASE_URL}/voice-agent/numbers`,
         searchNumbers: (): string => `${API_BASE_URL}/voice-agent/search-numbers`,
@@ -428,5 +194,130 @@ export const apiEndpoints = {
     onboarding: {
         getStatus: (): string => `${API_BASE_URL}/onboarding/status`,
         skipOnboarding: (): string => `${API_BASE_URL}/onboarding/skip`,
+    },
+    vapi: {
+        createAssistant: (tenantId: string): string => `${API_BASE_URL}/vapi/tenants/${tenantId}/assistant`,
+        updateAssistant: (tenantId: string, assistantId: string): string => `${API_BASE_URL}/vapi/tenants/${tenantId}/assistant/${assistantId}`,
+        getAssistant: (tenantId: string): string => `${API_BASE_URL}/vapi/tenants/${tenantId}/assistant`,
+        // 'Me' endpoints
+        getMyAssistant: (): string => `${API_BASE_URL}/vapi/assistant/me`,
+        createMyAssistant: (): string => `${API_BASE_URL}/vapi/assistant/me`,
+        updateMyAssistant: (): string => `${API_BASE_URL}/vapi/assistant/me`,
+    }
+}
+
+export const vapiApi = {
+    // Legacy methods - kept for backward compatibility
+    getMyAssistant: async (): Promise<any> => {
+        const response = await api.get(`/assistant/me`)
+        return response
+    },
+    createMyAssistant: async (data: any): Promise<any> => {
+        const response = await api.post(`/assistant/me`, data)
+        return response
+    },
+    updateMyAssistant: async (data: any): Promise<any> => {
+        const response = await api.put(`/assistant/me`, data)
+        return response
+    },
+
+    // File Management (now under assistant/me/knowledge-base)
+    uploadFile: async (file: File): Promise<any> => {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await api.post(`/assistant/me/knowledge-base/upload`, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        });
+        return response;
+    },
+    listFiles: async (): Promise<any> => {
+        const response = await api.get(`/assistant/me/knowledge-base`);
+        return response;
+    }
+}
+
+// Comprehensive Assistant API
+export const assistantApi = {
+    // Core CRUD
+    get: async (): Promise<any> => {
+        return await api.get(`/assistant/me`)
+    },
+    create: async (data: any): Promise<any> => {
+        return await api.post(`/assistant/me`, data)
+    },
+    update: async (data: any): Promise<any> => {
+        return await api.put(`/assistant/me`, data)
+    },
+    delete: async (): Promise<any> => {
+        return await api.delete(`/assistant/me`)
+    },
+
+    // Voice Configuration
+    getVoice: async (): Promise<any> => {
+        return await api.get(`/assistant/me/voice`)
+    },
+    updateVoice: async (data: any): Promise<any> => {
+        return await api.put(`/assistant/me/voice`, data)
+    },
+    getVoiceProviders: async (): Promise<any> => {
+        return await api.get(`/voice-providers`)
+    },
+
+    // Personality Configuration
+    getPersonality: async (): Promise<any> => {
+        return await api.get(`/assistant/me/personality`)
+    },
+    updatePersonality: async (data: any): Promise<any> => {
+        return await api.put(`/assistant/me/personality`, data)
+    },
+
+    // Knowledge Base
+    getKnowledgeBase: async (): Promise<any> => {
+        return await api.get(`/assistant/me/knowledge-base`)
+    },
+    uploadDocument: async (file: File): Promise<any> => {
+        const formData = new FormData();
+        formData.append("file", file);
+        return await api.post(`/assistant/me/knowledge-base/upload`, formData, {
+            headers: { "Content-Type": "multipart/form-data" }
+        });
+    },
+    deleteDocument: async (docId: string): Promise<any> => {
+        return await api.delete(`/assistant/me/knowledge-base/${docId}`)
+    },
+    addFAQs: async (faqs: Array<{ question: string, answer: string }>): Promise<any> => {
+        return await api.post(`/assistant/me/knowledge-base/faq`, faqs)
+    },
+
+    // Tools Management
+    getBuiltInTools: async (): Promise<any> => {
+        return await api.get(`/tools/built-in`)
+    },
+    getEnabledTools: async (): Promise<any> => {
+        return await api.get(`/assistant/me/tools`)
+    },
+    enableTool: async (toolId: string, config?: any): Promise<any> => {
+        return await api.post(`/assistant/me/tools/${toolId}/enable`, config || {})
+    },
+    disableTool: async (toolId: string): Promise<any> => {
+        return await api.delete(`/assistant/me/tools/${toolId}`)
+    },
+
+    // Analytics
+    getCallAnalytics: async (days: number = 30): Promise<any> => {
+        return await api.get(`/assistant/me/analytics/calls?days=${days}`)
+    },
+    getConversations: async (limit: number = 50, skip: number = 0): Promise<any> => {
+        return await api.get(`/assistant/me/conversations?limit=${limit}&skip=${skip}`)
+    },
+    getConversation: async (callId: string): Promise<any> => {
+        return await api.get(`/assistant/me/conversations/${callId}`)
+    },
+
+    // Testing
+    getTestConfig: async (): Promise<any> => {
+        return await api.post(`/assistant/me/test`)
     }
 }

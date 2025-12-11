@@ -151,13 +151,7 @@ export default function AdminDashboard() {
                             <MessageSquare className="w-8 h-8 text-cyan-600" />
                             <span className="text-sm font-medium">View Conversations</span>
                         </a>
-                        <a
-                            href="/admin/rooms"
-                            className="flex flex-col items-center gap-2 p-4 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
-                        >
-                            <Activity className="w-8 h-8 text-orange-600" />
-                            <span className="text-sm font-medium">LiveKit Rooms</span>
-                        </a>
+
                     </div>
                 </CardContent>
             </Card>

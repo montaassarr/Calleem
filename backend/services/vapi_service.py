@@ -1,29 +1,807 @@
-"""Legacy Vapi service placeholder kept for backward compatibility."""
+"""
+Vapi Voice AI Service - Comprehensive Integration
+Manages tenant assistant through Vapi API with full configuration support
+"""
 
-from typing import Any
+import os
+import logging
+import hmac
+import hashlib
+import httpx
+from typing import Optional, Dict, Any, List
+from datetime import datetime
 
-
-class VapiRemovedError(RuntimeError):
-    """Raised when deprecated Vapi helpers are accidentally invoked."""
-
-    def __init__(self, feature: str) -> None:
-        super().__init__(
-            "Vapi integration has been permanently removed as part of the LiveKit migration. "
-            f"Feature '{feature}' is no longer available."
-        )
-
-
-def _raise(feature: str) -> None:
-    raise VapiRemovedError(feature)
+logger = logging.getLogger(__name__)
 
 
-async def create_vapi_assistant(*_: Any, **__: Any) -> str:  # pragma: no cover - deprecated
-    _raise("create_vapi_assistant")
+class VapiService:
+    """
+    Comprehensive Vapi AI integration service.
+    Handles assistant management, voice config, knowledge base, tools, and analytics.
+    """
+    
+    def __init__(self):
+        self.api_key = os.getenv("VAPI_PRIVATE_API_KEY") or os.getenv("VAPI_API_KEY")
+        self.public_key = os.getenv("VAPI_PUBLIC_KEY")
+        self.webhook_secret = os.getenv("VAPI_WEBHOOK_SECRET", "")
+        self.organization_id = os.getenv("VAPI_ORGANIZATION_ID", "")
+        self.base_url = os.getenv("VAPI_BASE_URL", "https://api.vapi.ai")
+        
+        if not self.api_key:
+            logger.warning("VAPI_API_KEY not configured - Vapi features disabled")
+        else:
+            logger.info("Vapi service initialized successfully")
+    
+    @property
+    def headers(self) -> Dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+    
+    def is_configured(self) -> bool:
+        return bool(self.api_key)
+    
+    # ===== ASSISTANT MANAGEMENT =====
+    
+    async def create_assistant(
+        self,
+        tenant_id: str,
+        company_name: str,
+        instructions: str,
+        first_message: Optional[str] = None,
+        voice: str = "jennifer",
+        model: str = "gpt-4o-mini",
+        voice_provider: str = "11labs",
+        voice_speed: float = 1.0,
+        temperature: float = 0.7,
+        max_tokens: int = 525,
+        transcriber_provider: str = "deepgram",
+        transcriber_model: str = "nova-2",
+        transcriber_language: str = "en",
+        tools: Optional[List[Dict]] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """Create a new Vapi assistant for a tenant"""
+        if not self.is_configured():
+            raise ValueError("Vapi not configured")
+        
+        system_prompt = f"""You are an AI receptionist for {company_name}.
+
+{instructions}
+
+Important guidelines:
+- Be professional, friendly, and helpful
+- Speak naturally and conversationally
+- If you need to book an appointment, collect: name, phone, email, preferred date/time
+- If you don't know something, offer to have someone call back
+- Keep responses concise for voice conversation
+"""
+        
+        assistant_config = {
+            "name": f"AI Receptionist - {company_name}"[:40],
+            "firstMessage": first_message or "Hello! How can I help you today?",
+            "model": {
+                "provider": "openai",
+                "model": model,
+                "temperature": temperature,
+                "maxTokens": max_tokens,
+                "messages": [
+                    {"role": "system", "content": system_prompt}
+                ]
+            },
+            "voice": {
+                "provider": voice_provider,
+                "voiceId": self._get_voice_id(voice, voice_provider),
+                "speed": voice_speed
+            },
+            "transcriber": {
+                "provider": transcriber_provider,
+                "model": transcriber_model,
+                "language": transcriber_language
+            },
+            "serverUrl": os.getenv("VAPI_WEBHOOK_URL", ""),
+            "metadata": {
+                "tenant_id": tenant_id,
+                "company_name": company_name
+            }
+        }
+        
+        # Add tools if provided
+        if tools:
+            assistant_config["tools"] = tools
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/assistant",
+                    headers=self.headers,
+                    json=assistant_config
+                )
+                response.raise_for_status()
+                result = response.json()
+                
+                logger.info(f"Created Vapi assistant {result.get('id')} for tenant {tenant_id}")
+                
+                return {
+                    "assistant_id": result.get("id"),
+                    "name": result.get("name"),
+                    "voice": voice,
+                    "model": model,
+                    "created": True
+                }
+        except httpx.HTTPError as e:
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Vapi API Error Body: {e.response.text}")
+            logger.error(f"Failed to create Vapi assistant: {e}")
+            raise
+    
+    async def update_assistant(
+        self,
+        assistant_id: str,
+        company_name: Optional[str] = None,
+        instructions: Optional[str] = None,
+        first_message: Optional[str] = None,
+        voice: Optional[str] = None,
+        voice_provider: str = "11labs",
+        voice_speed: Optional[float] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        tools: Optional[List[Dict]] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """Update an existing Vapi assistant"""
+        if not self.is_configured():
+            raise ValueError("Vapi not configured")
+        
+        # Fetch current assistant to preserve model config if needed
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            try:
+                current = await client.get(
+                    f"{self.base_url}/assistant/{assistant_id}",
+                    headers=self.headers
+                )
+                if current.status_code == 200:
+                    current_data = current.json()
+                    current_model = current_data.get("model", {})
+                else:
+                    logger.warning(f"Could not fetch assistant {assistant_id} for merge, assuming defaults")
+                    current_model = {
+                        "provider": "openai",
+                        "model": "gpt-4o-mini",
+                        "messages": []
+                    }
+            except Exception as e:
+                logger.error(f"Error fetching assistant for merge: {e}")
+                current_model = {
+                    "provider": "openai", 
+                    "model": "gpt-4o-mini"
+                }
+
+        update_data = {}
+        
+        if first_message:
+            update_data["firstMessage"] = first_message
+        
+        if instructions and company_name:
+            system_prompt = f"""You are an AI receptionist for {company_name}.
+
+{instructions}
+
+Important guidelines:
+- Be professional, friendly, and helpful
+- Speak naturally and conversationally
+- If you need to book an appointment, collect: name, phone, email, preferred date/time
+- If you don't know something, offer to have someone call back
+- Keep responses concise for voice conversation
+"""
+            # Start with current model config
+            new_model = current_model.copy()
+            new_model["messages"] = [{"role": "system", "content": system_prompt}]
+            new_model["provider"] = "openai" # Ensure provider is set
+            new_model["model"] = model or "gpt-4o-mini"
+            
+            if temperature is not None:
+                new_model["temperature"] = temperature
+            if max_tokens is not None:
+                new_model["maxTokens"] = max_tokens
+                
+            update_data["model"] = new_model
+        
+        if voice:
+            update_data["voice"] = {
+                "provider": voice_provider,
+                "voiceId": self._get_voice_id(voice, voice_provider)
+            }
+            if voice_speed is not None:
+                update_data["voice"]["speed"] = voice_speed
+        
+        if tools is not None:
+            # If we haven't already prepared a model update in this call
+            if "model" not in update_data:
+                update_data["model"] = current_model.copy()
+            
+            update_data["model"]["tools"] = tools
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.patch(
+                    f"{self.base_url}/assistant/{assistant_id}",
+                    headers=self.headers,
+                    json=update_data
+                )
+                response.raise_for_status()
+                result = response.json()
+                
+                logger.info(f"Updated Vapi assistant {assistant_id}")
+                
+                return {
+                    "assistant_id": result.get("id"),
+                    "name": result.get("name"),
+                    "updated": True
+                }
+        except httpx.HTTPError as e:
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Vapi API Update Error Body: {e.response.text}")
+            logger.error(f"Failed to update Vapi assistant: {e}")
+            raise
+    
+    async def get_assistant(self, assistant_id: str) -> Optional[Dict[str, Any]]:
+        """Get assistant details from Vapi"""
+        if not self.is_configured():
+            return None
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(
+                    f"{self.base_url}/assistant/{assistant_id}",
+                    headers=self.headers
+                )
+                response.raise_for_status()
+                return response.json()
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to get assistant {assistant_id}: {e}")
+            return None
+    
+    async def delete_assistant(self, assistant_id: str) -> bool:
+        """Delete a Vapi assistant"""
+        if not self.is_configured():
+            raise ValueError("Vapi not configured")
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.delete(
+                    f"{self.base_url}/assistant/{assistant_id}",
+                    headers=self.headers
+                )
+                response.raise_for_status()
+                logger.info(f"Deleted Vapi assistant {assistant_id}")
+                return True
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to delete assistant: {e}")
+            return False
+    
+    # ===== VOICE MANAGEMENT =====
+    
+    async def get_voice_providers(self) -> List[Dict[str, Any]]:
+        """Get available voice providers and their voices from Vapi API"""
+        if not self.is_configured():
+            logger.warning("Vapi not configured, returning default voices")
+            return self._get_fallback_voice_providers()
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(
+                    f"{self.base_url}/voice",
+                    headers=self.headers
+                )
+                
+                if response.status_code == 200:
+                    voices = response.json()
+                    return self._group_voices_by_provider(voices)
+                else:
+                    logger.warning(f"Failed to fetch voices from Vapi: {response.status_code}")
+                    return self._get_fallback_voice_providers()
+                    
+        except Exception as e:
+            logger.error(f"Error fetching voices from Vapi: {e}")
+            return self._get_fallback_voice_providers()
+    
+    def _group_voices_by_provider(self, voices: List[Dict]) -> List[Dict[str, Any]]:
+        """Group voices by their provider"""
+        providers = {}
+        
+        provider_meta = {
+            "11labs": {"name": "ElevenLabs", "description": "High-quality AI voices with emotion"},
+            "azure": {"name": "Azure Cognitive Services", "description": "Microsoft Azure TTS"},
+            "openai": {"name": "OpenAI TTS", "description": "OpenAI text-to-speech"},
+            "vapi": {"name": "Vapi Voices", "description": "Curated high-quality voices"},
+            "cartesia": {"name": "Cartesia", "description": "Ultra-low latency voices"},
+            "deepgram": {"name": "Deepgram", "description": "Fast and accurate TTS"},
+            "playht": {"name": "PlayHT", "description": "AI voice generator"},
+            "lmnt": {"name": "LMNT", "description": "Expressive AI voices"},
+            "rime-ai": {"name": "Rime AI", "description": "Conversational AI voices"},
+        }
+        
+        for voice in voices:
+            provider_id = voice.get("provider", "unknown")
+            
+            if provider_id not in providers:
+                meta = provider_meta.get(provider_id, {"name": provider_id.title(), "description": f"{provider_id} voices"})
+                providers[provider_id] = {
+                    "id": provider_id,
+                    "name": meta["name"],
+                    "description": meta["description"],
+                    "voices": []
+                }
+            
+            voice_entry = {
+                "id": voice.get("voiceId") or voice.get("id"),
+                "name": voice.get("name", "Unknown"),
+                "gender": voice.get("gender", "neutral"),
+                "accent": voice.get("accent", ""),
+                "language": voice.get("language", "en"),
+                "preview_url": voice.get("previewUrl"),
+            }
+            
+            # Add additional metadata if available
+            if voice.get("description"):
+                voice_entry["description"] = voice.get("description")
+            
+            providers[provider_id]["voices"].append(voice_entry)
+        
+        # Sort providers by name and return as list
+        return sorted(providers.values(), key=lambda x: x["name"])
+    
+    def _get_fallback_voice_providers(self) -> List[Dict[str, Any]]:
+        """Fallback voice providers when Vapi API is unavailable"""
+        return [
+            {
+                "id": "vapi",
+                "name": "Vapi Voices",
+                "description": "Curated high-quality voices - Recommended",
+                "voices": [
+                    {"id": "Elliot", "name": "Elliot", "gender": "male", "accent": "American", "description": "Professional male voice"},
+                    {"id": "Lily", "name": "Lily", "gender": "female", "accent": "American", "description": "Warm female voice"},
+                    {"id": "Rohan", "name": "Rohan", "gender": "male", "accent": "Indian", "description": "Friendly male voice"},
+                    {"id": "Savannah", "name": "Savannah", "gender": "female", "accent": "American", "description": "Clear female voice"},
+                    {"id": "Cole", "name": "Cole", "gender": "male", "accent": "American", "description": "Calm male voice"},
+                    {"id": "Harry", "name": "Harry", "gender": "male", "accent": "British", "description": "British male voice"},
+                    {"id": "Sally", "name": "Sally", "gender": "female", "accent": "American", "description": "Energetic female voice"},
+                ]
+            },
+            {
+                "id": "11labs",
+                "name": "ElevenLabs",
+                "description": "High-quality AI voices with emotion",
+                "voices": [
+                    {"id": "EXAVITQu4vr4xnSDxMaL", "name": "Sarah", "gender": "female", "accent": "American"},
+                    {"id": "pNInz6obpgDQGcFmaJgB", "name": "Adam", "gender": "male", "accent": "American"},
+                    {"id": "21m00Tcm4TlvDq8ikWAM", "name": "Rachel", "gender": "female", "accent": "American"},
+                    {"id": "TxGEqnHWrfWFTfGW9XjX", "name": "Josh", "gender": "male", "accent": "American"},
+                    {"id": "AZnzlk1XvdvUeBnXmlld", "name": "Domi", "gender": "female", "accent": "American"},
+                    {"id": "MF3mGyEYCl7XYWbV9V6O", "name": "Elli", "gender": "female", "accent": "American"},
+                    {"id": "jBpfuIE2acCO8z3wKNLl", "name": "Gigi", "gender": "female", "accent": "American"},
+                    {"id": "onwK4e9ZLuTAKqWW03F9", "name": "Daniel", "gender": "male", "accent": "British"},
+                ]
+            },
+            {
+                "id": "cartesia",
+                "name": "Cartesia",
+                "description": "Ultra-low latency voices - Best for real-time",
+                "voices": [
+                    {"id": "a0e99841-438c-4a64-b679-ae501e7d6091", "name": "Barbershop Man", "gender": "male", "accent": "American"},
+                    {"id": "156fb8d2-335b-4950-9cb3-a2d33f6b3c11", "name": "British Woman", "gender": "female", "accent": "British"},
+                    {"id": "79a125e8-cd45-4c13-8a67-188112f4dd22", "name": "California Girl", "gender": "female", "accent": "American"},
+                    {"id": "c8605446-247c-4d39-acd4-8f4c28aa363c", "name": "Classy British Man", "gender": "male", "accent": "British"},
+                    {"id": "5619d38c-cf51-4d8e-9575-48f61a280413", "name": "Confident Woman", "gender": "female", "accent": "American"},
+                    {"id": "87748186-23bb-4f8c-a6b8-9e61e5d8f0bc", "name": "Friendly Australian Man", "gender": "male", "accent": "Australian"},
+                    {"id": "bf991597-6c23-4e41-bd1e-41952ff5a5bc", "name": "Warm Woman", "gender": "female", "accent": "American"},
+                ]
+            },
+            {
+                "id": "openai",
+                "name": "OpenAI TTS",
+                "description": "OpenAI text-to-speech",
+                "voices": [
+                    {"id": "alloy", "name": "Alloy", "gender": "neutral", "accent": "American"},
+                    {"id": "echo", "name": "Echo", "gender": "male", "accent": "American"},
+                    {"id": "fable", "name": "Fable", "gender": "neutral", "accent": "British"},
+                    {"id": "onyx", "name": "Onyx", "gender": "male", "accent": "American"},
+                    {"id": "nova", "name": "Nova", "gender": "female", "accent": "American"},
+                    {"id": "shimmer", "name": "Shimmer", "gender": "female", "accent": "American"},
+                ]
+            },
+            {
+                "id": "azure",
+                "name": "Azure Cognitive Services",
+                "description": "Microsoft Azure TTS - Enterprise grade",
+                "voices": [
+                    {"id": "en-US-JennyNeural", "name": "Jenny", "gender": "female", "accent": "American"},
+                    {"id": "en-US-GuyNeural", "name": "Guy", "gender": "male", "accent": "American"},
+                    {"id": "en-GB-SoniaNeural", "name": "Sonia", "gender": "female", "accent": "British"},
+                    {"id": "en-GB-RyanNeural", "name": "Ryan", "gender": "male", "accent": "British"},
+                    {"id": "en-AU-NatashaNeural", "name": "Natasha", "gender": "female", "accent": "Australian"},
+                    {"id": "en-IN-NeerjaNeural", "name": "Neerja", "gender": "female", "accent": "Indian"},
+                ]
+            },
+            {
+                "id": "deepgram",
+                "name": "Deepgram",
+                "description": "Fast and accurate TTS",
+                "voices": [
+                    {"id": "aura-asteria-en", "name": "Asteria", "gender": "female", "accent": "American"},
+                    {"id": "aura-luna-en", "name": "Luna", "gender": "female", "accent": "American"},
+                    {"id": "aura-stella-en", "name": "Stella", "gender": "female", "accent": "American"},
+                    {"id": "aura-athena-en", "name": "Athena", "gender": "female", "accent": "British"},
+                    {"id": "aura-hera-en", "name": "Hera", "gender": "female", "accent": "American"},
+                    {"id": "aura-orion-en", "name": "Orion", "gender": "male", "accent": "American"},
+                    {"id": "aura-arcas-en", "name": "Arcas", "gender": "male", "accent": "American"},
+                    {"id": "aura-perseus-en", "name": "Perseus", "gender": "male", "accent": "American"},
+                ]
+            },
+            {
+                "id": "playht",
+                "name": "PlayHT",
+                "description": "AI voice generator with cloning",
+                "voices": [
+                    {"id": "jennifer", "name": "Jennifer", "gender": "female", "accent": "American"},
+                    {"id": "michael", "name": "Michael", "gender": "male", "accent": "American"},
+                    {"id": "emma", "name": "Emma", "gender": "female", "accent": "British"},
+                    {"id": "james", "name": "James", "gender": "male", "accent": "British"},
+                ]
+            }
+        ]
+    
+    async def preview_voice(self, voice_id: str, text: str, provider: str = "11labs") -> Optional[bytes]:
+        """Generate voice preview audio (returns audio bytes)"""
+        # This would typically call the TTS provider's API directly
+        # For now, return None - frontend can use Vapi's built-in preview
+        logger.info(f"Voice preview requested for {voice_id} with provider {provider}")
+        return None
+    
+    # ===== PHONE NUMBER MANAGEMENT =====
+    
+    async def create_phone_number(self, provider: str = "twilio", area_code: str = "415") -> Dict[str, Any]:
+        """Purchase/create a phone number in Vapi"""
+        if not self.is_configured():
+            raise ValueError("Vapi not configured")
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/phone-number",
+                    headers=self.headers,
+                    json={
+                        "provider": provider,
+                        "areaCode": area_code
+                    }
+                )
+                response.raise_for_status()
+                return response.json()
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to create phone number: {e}")
+            raise
+    
+    async def assign_phone_number(self, phone_number_id: str, assistant_id: str) -> Dict[str, Any]:
+        """Assign an assistant to a phone number"""
+        if not self.is_configured():
+            raise ValueError("Vapi not configured")
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.patch(
+                    f"{self.base_url}/phone-number/{phone_number_id}",
+                    headers=self.headers,
+                    json={"assistantId": assistant_id}
+                )
+                response.raise_for_status()
+                return response.json()
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to assign phone number: {e}")
+            raise
+    
+    async def list_phone_numbers(self) -> List[Dict[str, Any]]:
+        """List all phone numbers in the organization"""
+        if not self.is_configured():
+            return []
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(
+                    f"{self.base_url}/phone-number",
+                    headers=self.headers
+                )
+                response.raise_for_status()
+                return response.json()
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to list phone numbers: {e}")
+            return []
+    
+    # ===== CALL MANAGEMENT =====
+    
+    async def make_outbound_call(
+        self,
+        assistant_id: str,
+        customer_number: str,
+        phone_number_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Make an outbound call"""
+        if not self.is_configured():
+            raise ValueError("Vapi not configured")
+        
+        call_data = {
+            "assistantId": assistant_id,
+            "customer": {
+                "number": customer_number
+            }
+        }
+        
+        if phone_number_id:
+            call_data["phoneNumberId"] = phone_number_id
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/call",
+                    headers=self.headers,
+                    json=call_data
+                )
+                response.raise_for_status()
+                return response.json()
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to make outbound call: {e}")
+            raise
+    
+    async def get_call(self, call_id: str) -> Optional[Dict[str, Any]]:
+        """Get call details including transcript"""
+        if not self.is_configured():
+            return None
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(
+                    f"{self.base_url}/call/{call_id}",
+                    headers=self.headers
+                )
+                response.raise_for_status()
+                return response.json()
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to get call {call_id}: {e}")
+            return None
+    
+    async def list_calls(
+        self,
+        assistant_id: Optional[str] = None,
+        limit: int = 100,
+        created_at_gt: Optional[str] = None,
+        created_at_lt: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """List calls with optional filtering"""
+        if not self.is_configured():
+            return []
+        
+        params = {"limit": limit}
+        if assistant_id:
+            params["assistantId"] = assistant_id
+        if created_at_gt:
+            params["createdAtGt"] = created_at_gt
+        if created_at_lt:
+            params["createdAtLt"] = created_at_lt
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(
+                    f"{self.base_url}/call",
+                    headers=self.headers,
+                    params=params
+                )
+                response.raise_for_status()
+                return response.json()
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to list calls: {e}")
+            return []
+    
+    # ===== FILE/KNOWLEDGE BASE MANAGEMENT =====
+    
+    async def upload_file(self, file_content: bytes, filename: str) -> Dict[str, Any]:
+        """Upload a file to Vapi for Knowledge Base"""
+        if not self.is_configured():
+            raise ValueError("Vapi not configured")
+        
+        import tempfile
+        
+        suffix = os.path.splitext(filename)[1]
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(file_content)
+            tmp_path = tmp.name
+        
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                with open(tmp_path, 'rb') as f:
+                    files = {"file": (filename, f)}
+                    headers = {"Authorization": f"Bearer {self.api_key}"}
+                    response = await client.post(
+                        f"{self.base_url}/file",
+                        headers=headers,
+                        files=files
+                    )
+                    response.raise_for_status()
+                    result = response.json()
+                    
+                    logger.info(f"Uploaded file {filename} to Vapi: {result.get('id')}")
+                    return {
+                        "id": result.get("id"),
+                        "name": result.get("name", filename),
+                        "url": result.get("url"),
+                        "size": result.get("bytes"),
+                        "status": result.get("status", "processed")
+                    }
+        finally:
+            os.unlink(tmp_path)
+    
+    async def delete_file(self, file_id: str) -> bool:
+        """Delete a file from Vapi"""
+        if not self.is_configured():
+            raise ValueError("Vapi not configured")
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.delete(
+                    f"{self.base_url}/file/{file_id}",
+                    headers=self.headers
+                )
+                response.raise_for_status()
+                logger.info(f"Deleted file {file_id}")
+                return True
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to delete file: {e}")
+            return False
+    
+    async def list_files(self) -> List[Dict[str, Any]]:
+        """List all files in the organization"""
+        if not self.is_configured():
+            return []
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(
+                    f"{self.base_url}/file",
+                    headers=self.headers
+                )
+                response.raise_for_status()
+                return response.json()
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to list files: {e}")
+            return []
+    
+    # ===== TOOLS MANAGEMENT =====
+    
+    def get_built_in_tools(self) -> List[Dict[str, Any]]:
+        """Get list of built-in tools available"""
+        return [
+            {
+                "id": "check_availability",
+                "name": "Check Availability",
+                "description": "Check available appointment slots for a given date",
+                "category": "scheduling",
+                "config": {
+                    "type": "function",
+                    "function": {
+                        "name": "checkAvailability",
+                        "description": "Check available time slots for appointments",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "date": {
+                                    "type": "string",
+                                    "description": "Date to check in YYYY-MM-DD format"
+                                }
+                            },
+                            "required": ["date"]
+                        }
+                    }
+                }
+            },
+            {
+                "id": "book_appointment",
+                "name": "Book Appointment",
+                "description": "Book an appointment for the caller",
+                "category": "scheduling",
+                "config": {
+                    "type": "function",
+                    "function": {
+                        "name": "bookAppointment",
+                        "description": "Book an appointment for the caller",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "date": {"type": "string", "description": "Appointment date (YYYY-MM-DD)"},
+                                "time": {"type": "string", "description": "Appointment time (HH:MM)"},
+                                "name": {"type": "string", "description": "Customer name"},
+                                "phone": {"type": "string", "description": "Customer phone number"},
+                                "email": {"type": "string", "description": "Customer email (optional)"},
+                                "service": {"type": "string", "description": "Service requested (optional)"}
+                            },
+                            "required": ["date", "time", "name", "phone"]
+                        }
+                    }
+                }
+            },
+            {
+                "id": "transfer_call",
+                "name": "Transfer Call",
+                "description": "Transfer the call to a human agent",
+                "category": "call_control",
+                "config": {
+                    "type": "transferCall",
+                    "destinations": []
+                }
+            },
+            {
+                "id": "end_call",
+                "name": "End Call",
+                "description": "End the current call",
+                "category": "call_control",
+                "config": {
+                    "type": "endCall"
+                }
+            }
+        ]
+    
+    # ===== WEBHOOK VERIFICATION =====
+    
+    def verify_webhook_signature(self, payload: bytes, signature: str) -> bool:
+        """Verify webhook signature from Vapi"""
+        if not self.webhook_secret:
+            logger.warning("VAPI_WEBHOOK_SECRET not set - skipping verification")
+            return True
+        
+        try:
+            expected = hmac.new(
+                self.webhook_secret.encode(),
+                payload,
+                hashlib.sha256
+            ).hexdigest()
+            return hmac.compare_digest(expected, signature)
+        except Exception:
+            return False
+    
+    # ===== HELPER METHODS =====
+    
+    def _get_voice_id(self, voice_name: str, provider: str = "11labs") -> str:
+        """Map friendly voice name to provider-specific voice ID"""
+        voice_map = {
+            "11labs": {
+                "jennifer": "EXAVITQu4vr4xnSDxMaL",
+                "sarah": "EXAVITQu4vr4xnSDxMaL",
+                "rachel": "21m00Tcm4TlvDq8ikWAM",
+                "adam": "pNInz6obpgDQGcFmaJgB",
+                "ryan": "pNInz6obpgDQGcFmaJgB",
+                "josh": "TxGEqnHWrfWFTfGW9XjX",
+            },
+            "openai": {
+                "alloy": "alloy",
+                "echo": "echo",
+                "fable": "fable",
+                "onyx": "onyx",
+                "nova": "nova",
+                "shimmer": "shimmer",
+            },
+            "azure": {
+                "jenny": "en-US-JennyNeural",
+                "guy": "en-US-GuyNeural",
+                "sonia": "en-GB-SoniaNeural",
+            }
+        }
+        
+        provider_voices = voice_map.get(provider, voice_map["11labs"])
+        return provider_voices.get(voice_name.lower(), voice_name)
+    
+    def get_public_key(self) -> Optional[str]:
+        return self.public_key
 
 
-async def update_vapi_assistant(*_: Any, **__: Any) -> None:  # pragma: no cover - deprecated
-    _raise("update_vapi_assistant")
-
-
-async def delete_vapi_assistant(*_: Any, **__: Any) -> None:  # pragma: no cover - deprecated
-    _raise("delete_vapi_assistant")
+# Singleton instance
+vapi_service = VapiService()

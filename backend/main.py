@@ -23,7 +23,7 @@ from datetime import datetime
 # Import routers
 from routers import (
     webhook,
-    webhook_livekit,
+    # webhook_livekit,
     appointments,
     services,
     users,
@@ -131,11 +131,11 @@ app.include_router(
     tags=["Twilio Webhook"]
 )
 
-app.include_router(
-    webhook_livekit.router,
-    prefix=f"{settings.API_V1_PREFIX}/webhook",
-    tags=["LiveKit Webhook"]
-)
+# app.include_router(
+#     webhook_livekit.router,
+#     prefix=f"{settings.API_V1_PREFIX}/webhook",
+#     tags=["LiveKit Webhook"]
+# )
 
 app.include_router(
     appointments.router,
@@ -172,13 +172,6 @@ app.include_router(
     admin_analytics.router,
     prefix=f"{settings.API_V1_PREFIX}/admin",
     tags=["Admin Analytics"]
-)
-
-from routers import voice_agent
-app.include_router(
-    voice_agent.router,
-    prefix=f"{settings.API_V1_PREFIX}/voice-agent",
-    tags=["Voice Agent"]
 )
 
 # Platform API Keys (Admin Only)
@@ -231,12 +224,12 @@ app.include_router(
 )
 
 # LiveKit Token Server (equivalent to official livekit/token-server)
-from routers import livekit_token
-app.include_router(
-    livekit_token.router,
-    prefix=f"{settings.API_V1_PREFIX}/livekit",
-    tags=["LiveKit Token"]
-)
+# from routers import livekit_token
+# app.include_router(
+#     livekit_token.router,
+#     prefix=f"{settings.API_V1_PREFIX}/livekit",
+#     tags=["LiveKit Token"]
+# )
 
 # Monitoring endpoints for diagnostics
 app.include_router(
@@ -267,6 +260,35 @@ app.include_router(
     prefix=f"{settings.API_V1_PREFIX}",
     tags=["AI Chat"]
 )
+
+# Chat Completions Router (OpenAI text chat)
+from routers import chat
+app.include_router(
+    chat.router,
+    prefix=f"{settings.API_V1_PREFIX}",
+    tags=["Chat Completions"]
+)
+
+# WebSocket Router
+from routers import websocket
+app.include_router(websocket.router)
+
+# Vapi Voice Router (Webhooks)
+from routers import vapi as vapi_router
+app.include_router(
+    vapi_router.router,
+    prefix=f"{settings.API_V1_PREFIX}/vapi",
+    tags=["Vapi Webhooks"]
+)
+
+# Comprehensive Assistant Management Router
+from routers import assistants as assistants_router
+app.include_router(
+    assistants_router.router,
+    prefix=f"{settings.API_V1_PREFIX}",
+    tags=["Assistant Management"]
+)
+
 
 
 @app.get("/")
