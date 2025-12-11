@@ -137,3 +137,4 @@ frontend_next/
 The voice agent now uses the exact structure from the LiveKit agent-starter-react repository, properly integrated with your multi-tenant backend.
 
 
+

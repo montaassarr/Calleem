@@ -22,6 +22,7 @@ from models.core.users import (
     LoginRequest,
     UserRole
 )
+from services.provisioning import vapi_provisioning
 from models.core.tenants import Tenant, TenantCreate, TenantStatus
 from database.mongo_config import get_database
 from utils.config import settings
@@ -236,6 +237,14 @@ async def register_user(user: UserCreate):
         await db.business_config.insert_one(business_config)
         logger.info(f"✅ Created default business_config for tenant {tenant_id}")
         
+        # [AUTO-PROVISIONING] Create Vapi Assistant
+        try:
+            logger.info("🤖 Triggering auto-provisioning for new tenant...")
+            await vapi_provisioning.provision_tenant_assistant(tenant_id, business_name)
+        except Exception as e:
+            logger.error(f"⚠️ Auto-provisioning failed for {tenant_id}: {e}")
+            # Non-blocking: User is still registered
+        
         # Retrieve created user with updated fields
         created_user = await db.users.find_one({"_id": result.inserted_id})
         
@@ -409,3 +418,47 @@ async def update_current_user(
     except Exception as e:
         logger.error(f"Error updating user: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to update user")
+
+
+@router.delete("/users/{user_id}")
+async def delete_user(
+    user_id: str,
+    current_user: dict = Depends(get_super_admin)
+):
+    """Delete a user and their tenant data (Super Admin only)"""
+    db = get_database()
+    
+    try:
+        user_oid = ObjectId(user_id)
+        user = await db.users.find_one({"_id": user_oid})
+    except:
+        raise HTTPException(400, "Invalid user ID")
+    
+    if not user:
+        raise HTTPException(404, "User not found")
+        
+    if user.get("role") == "super_admin":
+        raise HTTPException(400, "Cannot delete super admin")
+    
+    # Delete Tenant Data
+    tenant_id = user.get("tenant_id")
+    if tenant_id:
+        try:
+            # Delete Tenant
+            await db.tenants.delete_one({"_id": ObjectId(tenant_id)})
+            
+            # Delete Appointments
+            await db.appointments.delete_many({"tenant_id": str(tenant_id)})
+            
+            # Delete Call Logs
+            await db.call_logs.delete_many({"tenant_id": str(tenant_id)})
+            
+            # Delete Conversations
+            await db.conversations.delete_many({"tenant_id": str(tenant_id)})
+        except Exception as e:
+            logger.error(f"Error cleaning tenant data: {e}")
+            
+    # Delete User
+    await db.users.delete_one({"_id": user_oid})
+    
+    return {"message": "User and associated data deleted successfully"}

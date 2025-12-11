@@ -480,28 +480,20 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
 "use strict";
 
 __turbopack_context__.s([
-    "agentsApi",
-    ()=>agentsApi,
     "apiEndpoints",
     ()=>apiEndpoints,
-    "apiKeysApi",
-    ()=>apiKeysApi,
     "appointmentsApi",
     ()=>appointmentsApi,
-    "businessConfigApi",
-    ()=>businessConfigApi,
+    "assistantApi",
+    ()=>assistantApi,
     "conversationsApi",
     ()=>conversationsApi,
-    "onboardingApi",
-    ()=>onboardingApi,
     "servicesApi",
     ()=>servicesApi,
     "usersApi",
     ()=>usersApi,
-    "voiceAgentApi",
-    ()=>voiceAgentApi,
-    "voiceApi",
-    ()=>voiceApi,
+    "vapiApi",
+    ()=>vapiApi,
     "webhookApi",
     ()=>webhookApi
 ]);
@@ -627,155 +619,6 @@ const usersApi = {
         await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].delete(`/admin/users/${id}`);
     }
 };
-const voiceApi = {
-    testAgent: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/voice-agent/status");
-        return response;
-    },
-    callHistory: async (limit = 25)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/voice-agent/history", {
-            params: {
-                limit
-            }
-        });
-        return response;
-    },
-    startCall: async (data)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/voice-agent/call", data);
-        return response;
-    },
-    webrtcTest: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/voice-agent/webrtc/test");
-        return response;
-    },
-    enableVoiceAgent: async (enabled = true)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/voice-agent/enable", {
-            enabled
-        });
-        return response;
-    },
-    listCountries: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/voice-agent/numbers/countries");
-        return response;
-    },
-    searchNumbers: async (params)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/voice-agent/numbers/available", {
-            params
-        });
-        return response;
-    },
-    listNumbers: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/voice-agent/numbers");
-        return response;
-    },
-    purchaseNumber: async (payload)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/voice-agent/numbers/purchase", payload);
-        return response;
-    }
-};
-const businessConfigApi = {
-    getConfig: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/admin/config");
-        return response;
-    },
-    updateFeatureFlags: async (features)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].put("/admin/config", features);
-        return response;
-    }
-};
-const onboardingApi = {
-    getStatus: ()=>`${API_BASE_URL}/onboarding/status`,
-    getVoiceProviders: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/onboarding/voice-providers");
-        return response;
-    },
-    setupVoiceKey: async (data)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/onboarding/setup-voice-key", data);
-        return response;
-    },
-    getAgentOptions: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/onboarding/agent-options");
-        return response;
-    },
-    configureAgent: async (data)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/onboarding/configure-agent", data);
-        return response;
-    },
-    skip: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/onboarding/skip");
-        return response;
-    }
-};
-const apiKeysApi = {
-    list: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/keys");
-        return response;
-    },
-    create: async (data)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/keys", data);
-        return response;
-    },
-    delete: async (keyId)=>{
-        await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].delete(`/keys/${keyId}`);
-    },
-    // Simple setup endpoints
-    setupKey: async (data)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/setup/api-key", data);
-        return response;
-    },
-    getMyKeys: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/setup/my-keys");
-        return response;
-    },
-    getProviders: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/setup/providers");
-        return response;
-    },
-    deleteByProvider: async (provider)=>{
-        await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].delete(`/setup/api-key/${provider}`);
-    }
-};
-const agentsApi = {
-    list: async (params)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/agents/", {
-            params
-        });
-        return response;
-    },
-    get: async (agentId)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/agents/${agentId}`);
-        return response;
-    },
-    create: async (data)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/agents/", data);
-        return response;
-    },
-    update: async (agentId, data)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].put(`/agents/${agentId}`, data);
-        return response;
-    },
-    delete: async (agentId)=>{
-        await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].delete(`/agents/${agentId}`);
-    },
-    deploy: async (agentId)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/agents/${agentId}/deploy`);
-        return response;
-    },
-    pause: async (agentId)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/agents/${agentId}/pause`);
-        return response;
-    },
-    activate: async (agentId)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/agents/${agentId}/activate`);
-        return response;
-    }
-};
-const voiceAgentApi = {
-    stats: ()=>`${API_BASE_URL}/voice-agent/stats`,
-    phoneNumbers: ()=>`${API_BASE_URL}/voice-agent/numbers`,
-    searchNumbers: ()=>`${API_BASE_URL}/voice-agent/search-numbers`,
-    purchaseNumber: ()=>`${API_BASE_URL}/voice-agent/purchase-number`
-};
 const apiEndpoints = {
     agents: {
         getMyAgent: ()=>`${API_BASE_URL}/agents/my-agent`,
@@ -788,6 +631,7 @@ const apiEndpoints = {
         delete: (id)=>`${API_BASE_URL}/agents/${id}`
     },
     voiceAgent: {
+        // Temporarily keep but point to Vapi stats if possible, or dead endpoint
         stats: ()=>`${API_BASE_URL}/voice-agent/stats`,
         phoneNumbers: ()=>`${API_BASE_URL}/voice-agent/numbers`,
         searchNumbers: ()=>`${API_BASE_URL}/voice-agent/search-numbers`,
@@ -804,6 +648,123 @@ const apiEndpoints = {
     onboarding: {
         getStatus: ()=>`${API_BASE_URL}/onboarding/status`,
         skipOnboarding: ()=>`${API_BASE_URL}/onboarding/skip`
+    },
+    vapi: {
+        createAssistant: (tenantId)=>`${API_BASE_URL}/vapi/tenants/${tenantId}/assistant`,
+        updateAssistant: (tenantId, assistantId)=>`${API_BASE_URL}/vapi/tenants/${tenantId}/assistant/${assistantId}`,
+        getAssistant: (tenantId)=>`${API_BASE_URL}/vapi/tenants/${tenantId}/assistant`,
+        // 'Me' endpoints
+        getMyAssistant: ()=>`${API_BASE_URL}/vapi/assistant/me`,
+        createMyAssistant: ()=>`${API_BASE_URL}/vapi/assistant/me`,
+        updateMyAssistant: ()=>`${API_BASE_URL}/vapi/assistant/me`
+    }
+};
+const vapiApi = {
+    // Legacy methods - kept for backward compatibility
+    getMyAssistant: async ()=>{
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/assistant/me`);
+        return response;
+    },
+    createMyAssistant: async (data)=>{
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/assistant/me`, data);
+        return response;
+    },
+    updateMyAssistant: async (data)=>{
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].put(`/assistant/me`, data);
+        return response;
+    },
+    // File Management (now under assistant/me/knowledge-base)
+    uploadFile: async (file)=>{
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/assistant/me/knowledge-base/upload`, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        });
+        return response;
+    },
+    listFiles: async ()=>{
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/assistant/me/knowledge-base`);
+        return response;
+    }
+};
+const assistantApi = {
+    // Core CRUD
+    get: async ()=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/assistant/me`);
+    },
+    create: async (data)=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/assistant/me`, data);
+    },
+    update: async (data)=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].put(`/assistant/me`, data);
+    },
+    delete: async ()=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].delete(`/assistant/me`);
+    },
+    // Voice Configuration
+    getVoice: async ()=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/assistant/me/voice`);
+    },
+    updateVoice: async (data)=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].put(`/assistant/me/voice`, data);
+    },
+    getVoiceProviders: async ()=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/voice-providers`);
+    },
+    // Personality Configuration
+    getPersonality: async ()=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/assistant/me/personality`);
+    },
+    updatePersonality: async (data)=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].put(`/assistant/me/personality`, data);
+    },
+    // Knowledge Base
+    getKnowledgeBase: async ()=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/assistant/me/knowledge-base`);
+    },
+    uploadDocument: async (file)=>{
+        const formData = new FormData();
+        formData.append("file", file);
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/assistant/me/knowledge-base/upload`, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        });
+    },
+    deleteDocument: async (docId)=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].delete(`/assistant/me/knowledge-base/${docId}`);
+    },
+    addFAQs: async (faqs)=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/assistant/me/knowledge-base/faq`, faqs);
+    },
+    // Tools Management
+    getBuiltInTools: async ()=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/tools/built-in`);
+    },
+    getEnabledTools: async ()=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/assistant/me/tools`);
+    },
+    enableTool: async (toolId, config)=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/assistant/me/tools/${toolId}/enable`, config || {});
+    },
+    disableTool: async (toolId)=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].delete(`/assistant/me/tools/${toolId}`);
+    },
+    // Analytics
+    getCallAnalytics: async (days = 30)=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/assistant/me/analytics/calls?days=${days}`);
+    },
+    getConversations: async (limit = 50, skip = 0)=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/assistant/me/conversations?limit=${limit}&skip=${skip}`);
+    },
+    getConversation: async (callId)=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/assistant/me/conversations/${callId}`);
+    },
+    // Testing
+    getTestConfig: async ()=>{
+        return await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/assistant/me/test`);
     }
 };
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {

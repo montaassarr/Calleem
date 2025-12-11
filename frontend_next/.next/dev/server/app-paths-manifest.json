@@ -1,7 +1,14 @@
 {
-  "/api/connection-details/route": "app/api/connection-details/route.js",
   "/dashboard/appointments/page": "app/dashboard/appointments/page.js",
-  "/dashboard/settings/ai/page": "app/dashboard/settings/ai/page.js",
-  "/dashboard/settings/business/page": "app/dashboard/settings/business/page.js",
-  "/dashboard/voice-agent/test/page": "app/dashboard/voice-agent/test/page.js"
+  "/dashboard/conversations/page": "app/dashboard/conversations/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/services/page": "app/dashboard/services/page.js",
+  "/dashboard/voice-agent/analytics/page": "app/dashboard/voice-agent/analytics/page.js",
+  "/dashboard/voice-agent/control-center/page": "app/dashboard/voice-agent/control-center/page.js",
+  "/dashboard/voice-agent/knowledge-base/page": "app/dashboard/voice-agent/knowledge-base/page.js",
+  "/dashboard/voice-agent/test/page": "app/dashboard/voice-agent/test/page.js",
+  "/dashboard/voice-agent/tools/page": "app/dashboard/voice-agent/tools/page.js",
+  "/dashboard/voice-agent/voice/page": "app/dashboard/voice-agent/voice/page.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js"
 }

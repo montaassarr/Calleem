@@ -158,12 +158,13 @@ export default function UsersAdminPage() {
                                     <TableHead>Status</TableHead>
                                     <TableHead>Joined</TableHead>
                                     <TableHead>Last Login</TableHead>
+                                    <TableHead>Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {filteredUsers.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                                             No users found
                                         </TableCell>
                                     </TableRow>
@@ -216,10 +217,54 @@ export default function UsersAdminPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <div className="text-sm text-muted-foreground">
-                                                    {user.last_login 
+                                                    {user.last_login
                                                         ? new Date(user.last_login).toLocaleDateString()
                                                         : "Never"}
                                                 </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                            disabled={user.role === 'super_admin'}
+                                                        >
+                                                            <Trash className="h-4 w-4" />
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                                                                <ShieldAlert className="h-5 w-5" />
+                                                                Delete User & Tenant Data?
+                                                            </AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                This action cannot be undone. This will permanently delete
+                                                                <strong> {user.email}</strong> and completely wipe their tenant data
+                                                                (appointments, logs, settings).
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                            <AlertDialogAction
+                                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        await api.delete(`/users/${user.id}`);
+                                                                        toast.success("User deleted successfully");
+                                                                        refetch();
+                                                                    } catch (error) {
+                                                                        toast.error("Failed to delete user");
+                                                                    }
+                                                                }}
+                                                            >
+                                                                Delete Permanently
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
                                             </TableCell>
                                         </TableRow>
                                     ))

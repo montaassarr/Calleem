@@ -569,28 +569,18 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
 "use strict";
 
 __turbopack_context__.s([
-    "agentsApi",
-    ()=>agentsApi,
     "apiEndpoints",
     ()=>apiEndpoints,
-    "apiKeysApi",
-    ()=>apiKeysApi,
     "appointmentsApi",
     ()=>appointmentsApi,
-    "businessConfigApi",
-    ()=>businessConfigApi,
     "conversationsApi",
     ()=>conversationsApi,
-    "onboardingApi",
-    ()=>onboardingApi,
     "servicesApi",
     ()=>servicesApi,
     "usersApi",
     ()=>usersApi,
-    "voiceAgentApi",
-    ()=>voiceAgentApi,
-    "voiceApi",
-    ()=>voiceApi,
+    "vapiApi",
+    ()=>vapiApi,
     "webhookApi",
     ()=>webhookApi
 ]);
@@ -716,155 +706,6 @@ const usersApi = {
         await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].delete(`/admin/users/${id}`);
     }
 };
-const voiceApi = {
-    testAgent: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/voice-agent/status");
-        return response;
-    },
-    callHistory: async (limit = 25)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/voice-agent/history", {
-            params: {
-                limit
-            }
-        });
-        return response;
-    },
-    startCall: async (data)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/voice-agent/call", data);
-        return response;
-    },
-    webrtcTest: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/voice-agent/webrtc/test");
-        return response;
-    },
-    enableVoiceAgent: async (enabled = true)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/voice-agent/enable", {
-            enabled
-        });
-        return response;
-    },
-    listCountries: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/voice-agent/numbers/countries");
-        return response;
-    },
-    searchNumbers: async (params)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/voice-agent/numbers/available", {
-            params
-        });
-        return response;
-    },
-    listNumbers: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/voice-agent/numbers");
-        return response;
-    },
-    purchaseNumber: async (payload)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/voice-agent/numbers/purchase", payload);
-        return response;
-    }
-};
-const businessConfigApi = {
-    getConfig: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/admin/config");
-        return response;
-    },
-    updateFeatureFlags: async (features)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].put("/admin/config", features);
-        return response;
-    }
-};
-const onboardingApi = {
-    getStatus: ()=>`${API_BASE_URL}/onboarding/status`,
-    getVoiceProviders: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/onboarding/voice-providers");
-        return response;
-    },
-    setupVoiceKey: async (data)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/onboarding/setup-voice-key", data);
-        return response;
-    },
-    getAgentOptions: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/onboarding/agent-options");
-        return response;
-    },
-    configureAgent: async (data)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/onboarding/configure-agent", data);
-        return response;
-    },
-    skip: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/onboarding/skip");
-        return response;
-    }
-};
-const apiKeysApi = {
-    list: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/keys");
-        return response;
-    },
-    create: async (data)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/keys", data);
-        return response;
-    },
-    delete: async (keyId)=>{
-        await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].delete(`/keys/${keyId}`);
-    },
-    // Simple setup endpoints
-    setupKey: async (data)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/setup/api-key", data);
-        return response;
-    },
-    getMyKeys: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/setup/my-keys");
-        return response;
-    },
-    getProviders: async ()=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/setup/providers");
-        return response;
-    },
-    deleteByProvider: async (provider)=>{
-        await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].delete(`/setup/api-key/${provider}`);
-    }
-};
-const agentsApi = {
-    list: async (params)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/agents/", {
-            params
-        });
-        return response;
-    },
-    get: async (agentId)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/agents/${agentId}`);
-        return response;
-    },
-    create: async (data)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/agents/", data);
-        return response;
-    },
-    update: async (agentId, data)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].put(`/agents/${agentId}`, data);
-        return response;
-    },
-    delete: async (agentId)=>{
-        await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].delete(`/agents/${agentId}`);
-    },
-    deploy: async (agentId)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/agents/${agentId}/deploy`);
-        return response;
-    },
-    pause: async (agentId)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/agents/${agentId}/pause`);
-        return response;
-    },
-    activate: async (agentId)=>{
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/agents/${agentId}/activate`);
-        return response;
-    }
-};
-const voiceAgentApi = {
-    stats: ()=>`${API_BASE_URL}/voice-agent/stats`,
-    phoneNumbers: ()=>`${API_BASE_URL}/voice-agent/numbers`,
-    searchNumbers: ()=>`${API_BASE_URL}/voice-agent/search-numbers`,
-    purchaseNumber: ()=>`${API_BASE_URL}/voice-agent/purchase-number`
-};
 const apiEndpoints = {
     agents: {
         getMyAgent: ()=>`${API_BASE_URL}/agents/my-agent`,
@@ -877,6 +718,7 @@ const apiEndpoints = {
         delete: (id)=>`${API_BASE_URL}/agents/${id}`
     },
     voiceAgent: {
+        // Temporarily keep but point to Vapi stats if possible, or dead endpoint
         stats: ()=>`${API_BASE_URL}/voice-agent/stats`,
         phoneNumbers: ()=>`${API_BASE_URL}/voice-agent/numbers`,
         searchNumbers: ()=>`${API_BASE_URL}/voice-agent/search-numbers`,
@@ -893,6 +735,43 @@ const apiEndpoints = {
     onboarding: {
         getStatus: ()=>`${API_BASE_URL}/onboarding/status`,
         skipOnboarding: ()=>`${API_BASE_URL}/onboarding/skip`
+    },
+    vapi: {
+        createAssistant: (tenantId)=>`${API_BASE_URL}/vapi/tenants/${tenantId}/assistant`,
+        updateAssistant: (tenantId, assistantId)=>`${API_BASE_URL}/vapi/tenants/${tenantId}/assistant/${assistantId}`,
+        getAssistant: (tenantId)=>`${API_BASE_URL}/vapi/tenants/${tenantId}/assistant`,
+        // 'Me' endpoints
+        getMyAssistant: ()=>`${API_BASE_URL}/vapi/assistant/me`,
+        createMyAssistant: ()=>`${API_BASE_URL}/vapi/assistant/me`,
+        updateMyAssistant: ()=>`${API_BASE_URL}/vapi/assistant/me`
+    }
+};
+const vapiApi = {
+    // ... Direct tenant methods ...
+    createAssistant: async (tenantId, data)=>{
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/vapi/tenants/${tenantId}/assistant`, data);
+        return response;
+    },
+    updateAssistant: async (tenantId, assistantId, data)=>{
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].put(`/vapi/tenants/${tenantId}/assistant/${assistantId}`, data);
+        return response;
+    },
+    getAssistant: async (tenantId)=>{
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/vapi/tenants/${tenantId}/assistant`);
+        return response;
+    },
+    // 'Me' methods
+    getMyAssistant: async ()=>{
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/vapi/assistant/me`);
+        return response;
+    },
+    createMyAssistant: async (data)=>{
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/vapi/assistant/me`, data);
+        return response;
+    },
+    updateMyAssistant: async (data)=>{
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$frontend_next$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].put(`/vapi/assistant/me`, data);
+        return response;
     }
 };
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {

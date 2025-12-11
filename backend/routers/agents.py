@@ -1,6 +1,6 @@
 """
 Agents API Router
-CRUD operations for voice agents powered by LiveKit
+CRUD operations for voice agents (Vapi specific)
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query, status
@@ -17,7 +17,6 @@ from models.agent import (
 )
 from database.mongo_config import get_database
 from routers.users import get_current_user
-from services.livekit_service import livekit_service
 from utils.error_logger import error_logger, ErrorCategory, ErrorLevel
 
 logger = logging.getLogger(__name__)
@@ -61,7 +60,6 @@ APPOINTMENT BOOKING:
 - Confirm all details before finalizing
 
 TEST & DEMO CAPABILITIES:
-You also have access to demo functions for testing:
 - Weather lookup (get_weather) - Check weather for any location
 - Discount calculator (calculate_discount) - Calculate prices with discounts
 - Reminder setter (set_reminder) - Set future reminders
@@ -69,8 +67,8 @@ You also have access to demo functions for testing:
 
 When testing, feel free to demonstrate these capabilities to show the agent's function calling abilities.""",
             "voice_settings": {
-                "provider": "cartesia",
-                "voice_id": "79a125e8-cd45-4c13-8a67-188112f4dd22",
+                "provider": "vapi",
+                "voice_id": "jennifer",
                 "stability": 0.5,
                 "similarity_boost": 0.75
             },
@@ -90,9 +88,6 @@ When testing, feel free to demonstrate these capabilities to show the agent's fu
             "total_calls": 0,
             "total_minutes": 0.0,
             "successful_calls": 0,
-            "livekit_agent_name": livekit_service.config.agent_name,
-            "livekit_queue": livekit_service.config.agent_queue,
-            "livekit_room_template": None,
             "last_deployed_at": None
         }
         

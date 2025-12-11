@@ -1,15 +1,13 @@
 """
 Onboarding Wizard Router
 ========================
-Guides new users through required voice AI setup
+Guides new users through required voice AI setup (Vapi Edition)
 
 Flow:
 1. Check if user has completed onboarding
-2. Provision managed LiveKit voice agent
-3. Guide them to get API key
-4. Validate and save key
-5. Configure agent (prompts, tools, voice)
-6. Deploy agent
+2. Provision Vapi voice agent
+3. Configure agent (prompts, tools, voice)
+4. Deploy agent
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
@@ -20,10 +18,8 @@ from bson import ObjectId
 import logging
 
 from routers.users import get_current_user
-from routers.api_keys import add_api_key, ApiKeyCreate, validate_api_key
-from services.ai_proxy import ai_proxy
 from database.mongo_config import get_database
-from services.livekit_service import livekit_service
+from services.vapi_service import vapi_service
 from models.agent import AgentStatus
 
 logger = logging.getLogger(__name__)
@@ -46,7 +42,7 @@ class OnboardingStatus(BaseModel):
 
 class VoiceProviderChoice(BaseModel):
     """User selects voice provider"""
-    provider: str = Field(..., description="Currently only 'livekit' is supported")
+    provider: str = Field(..., description="Currently 'vapi' is the standard")
 
 
 class VoiceKeySetup(BaseModel):
@@ -58,11 +54,9 @@ class VoiceKeySetup(BaseModel):
 
 class AgentConfiguration(BaseModel):
     """Agent configuration choices"""
-    ai_engine: str = Field(default="groq", description="groq, openai, anthropic")
-    use_own_ai_key: bool = Field(default=False)
-    ai_key: Optional[str] = None
+    ai_engine: str = Field(default="gpt-4o-mini", description="llm model")
     
-    voice_provider: str = Field(default="elevenlabs", description="elevenlabs, playht, azure")
+    voice_provider: str = Field(default="elevenlabs", description="Currently managed by Vapi")
     voice_id: Optional[str] = Field(default=None, description="Specific voice ID if custom")
     
     prompt_template: str = Field(default="friendly_receptionist")
@@ -78,14 +72,6 @@ class AgentConfiguration(BaseModel):
 async def get_onboarding_status(current_user: dict = Depends(get_current_user)):
     """
     Check if user has completed onboarding - AUTOMATED CHECK
-    
-    Returns detailed status of what's completed and what's missing:
-    - Business information (name, phone, address, hours)
-    - API keys (OpenAI, Groq, etc.)
-    - Services configured
-    - AI Agent created and deployed
-    
-    Used to automatically show onboarding modal on dashboard
     """
     tenant_id = str(current_user["tenant_id"])
     db = get_database()
@@ -95,8 +81,11 @@ async def get_onboarding_status(current_user: dict = Depends(get_current_user)):
     has_business_name = bool(config.get("business_name"))
     has_business_details = bool(config.get("business_phone")) and bool(config.get("business_email"))
     has_services = services_count > 0
+    # Check for Vapi assistant ID in business config or agents collection
+    # In Vapi model, we often store assistant_id in business_config or a separate agents doc.
+    # We'll check 'agents' collection first.
     agent = await db.agents.find_one({"tenant_id": tenant_id})
-    agent_deployed = bool(agent and agent.get("status") == AgentStatus.ACTIVE.value)
+    agent_deployed = bool(agent and agent.get("status") == "active")
 
     missing_items: List[str] = []
     if not has_business_name:
@@ -128,7 +117,7 @@ async def get_onboarding_status(current_user: dict = Depends(get_current_user)):
         completed=completed,
         current_step=current_step,
         has_voice_provider=True,
-        voice_provider="livekit",
+        voice_provider="vapi",
         agent_deployed=agent_deployed,
         agent_id=str(agent["_id"]) if agent else None,
         missing_items=missing_items,
@@ -139,28 +128,28 @@ async def get_onboarding_status(current_user: dict = Depends(get_current_user)):
 
 @router.get("/onboarding/voice-providers")
 async def get_voice_provider_options():
-    """Return LiveKit as the managed voice provider option."""
+    """Return Vapi as the managed voice provider option."""
 
     return {
-        "title": "LiveKit Voice Agent",
-        "description": "Voice calling is now powered by our managed LiveKit stack. No external provider setup required.",
+        "title": "Vapi Voice AI",
+        "description": "Enterprise-grade voice AI powered by Vapi. Low latency, realistic voices.",
         "providers": [
             {
-                "id": "livekit",
-                "name": "CallFlow LiveKit",
-                "reason": "Managed voice agent with full control",
+                "id": "vapi",
+                "name": "Vapi (Managed)",
+                "reason": "Included in Platform",
                 "setup_url": None,
                 "instructions": [
-                    "1. Configure your prompt, model, and voice inside the dashboard",
-                    "2. Use Test Call to try the shared sandbox",
-                    "3. Add your own LLM/TTS keys when you're ready to go live"
+                    "1. Configure your agent settings",
+                    "2. We provision a Vapi assistant for you",
+                    "3. Manage phone numbers directly in the dashboard"
                 ],
                 "recommended": True,
                 "pricing": "Included"
             }
         ],
-        "note": "Third-party voice providers are no longer required while we migrate fully to LiveKit.",
-        "recommendation": "Use the built-in LiveKit stack."
+        "note": "We have migrated to Vapi for superior voice quality.",
+        "recommendation": "Use Vapi."
     }
 
 
@@ -169,12 +158,12 @@ async def setup_voice_provider_key(
     data: VoiceKeySetup,
     current_user: dict = Depends(get_current_user)
 ):
-    """LiveKit is managed by the platform, so this step just acknowledges completion."""
+    """Vapi is managed by the platform, so this step just acknowledges completion."""
 
     return {
         "success": True,
-        "message": "LiveKit is provisioned automatically. No external API key is required.",
-        "provider": "livekit"
+        "message": "Vapi is provisioned automatically. No external API key is required.",
+        "provider": "vapi"
     }
 
 
@@ -183,55 +172,46 @@ async def get_agent_configuration_options():
     """
     Step 3: Show agent configuration options
     """
-    optional = ai_proxy.get_optional_providers()
     
     return {
         "title": "Configure Your AI Receptionist",
-        "description": "Customize how your agent talks and what it can do. We provide the platform tools!",
+        "description": "Customize how your agent talks and what it can do.",
         
         "ai_engines": {
             "title": "Choose AI Engine",
             "options": [
                 {
-                    "id": "groq",
-                    "name": "Groq (Recommended)",
-                    "description": "Super fast responses, included in your subscription",
-                    "cost": "FREE (platform key)",
+                    "id": "gpt-4o-mini",
+                    "name": "GPT-4o Mini",
+                    "description": "Fast & Intelligent (Standard)",
+                    "cost": "Included",
                     "recommended": True
                 },
                 {
-                    "id": "openai",
-                    "name": "OpenAI GPT-4",
-                    "description": "Most advanced AI, but slower and more expensive",
-                    "cost": "Use our key (FREE) or add your own",
-                    "recommended": False
-                },
-                {
-                    "id": "anthropic",
-                    "name": "Anthropic Claude",
-                    "description": "Great for complex conversations",
-                    "cost": "Add your own key (optional)",
+                    "id": "gpt-4",
+                    "name": "GPT-4",
+                    "description": "Most capable, slightly slower",
+                    "cost": "Premium",
                     "recommended": False
                 }
-            ],
-            "optional_providers": optional
+            ]
         },
         
         "voice_options": {
             "title": "Choose Voice",
             "options": [
                 {
-                    "id": "default",
-                    "name": "Default Voice",
-                    "description": "Professional English voice, included",
-                    "cost": "FREE",
+                    "id": "jennifer",
+                    "name": "Jennifer (US Female)",
+                    "description": "Professional and clear",
+                    "cost": "Free",
                     "recommended": True
                 },
                 {
-                    "id": "elevenlabs",
-                    "name": "ElevenLabs Custom Voice",
-                    "description": "Ultra-realistic voices, add your ElevenLabs key",
-                    "cost": "Your ElevenLabs account",
+                    "id": "ryan",
+                    "name": "Ryan (US Male)",
+                    "description": "Deep and calm",
+                    "cost": "Free",
                     "recommended": False
                 }
             ]
@@ -262,8 +242,8 @@ async def get_agent_configuration_options():
         },
         
         "available_tools": {
-            "title": "Enable Tools (Our n8n Workflows)",
-            "description": "These are pre-built automations we provide as part of your subscription!",
+            "title": "Enable Tools (n8n Workflows)",
+            "description": "These are pre-built automations!",
             "tools": [
                 {
                     "id": "book_appointment",
@@ -278,31 +258,17 @@ async def get_agent_configuration_options():
                     "description": "AI can check open time slots",
                     "enabled_by_default": True,
                     "included": True
-                },
-                {
-                    "id": "cancel_appointment",
-                    "name": "Cancel/Reschedule",
-                    "description": "AI can modify existing appointments",
-                    "enabled_by_default": True,
-                    "included": True
-                },
-                {
-                    "id": "send_confirmation",
-                    "name": "Send Confirmations (WhatsApp)",
-                    "description": "Automatic booking confirmations via WhatsApp",
-                    "enabled_by_default": True,
-                    "included": True
-                },
-                {
-                    "id": "update_crm",
-                    "name": "Update CRM",
-                    "description": "Save customer info to your CRM",
-                    "enabled_by_default": False,
-                    "included": True
                 }
             ]
         }
     }
+
+
+PROMPT_LIBRARY: Dict[str, str] = {
+    "friendly_receptionist": "You are a cheerful receptionist who answers every caller within two rings. Keep responses tight, confirm details, and summarize next steps before ending the call.",
+    "professional_assistant": "You are a precise operations assistant. Speak clearly, confirm spelling of names, and ensure every booking includes date, time, and contact information.",
+    "casual_helper": "You are a relaxed concierge for busy service businesses. Mirror the caller's energy, keep things light, and always check if they need anything else before hanging up.",
+}
 
 
 @router.post("/onboarding/configure-agent")
@@ -310,23 +276,69 @@ async def configure_and_deploy_agent(
     config: AgentConfiguration,
     current_user: dict = Depends(get_current_user)
 ):
-    """Finalize onboarding by auto-deploying the managed LiveKit agent."""
+    """Finalize onboarding by auto-deploying the managed Vapi agent."""
 
     tenant_id = str(current_user["tenant_id"])
+    company_name = str(current_user.get("business_name", "Your Business"))
     db = get_database()
 
-    await ai_proxy.check_tenant_has_required_keys(tenant_id)
+    # 1. Create agent in Vapi
+    instructions = PROMPT_LIBRARY.get(config.prompt_template, PROMPT_LIBRARY["friendly_receptionist"])
+    
+    try:
+        if not vapi_service.is_configured():
+             logger.warning("Vapi not configured, skipping actual Vapi creation for onboarding test")
+             agent_details = {"assistant_id": "mock_vapi_id", "created": False}
+        else:
+            agent_details = await vapi_service.create_assistant(
+                tenant_id=tenant_id,
+                company_name=company_name,
+                instructions=instructions,
+                voice=config.voice_id or "jennifer",
+                model=config.ai_engine
+            )
+    except Exception as e:
+        logger.error(f"Vapi creation failed: {e}")
+        raise HTTPException(500, f"Failed to provision voice agent: {str(e)}")
 
-    agent_id = await _ensure_default_agent(db, tenant_id, config)
-    await _enable_voice_agent(db, tenant_id)
+    # 2. Save agent to DB
+    existing = await db.agents.find_one({"tenant_id": tenant_id})
+    agent_payload = {
+        "name": f"{company_name} - Receptionist",
+        "tenant_id": tenant_id,
+        "vapi_assistant_id": agent_details.get("assistant_id"),
+        "provider": "vapi",
+        "system_prompt": instructions,
+        "voice_id": config.voice_id or "jennifer",
+        "llm_model": config.ai_engine,
+        "status": "active",
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
 
-    preview_session = livekit_service.build_preview_session(
-        tenant_id=tenant_id,
-        user_id=str(current_user.get("id", tenant_id)),
+    if existing:
+        await db.agents.update_one(
+            {"_id": existing["_id"]},
+            {"$set": agent_payload}
+        )
+        agent_id = str(existing["_id"])
+    else:
+        result = await db.agents.insert_one(agent_payload)
+        agent_id = str(result.inserted_id)
+
+    # 3. Enable feature flag
+    await db.business_config.update_one(
+        {"tenant_id": tenant_id},
+        {
+            "$set": {
+                "features_enabled.voice_agent": True,
+                "updated_at": datetime.utcnow(),
+            }
+        },
+        upsert=True,
     )
 
-    welcome_call = await _maybe_place_welcome_call(db, tenant_id, config, current_user)
-
+    # 4. Mark onboarding complete
     await db.onboarding_status.update_one(
         {"tenant_id": tenant_id},
         {
@@ -338,6 +350,7 @@ async def configure_and_deploy_agent(
         },
         upsert=True,
     )
+    
     await db.users.update_many(
         {"tenant_id": tenant_id},
         {
@@ -350,115 +363,11 @@ async def configure_and_deploy_agent(
 
     return {
         "success": True,
-        "message": "🎉 Your AI Receptionist is live!",
+        "message": "🎉 Your Vapi AI Receptionist is live!",
         "agent_id": agent_id,
-        "preview_session": preview_session,
-        "welcome_call": welcome_call,
+        "vapi_assistant_id": agent_details.get("assistant_id"),
         "voice_agent_enabled": True,
     }
-
-
-PROMPT_LIBRARY: Dict[str, str] = {
-    "friendly_receptionist": "You are Parker, a cheerful receptionist who answers every caller within two rings. Keep responses tight, confirm details, and summarize next steps before ending the call.",
-    "professional_assistant": "You are Parker, a precise operations assistant. Speak clearly, confirm spelling of names, and ensure every booking includes date, time, and contact information.",
-    "casual_helper": "You are Parker, a relaxed concierge for busy service businesses. Mirror the caller's energy, keep things light, and always check if they need anything else before hanging up.",
-}
-
-DEFAULT_WEBHOOKS = {
-    "get_slots": "http://n8n:5678/webhook/getslots",
-    "book": "http://n8n:5678/webhook/bookslots",
-    "update": "http://n8n:5678/webhook/updateslots",
-    "cancel": "http://n8n:5678/webhook/cancelslots",
-}
-
-
-async def _ensure_default_agent(db, tenant_id: str, config: AgentConfiguration) -> str:
-    existing = await db.agents.find_one({"tenant_id": tenant_id})
-    prompt = PROMPT_LIBRARY.get(config.prompt_template, PROMPT_LIBRARY["friendly_receptionist"])
-    agent_payload = {
-        "name": "Parker Receptionist",
-        "tenant_id": tenant_id,
-        "system_prompt": prompt,
-        "voice_settings": {
-            "provider": config.voice_provider,
-            "voice_id": config.voice_id or "parker_default",
-            "model": "eleven_monolingual_v1" if config.voice_provider == "elevenlabs" else None,
-            "stability": 0.5,
-            "similarity_boost": 0.75,
-        },
-        "llm_model": {
-            "groq": "groq/llama3-70b",
-            "openai": "gpt-4.1-mini",
-            "anthropic": "claude-3-haiku",
-        }.get(config.ai_engine, "groq/llama3-70b"),
-        "llm_temperature": 0.4,
-        "webhook_urls": DEFAULT_WEBHOOKS,
-        "enabled_tools": config.enabled_tools,
-        "status": AgentStatus.ACTIVE.value,
-        "livekit_agent_name": livekit_service.config.agent_name,
-        "livekit_queue": livekit_service.config.agent_queue,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
-        "last_deployed_at": datetime.utcnow(),
-        "total_calls": 0,
-        "total_minutes": 0.0,
-        "successful_calls": 0,
-    }
-
-    if existing:
-        await db.agents.update_one(
-            {"_id": existing["_id"]},
-            {"$set": {**agent_payload, "created_at": existing.get("created_at", datetime.utcnow())}},
-        )
-        return str(existing["_id"])
-
-    result = await db.agents.insert_one(agent_payload)
-    return str(result.inserted_id)
-
-
-async def _enable_voice_agent(db, tenant_id: str) -> None:
-    await db.business_config.update_one(
-        {"tenant_id": tenant_id},
-        {
-            "$set": {
-                "tenant_id": tenant_id,
-                "features_enabled.voice_agent": True,
-                "updated_at": datetime.utcnow(),
-            }
-        },
-        upsert=True,
-    )
-
-
-async def _maybe_place_welcome_call(db, tenant_id: str, config: AgentConfiguration, current_user: dict) -> Dict[str, Any]:
-    if not config.send_welcome_call:
-        return {"status": "skipped", "reason": "disabled"}
-
-    business = await db.business_config.find_one({"tenant_id": tenant_id}) or {}
-    target = config.welcome_call_number or business.get("business_phone") or current_user.get("phone")
-    if not target:
-        return {"status": "skipped", "reason": "missing_target"}
-
-    caller = await db.voice_numbers.find_one(
-        {"tenant_id": tenant_id, "status": {"$in": ["active", "provisioning"]}},
-        sort=[("status", 1), ("created_at", -1)],
-    )
-    if not caller:
-        return {"status": "skipped", "reason": "no_livekit_number"}
-
-    try:
-        call = await livekit_service.start_outbound_call(
-            tenant_id=tenant_id,
-            to_number=target,
-            from_number=caller.get("phone_number"),
-            metadata={"kind": "welcome-test"},
-        )
-        return call
-    except HTTPException as exc:
-        return {"status": "failed", "reason": exc.detail}
-    except Exception as exc:  # pragma: no cover
-        logger.error("Welcome call failed: %s", exc)
-        return {"status": "failed", "reason": "unexpected_error"}
 
 
 @router.post("/onboarding/skip")
