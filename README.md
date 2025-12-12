@@ -273,7 +273,7 @@ If ports 3000, 8000, or 27017 are already in use:
 - `ENVIRONMENT=production`
 
 **Vercel (Frontend)**:
-- `NEXT_PUBLIC_API_URL` - Your Railway backend URL (e.g., `https://your-app.up.railway.app`)
+- `NEXT_PUBLIC_API_URL` - Your Railway backend URL: `https://ai-receptionist-production-299a.up.railway.app`
 
 ## 🔐 Security Notes
 
