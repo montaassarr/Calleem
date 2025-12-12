@@ -54,7 +54,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      # Use backend service name for internal Docker network communication
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+      # For client-side requests, use localhost (will be proxied by Next.js rewrites)
+      - API_URL=http://backend:8000
     depends_on:
       backend:
         condition: service_healthy

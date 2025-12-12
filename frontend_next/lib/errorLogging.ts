@@ -1,5 +1,18 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-const API_BASE = `${BASE_URL}/api/v1`;
+// Get API URL from environment variable
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
+  (typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+    ? "http://localhost:8000" 
+    : '');
+
+// Check for placeholder URLs
+if (typeof window !== 'undefined' && BASE_URL && BASE_URL.includes('your-railway-url')) {
+  console.error(
+    '❌ NEXT_PUBLIC_API_URL contains placeholder value! ' +
+    'Please update it in Vercel environment variables to your actual Railway backend URL.'
+  );
+}
+
+const API_BASE = BASE_URL ? `${BASE_URL}/api/v1` : '/api/v1';
 const LEVELS = ["debug", "info", "warning", "error", "critical"] as const;
 export type LogLevel = (typeof LEVELS)[number];
 
