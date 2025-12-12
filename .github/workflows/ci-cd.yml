@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, master]
   pull_request:
-    branches: [main]
+    branches: [main, master]
 
 jobs:
   # ===== TEST BACKEND =====
@@ -55,17 +55,37 @@ jobs:
         working-directory: ./frontend_next
         run: npm run build
 
+  # ===== TEST DOCKER BUILDS =====
+  test-docker-builds:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Test Railway Backend Dockerfile
+        run: |
+          docker build -f Dockerfile.railway -t callflow-backend-test .
+          echo "✅ Railway backend Docker build successful"
+      
+      - name: Test Frontend Dockerfile
+        run: |
+          docker build -f frontend_next/Dockerfile -t callflow-frontend-test ./frontend_next
+          echo "✅ Frontend Docker build successful"
+
   # ===== DEPLOY NOTIFICATION =====
   deploy-ready:
-    needs: [test-backend, test-frontend]
+    needs: [test-backend, test-frontend, test-docker-builds]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
     steps:
       - name: Deploy Status
         run: |
           echo "✅ All tests passed!"
-          echo "🚀 Vercel and Railway will auto-deploy from main branch"
+          echo "🚀 Railway and Vercel will auto-deploy from ${{ github.ref_name }} branch"
           echo ""
           echo "Deployment URLs:"
-          echo "  Frontend: https://callflow-ai.vercel.app"
-          echo "  Backend: https://callflow-backend.up.railway.app"
+          echo "  Frontend (Vercel): Auto-deploying..."
+          echo "  Backend (Railway): Auto-deploying..."
+
