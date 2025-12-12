@@ -46,13 +46,21 @@ from utils.error_logger import set_error_logger_db
 from middleware.error_handler import ErrorHandlingMiddleware
 
 # Configure logging
+# Use only console logging for production (Railway/Docker)
+# File logging only for local development
+handlers = [logging.StreamHandler()]
+
+# Add file handler only if logs directory exists (local dev)
+if os.path.exists('logs') or os.makedirs('logs', exist_ok=True):
+    try:
+        handlers.append(logging.FileHandler('logs/app.log'))
+    except:
+        pass  # Skip file logging if it fails in production
+
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('logs/app.log'),
-        logging.StreamHandler()
-    ]
+    handlers=handlers
 )
 
 logger = logging.getLogger(__name__)
