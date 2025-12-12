@@ -2,11 +2,11 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, UserPlus, Pencil, Trash2, Lock } from "lucide-react";
+import { ArrowLeft, UserPlus, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { usersApi, businessConfigApi } from "@/lib/api-endpoints";
+import { usersApi } from "@/lib/api-endpoints";
 import { toast } from "sonner";
 import type { UserResponse } from "@/lib/types";
 import {
@@ -25,7 +25,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import Link from "next/link";
 
 export default function TeamSettingsPage() {
     const router = useRouter();
@@ -39,15 +38,9 @@ export default function TeamSettingsPage() {
         role: "staff" as "admin" | "staff",
     });
 
-    const { data: businessConfig, isLoading: isConfigLoading } = useQuery({
-        queryKey: ["business-config"],
-        queryFn: () => businessConfigApi.getConfig(),
-    });
-
     const { data: users = [], isLoading: isUsersLoading } = useQuery({
         queryKey: ["users"],
         queryFn: () => usersApi.list(),
-        enabled: !!businessConfig && (businessConfig.plan === 'pro' || businessConfig.plan === 'enterprise'),
     });
 
     const createMutation = useMutation({
@@ -78,49 +71,6 @@ export default function TeamSettingsPage() {
         }
         createMutation.mutate(newUser);
     };
-
-    const isPro = businessConfig?.plan === 'pro' || businessConfig?.plan === 'enterprise';
-
-    if (isConfigLoading) {
-        return <div className="p-6 text-center text-muted-foreground">Loading settings...</div>;
-    }
-
-    if (!isPro) {
-        return (
-            <div className="p-6">
-                <div className="flex items-center gap-4 mb-6">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => router.push('/dashboard/settings')}
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                    </Button>
-                    <div>
-                        <h1 className="text-3xl font-bold mb-2">Team Members</h1>
-                        <p className="text-muted-foreground">
-                            Manage users who have access to the dashboard
-                        </p>
-                    </div>
-                </div>
-
-                <div className="glass rounded-2xl p-12 flex flex-col items-center justify-center text-center space-y-6">
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Lock className="w-8 h-8 text-primary" />
-                    </div>
-                    <div className="max-w-md space-y-2">
-                        <h2 className="text-2xl font-bold">Upgrade to Pro</h2>
-                        <p className="text-muted-foreground">
-                            Team management is available on the Pro plan and above. Invite your staff to collaborate on the dashboard.
-                        </p>
-                    </div>
-                    <Button asChild className="bg-gradient-to-r from-primary to-accent">
-                        <Link href="/dashboard/settings/billing">View Plans</Link>
-                    </Button>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="p-6">
