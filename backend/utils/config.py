@@ -54,12 +54,15 @@ class Settings(BaseSettings):
     ALLOW_SELF_REGISTRATION: bool = False
     
     # CORS
-    CORS_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173"
-    ]
+    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173"
+    
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """Convert CORS_ORIGINS string to list"""
+        if isinstance(self.CORS_ORIGINS, str):
+            return [origin.strip() for origin in self.CORS_ORIGINS.split(',') if origin.strip()]
+        return self.CORS_ORIGINS
+
     
     # Business Details
     BUSINESS_NAME: str = "Royal Fade Barbershop"
