@@ -115,21 +115,52 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # ty
 app.add_middleware(ErrorHandlingMiddleware)
 logger.info("✅ Error handling middleware enabled")
 
-# CORS Configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        os.getenv("FRONTEND_URL", "http://localhost:3000"),
+# CORS Configuration - Allow Vercel frontend and handle preflight requests
+# Get CORS origins from environment variable or use defaults
+cors_origins_env = os.getenv("CORS_ORIGINS", "")
+frontend_url = os.getenv("FRONTEND_URL", "")
+
+# Build CORS origins list
+cors_origins = []
+
+# Add from CORS_ORIGINS environment variable (comma-separated)
+if cors_origins_env:
+    cors_origins.extend([origin.strip() for origin in cors_origins_env.split(",") if origin.strip()])
+
+# Add FRONTEND_URL if provided
+if frontend_url:
+    cors_origins.append(frontend_url)
+    cors_origins.append(frontend_url.rstrip("/"))  # Without trailing slash
+
+# Always include production Vercel domain
+cors_origins.extend([
+    "https://aireceptionist-lake.vercel.app",
+    "https://aireceptionist-lake.vercel.app/",
+])
+
+# Add localhost for development (only if not in production)
+if os.getenv("ENVIRONMENT", "development") != "production":
+    cors_origins.extend([
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-        # Add production URL when deploying
-    ],
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ])
+
+# Remove duplicates and empty strings
+cors_origins = list(set([origin for origin in cors_origins if origin]))
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
-logger.info(f"✅ CORS configured for: {os.getenv('FRONTEND_URL', 'http://localhost:3000')}")
+logger.info(f"✅ CORS configured for origins: {', '.join(cors_origins)}")
 
 
 # Include routers

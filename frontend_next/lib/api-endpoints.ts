@@ -15,8 +15,21 @@ import type {
 } from "@/lib/types"
 
 // API Base URL for direct fetch calls
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-const API_BASE_URL = `${BASE_URL}/api/v1`;
+// In production (Vercel), this MUST be set to the Railway backend URL
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
+  (typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+    ? 'http://localhost:8000' 
+    : '');
+
+// Check for placeholder URLs
+if (typeof window !== 'undefined' && BASE_URL && BASE_URL.includes('your-railway-url')) {
+  console.error(
+    '❌ NEXT_PUBLIC_API_URL contains placeholder value! ' +
+    'Please update it in Vercel environment variables to your actual Railway backend URL.'
+  );
+}
+
+const API_BASE_URL = BASE_URL ? `${BASE_URL}/api/v1` : '/api/v1';
 
 export const appointmentsApi = {
     list: async (filters?: AppointmentFilters): Promise<AppointmentResponse[]> => {

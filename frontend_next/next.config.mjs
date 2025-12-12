@@ -8,9 +8,17 @@ const nextConfig = {
   },
   output: 'standalone',
   async rewrites() {
-    // In Docker, API_URL is set to http://backend:8000
-    // Outside Docker, fallback to localhost:8000
-    const backendUrl = process.env.API_URL || 'http://localhost:8000';
+    // For server-side rewrites in Docker, use API_URL (backend service name)
+    // For client-side, NEXT_PUBLIC_API_URL will be used directly
+    // Priority: API_URL (Docker internal) > NEXT_PUBLIC_API_URL > localhost
+    const backendUrl = process.env.API_URL || 
+                       process.env.NEXT_PUBLIC_API_URL || 
+                       'http://localhost:8000';
+
+    // Check for placeholder URLs
+    if (backendUrl.includes('your-railway-url')) {
+      console.warn('⚠️  API URL contains placeholder value. Please set NEXT_PUBLIC_API_URL in Vercel environment variables.');
+    }
 
     return [
       {
