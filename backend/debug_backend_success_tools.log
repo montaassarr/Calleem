@@ -1,0 +1,44 @@
+nohup: ignoring input
+INFO:     Loading environment from '.env'
+WhatsApp Cloud API credentials not configured
+2025-12-11 20:18:06,466 - main - INFO - ✅ Error handling middleware enabled
+2025-12-11 20:18:06,466 - main - INFO - ✅ CORS configured for: http://localhost:3000
+2025-12-11 20:18:06,538 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-11 20:18:06,538 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+INFO:     Started server process [12131]
+INFO:     Waiting for application startup.
+2025-12-11 20:18:07,615 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-11 20:18:07,615 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-11 20:18:07,623 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-11 20:18:07,630 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-11 20:18:07,630 - main - INFO - ✅ Error logging system initialized
+2025-12-11 20:18:07,630 - main - INFO - ✅ Application startup complete!
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-12-11 20:18:14,475 - routers.users - INFO - ✅ Created default business_config for tenant 693b18f6daa0a7f6f51e1cf4
+2025-12-11 20:18:14,475 - routers.users - INFO - 🤖 Triggering auto-provisioning for new tenant...
+2025-12-11 20:18:14,475 - services.provisioning - INFO - 🤖 Starting Vapi provisioning for tenant 693b18f6daa0a7f6f51e1cf4 (Auto Test 480694's Business)
+2025-12-11 20:18:14,475 - services.provisioning - INFO -    Creating Vapi assistant...
+2025-12-11 20:18:15,288 - httpx - INFO - HTTP Request: POST https://api.vapi.ai/assistant "HTTP/1.1 201 Created"
+2025-12-11 20:18:15,290 - services.vapi_service - INFO - Created Vapi assistant 86d02a49-5ca8-40e9-a26d-4d6f73866772 for tenant 693b18f6daa0a7f6f51e1cf4
+2025-12-11 20:18:15,291 - services.provisioning - INFO -    ✅ Assistant created: 86d02a49-5ca8-40e9-a26d-4d6f73866772
+2025-12-11 20:18:15,291 - services.provisioning - INFO -    Enabling 2 core tools...
+2025-12-11 20:18:15,291 - services.provisioning - INFO -    Enabling 2 core tools...
+2025-12-11 20:18:15,746 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/86d02a49-5ca8-40e9-a26d-4d6f73866772 "HTTP/1.1 200 OK"
+2025-12-11 20:18:16,508 - httpx - INFO - HTTP Request: PATCH https://api.vapi.ai/assistant/86d02a49-5ca8-40e9-a26d-4d6f73866772 "HTTP/1.1 200 OK"
+2025-12-11 20:18:16,509 - services.vapi_service - INFO - Updated Vapi assistant 86d02a49-5ca8-40e9-a26d-4d6f73866772
+2025-12-11 20:18:16,509 - services.provisioning - INFO -    ✅ Core tools enabled
+2025-12-11 20:18:16,511 - services.provisioning - INFO -    ✅ Tenant record updated
+2025-12-11 20:18:16,512 - routers.users - INFO - ✅ User registered and tenant created: auto_test_480694@provisioning.com (Tenant: 693b18f6daa0a7f6f51e1cf4)
+2025-12-11 20:18:16,515 - utils.error_logger - WARNING - Slow endpoint: POST /api/v1/users/register took 2159.315824508667ms
+INFO:     127.0.0.1:36118 - "POST /api/v1/users/register HTTP/1.1" 201 Created
+2025-12-11 20:18:17,363 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/86d02a49-5ca8-40e9-a26d-4d6f73866772 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:36118 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-11 20:21:01,604 - main - INFO - 🛑 Shutting down AI Receptionist application...
+2025-12-11 20:21:01,604 - database.mongo_config - INFO - Closing MongoDB connection...
+2025-12-11 20:21:01,606 - database.mongo_config - INFO - ✅ MongoDB connection closed
+2025-12-11 20:21:01,606 - main - INFO - ✅ Application shutdown complete!
+INFO:     Application shutdown complete.
+INFO:     Finished server process [12131]

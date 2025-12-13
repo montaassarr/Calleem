@@ -44,6 +44,7 @@ const menuItems = [
         path: "/dashboard/voice-agent",
         subItems: [
             { icon: PhoneCall, label: "Control Center", path: "/dashboard/voice-agent/control-center" },
+            { icon: Phone, label: "Phone Numbers", path: "/dashboard/voice-agent/phone-numbers" },
             { icon: Waves, label: "Voice Config", path: "/dashboard/voice-agent/voice" },
             { icon: Brain, label: "Knowledge Base", path: "/dashboard/voice-agent/knowledge-base" },
             { icon: Plug, label: "Tools", path: "/dashboard/voice-agent/tools" },

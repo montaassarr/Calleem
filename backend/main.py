@@ -241,6 +241,13 @@ app.include_router(
     tags=["Tenants"]
 )
 
+from routers import phone_numbers
+app.include_router(
+    phone_numbers.router,
+    prefix=f"{settings.API_V1_PREFIX}/phone-numbers",
+    tags=["Phone Numbers"]
+)
+
 from routers import api_keys
 app.include_router(
     api_keys.router,

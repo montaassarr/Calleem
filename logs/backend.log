@@ -1,0 +1,937 @@
+nohup: ignoring input
+INFO:     Will watch for changes in these directories: ['/home/montassar/Desktop/ai_receptionist/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [27708] using WatchFiles
+WhatsApp Cloud API credentials not configured
+2025-12-10 23:02:23,537 - main - INFO - ✅ Error handling middleware enabled
+2025-12-10 23:02:23,537 - main - INFO - ✅ CORS configured for: http://localhost:3000
+2025-12-10 23:02:23,685 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-10 23:02:23,685 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+INFO:     Started server process [27712]
+INFO:     Waiting for application startup.
+2025-12-10 23:02:25,829 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-10 23:02:25,829 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-10 23:02:25,843 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-10 23:02:25,855 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-10 23:02:25,856 - main - INFO - ✅ Error logging system initialized
+2025-12-10 23:02:25,856 - main - INFO - ✅ Application startup complete!
+INFO:     Application startup complete.
+INFO:     127.0.0.1:56992 - "POST /api/v1/auth/token HTTP/1.1" 404 Not Found
+2025-12-10 23:02:27,641 - routers.users - INFO - ✅ Created default business_config for tenant 6939edf3ba45dc06dfc5cb82
+2025-12-10 23:02:27,644 - routers.users - INFO - ✅ User registered and tenant created: rentcars_2526@test.com (Tenant: 6939edf3ba45dc06dfc5cb82)
+INFO:     127.0.0.1:56992 - "POST /api/v1/users/register HTTP/1.1" 201 Created
+INFO:     127.0.0.1:56992 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+2025-12-10 23:02:30,714 - httpx - INFO - HTTP Request: POST https://api.vapi.ai/assistant "HTTP/1.1 201 Created"
+2025-12-10 23:02:30,957 - services.vapi_service - INFO - Created Vapi assistant 7c7a675d-e2da-4568-a1b3-da210df167e4 for tenant 6939edf3ba45dc06dfc5cb82
+2025-12-10 23:02:30,963 - utils.error_logger - WARNING - Slow endpoint: POST /api/vapi/assistant/me took 3286.386251449585ms
+INFO:     127.0.0.1:56992 - "POST /api/vapi/assistant/me HTTP/1.1" 200 OK
+2025-12-10 23:02:30,969 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-10 23:02:30,970 - routers.vapi - INFO - Received Vapi webhook: call-start
+INFO:     127.0.0.1:56992 - "POST /api/vapi/webhook HTTP/1.1" 200 OK
+2025-12-10 23:02:30,978 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-10 23:02:30,979 - routers.vapi - INFO - Received Vapi webhook: function-call
+2025-12-10 23:02:30,979 - routers.vapi - INFO - Vapi Function Call: checkAvailability (tenant=6939edf3ba45dc06dfc5cb82) args={'date': '2025-12-10'}
+INFO:     127.0.0.1:56992 - "POST /api/vapi/webhook HTTP/1.1" 200 OK
+2025-12-10 23:02:30,992 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-10 23:02:30,992 - routers.vapi - INFO - Received Vapi webhook: function-call
+2025-12-10 23:02:30,992 - routers.vapi - INFO - Vapi Function Call: bookAppointment (tenant=6939edf3ba45dc06dfc5cb82) args={'date': '2025-12-10', 'time': '14:00', 'name': 'Alice Renter', 'phone': '+15550001234', 'service': 'Tesla Model 3 Rental'}
+INFO:     127.0.0.1:56992 - "POST /api/vapi/webhook HTTP/1.1" 200 OK
+2025-12-10 23:02:31,007 - routers.appointments - INFO - Retrieved 1 appointments
+INFO:     127.0.0.1:56992 - "GET /api/v1/appointments/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36588 - "POST /api/v1/auth/token HTTP/1.1" 404 Not Found
+2025-12-10 23:02:54,233 - routers.users - INFO - ✅ Created default business_config for tenant 6939ee0eba45dc06dfc5cb91
+2025-12-10 23:02:54,239 - routers.users - INFO - ✅ User registered and tenant created: rentcars_3215@test.com (Tenant: 6939ee0eba45dc06dfc5cb91)
+INFO:     127.0.0.1:36588 - "POST /api/v1/users/register HTTP/1.1" 201 Created
+INFO:     127.0.0.1:36588 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+2025-12-10 23:02:58,975 - httpx - INFO - HTTP Request: POST https://api.vapi.ai/assistant "HTTP/1.1 201 Created"
+2025-12-10 23:02:59,246 - services.vapi_service - INFO - Created Vapi assistant a21f61e4-b899-4105-82e9-f0918ced4f5e for tenant 6939ee0eba45dc06dfc5cb91
+2025-12-10 23:02:59,251 - utils.error_logger - WARNING - Slow endpoint: POST /api/vapi/assistant/me took 4966.110944747925ms
+INFO:     127.0.0.1:36588 - "POST /api/vapi/assistant/me HTTP/1.1" 200 OK
+2025-12-10 23:02:59,258 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-10 23:02:59,258 - routers.vapi - INFO - Received Vapi webhook: call-start
+INFO:     127.0.0.1:36588 - "POST /api/vapi/webhook HTTP/1.1" 200 OK
+2025-12-10 23:02:59,266 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-10 23:02:59,266 - routers.vapi - INFO - Received Vapi webhook: function-call
+2025-12-10 23:02:59,266 - routers.vapi - INFO - Vapi Function Call: checkAvailability (tenant=6939ee0eba45dc06dfc5cb91) args={'date': '2025-12-10'}
+INFO:     127.0.0.1:36588 - "POST /api/vapi/webhook HTTP/1.1" 200 OK
+2025-12-10 23:02:59,275 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-10 23:02:59,276 - routers.vapi - INFO - Received Vapi webhook: function-call
+2025-12-10 23:02:59,279 - routers.vapi - INFO - Vapi Function Call: bookAppointment (tenant=6939ee0eba45dc06dfc5cb91) args={'date': '2025-12-10', 'time': '14:00', 'name': 'Alice Renter', 'phone': '+15550001234', 'service': 'Tesla Model 3 Rental'}
+INFO:     127.0.0.1:36588 - "POST /api/vapi/webhook HTTP/1.1" 200 OK
+2025-12-10 23:02:59,293 - routers.appointments - INFO - Retrieved 1 appointments
+INFO:     127.0.0.1:36588 - "GET /api/v1/appointments/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57734 - "OPTIONS /api/v1/monitoring/frontend-action HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57756 - "POST /api/v1/monitoring/frontend-action HTTP/1.1" 201 Created
+2025-12-10 23:17:06,140 - routers.users - INFO - 🔐 User logged in: montamsallem@gmail.com
+INFO:     127.0.0.1:57744 - "POST /api/v1/users/token HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57744 - "OPTIONS /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57756 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57756 - "POST /api/v1/monitoring/frontend-action HTTP/1.1" 201 Created
+INFO:     127.0.0.1:57756 - "OPTIONS /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57744 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57760 - "OPTIONS /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57774 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57774 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57774 - "OPTIONS /api/v1/appointments/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57760 - "OPTIONS /api/v1/conversations?limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43548 - "OPTIONS /api/v1/services/?active_only=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43556 - "OPTIONS /api/v1/whatsapp/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57774 - "GET /api/v1/conversations?limit=100 HTTP/1.1" 307 Temporary Redirect
+2025-12-10 23:17:13,643 - routers.appointments - INFO - Retrieved 26 appointments
+2025-12-10 23:17:13,649 - routers.services - INFO - Retrieved 1 services
+INFO:     127.0.0.1:43568 - "GET /api/v1/appointments/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57760 - "GET /api/v1/services/?active_only=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43548 - "GET /api/v1/whatsapp/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43568 - "OPTIONS /api/v1/conversations/?limit=100 HTTP/1.1" 200 OK
+2025-12-10 23:17:13,744 - routers.conversations - INFO - Retrieved 0 conversations
+INFO:     127.0.0.1:43548 - "GET /api/v1/conversations/?limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43570 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52992 - "OPTIONS /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53002 - "OPTIONS /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53006 - "OPTIONS /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53016 - "OPTIONS /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53028 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53028 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53028 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53028 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49216 - "OPTIONS /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49228 - "POST /api/v1/vapi/assistant/me HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:39316 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:39316 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58264 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58264 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58264 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58264 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 404 Not Found
+WARNING:  WatchFiles detected changes in 'routers/vapi.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-10 23:21:47,084 - main - INFO - 🛑 Shutting down AI Receptionist application...
+2025-12-10 23:21:47,090 - database.mongo_config - INFO - Closing MongoDB connection...
+2025-12-10 23:21:47,107 - database.mongo_config - INFO - ✅ MongoDB connection closed
+2025-12-10 23:21:47,108 - main - INFO - ✅ Application shutdown complete!
+INFO:     Application shutdown complete.
+INFO:     Finished server process [27712]
+WhatsApp Cloud API credentials not configured
+2025-12-10 23:21:53,087 - main - INFO - ✅ Error handling middleware enabled
+2025-12-10 23:21:53,088 - main - INFO - ✅ CORS configured for: http://localhost:3000
+2025-12-10 23:21:53,255 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-10 23:21:53,257 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+INFO:     Started server process [30260]
+INFO:     Waiting for application startup.
+2025-12-10 23:21:58,477 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-10 23:21:58,478 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-10 23:21:58,546 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-10 23:21:58,596 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-10 23:21:58,597 - main - INFO - ✅ Error logging system initialized
+2025-12-10 23:21:58,597 - main - INFO - ✅ Application startup complete!
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-10 23:22:01,935 - main - INFO - 🛑 Shutting down AI Receptionist application...
+2025-12-10 23:22:01,936 - database.mongo_config - INFO - Closing MongoDB connection...
+2025-12-10 23:22:01,940 - database.mongo_config - INFO - ✅ MongoDB connection closed
+2025-12-10 23:22:01,941 - main - INFO - ✅ Application shutdown complete!
+INFO:     Application shutdown complete.
+INFO:     Finished server process [30260]
+WhatsApp Cloud API credentials not configured
+2025-12-10 23:22:06,147 - main - INFO - ✅ Error handling middleware enabled
+2025-12-10 23:22:06,147 - main - INFO - ✅ CORS configured for: http://localhost:3000
+2025-12-10 23:22:06,289 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-10 23:22:06,290 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+INFO:     Started server process [30309]
+INFO:     Waiting for application startup.
+2025-12-10 23:22:08,337 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-10 23:22:08,337 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-10 23:22:08,372 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-10 23:22:08,381 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-10 23:22:08,382 - main - INFO - ✅ Error logging system initialized
+2025-12-10 23:22:08,382 - main - INFO - ✅ Application startup complete!
+INFO:     Application startup complete.
+INFO:     127.0.0.1:48634 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52278 - "GET /openapi.json HTTP/1.1" 200 OK
+2025-12-10 23:23:14,522 - routers.users - INFO - 🔐 User logged in: montamsallem@gmail.com
+INFO:     127.0.0.1:44390 - "POST /api/v1/users/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57022 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51896 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47948 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58784 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58790 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58790 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58790 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58790 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58784 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+2025-12-10 23:26:30,887 - httpx - INFO - HTTP Request: POST https://api.vapi.ai/assistant "HTTP/1.1 201 Created"
+2025-12-10 23:26:31,087 - services.vapi_service - INFO - Created Vapi assistant 0851f3d4-76fe-486a-9c49-c441c7ca4ca1 for tenant 69319a0e7436614acd86b5d5
+2025-12-10 23:26:31,103 - utils.error_logger - WARNING - Slow endpoint: POST /api/v1/vapi/assistant/me took 4461.601972579956ms
+INFO:     127.0.0.1:58716 - "POST /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51258 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51258 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51258 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51258 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51258 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51258 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51258 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51258 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'services/vapi_service.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-10 23:38:31,465 - main - INFO - 🛑 Shutting down AI Receptionist application...
+2025-12-10 23:38:31,468 - database.mongo_config - INFO - Closing MongoDB connection...
+2025-12-10 23:38:31,481 - database.mongo_config - INFO - ✅ MongoDB connection closed
+2025-12-10 23:38:31,482 - main - INFO - ✅ Application shutdown complete!
+INFO:     Application shutdown complete.
+INFO:     Finished server process [30309]
+WhatsApp Cloud API credentials not configured
+2025-12-10 23:38:36,675 - main - INFO - ✅ Error handling middleware enabled
+2025-12-10 23:38:36,675 - main - INFO - ✅ CORS configured for: http://localhost:3000
+2025-12-10 23:38:36,786 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-10 23:38:36,787 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+INFO:     Started server process [31954]
+INFO:     Waiting for application startup.
+2025-12-10 23:38:39,008 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-10 23:38:39,008 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-10 23:38:39,042 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-10 23:38:39,060 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-10 23:38:39,060 - main - INFO - ✅ Error logging system initialized
+2025-12-10 23:38:39,060 - main - INFO - ✅ Application startup complete!
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'services/vapi_service.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-10 23:38:40,070 - main - INFO - 🛑 Shutting down AI Receptionist application...
+2025-12-10 23:38:40,070 - database.mongo_config - INFO - Closing MongoDB connection...
+2025-12-10 23:38:40,076 - database.mongo_config - INFO - ✅ MongoDB connection closed
+2025-12-10 23:38:40,077 - main - INFO - ✅ Application shutdown complete!
+INFO:     Application shutdown complete.
+INFO:     Finished server process [31954]
+WhatsApp Cloud API credentials not configured
+2025-12-10 23:38:48,882 - main - INFO - ✅ Error handling middleware enabled
+2025-12-10 23:38:48,883 - main - INFO - ✅ CORS configured for: http://localhost:3000
+2025-12-10 23:38:49,241 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-10 23:38:49,243 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+INFO:     Started server process [31987]
+INFO:     Waiting for application startup.
+2025-12-10 23:38:54,919 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-10 23:38:54,919 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-10 23:38:54,965 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-10 23:38:54,986 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-10 23:38:54,987 - main - INFO - ✅ Error logging system initialized
+2025-12-10 23:38:54,987 - main - INFO - ✅ Application startup complete!
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'routers/vapi.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-10 23:39:29,930 - main - INFO - 🛑 Shutting down AI Receptionist application...
+2025-12-10 23:39:29,931 - database.mongo_config - INFO - Closing MongoDB connection...
+2025-12-10 23:39:29,935 - database.mongo_config - INFO - ✅ MongoDB connection closed
+2025-12-10 23:39:29,936 - main - INFO - ✅ Application shutdown complete!
+INFO:     Application shutdown complete.
+INFO:     Finished server process [31987]
+WhatsApp Cloud API credentials not configured
+2025-12-10 23:39:35,190 - main - INFO - ✅ Error handling middleware enabled
+2025-12-10 23:39:35,190 - main - INFO - ✅ CORS configured for: http://localhost:3000
+2025-12-10 23:39:35,332 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-10 23:39:35,333 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+INFO:     Started server process [32097]
+INFO:     Waiting for application startup.
+2025-12-10 23:39:38,347 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-10 23:39:38,347 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-10 23:39:38,374 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-10 23:39:38,388 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-10 23:39:38,389 - main - INFO - ✅ Error logging system initialized
+2025-12-10 23:39:38,389 - main - INFO - ✅ Application startup complete!
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'routers/vapi.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-10 23:40:03,302 - main - INFO - 🛑 Shutting down AI Receptionist application...
+2025-12-10 23:40:03,302 - database.mongo_config - INFO - Closing MongoDB connection...
+2025-12-10 23:40:03,309 - database.mongo_config - INFO - ✅ MongoDB connection closed
+2025-12-10 23:40:03,310 - main - INFO - ✅ Application shutdown complete!
+INFO:     Application shutdown complete.
+INFO:     Finished server process [32097]
+WhatsApp Cloud API credentials not configured
+2025-12-10 23:40:06,991 - main - INFO - ✅ Error handling middleware enabled
+2025-12-10 23:40:06,991 - main - INFO - ✅ CORS configured for: http://localhost:3000
+2025-12-10 23:40:07,107 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-10 23:40:07,108 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+INFO:     Started server process [32154]
+INFO:     Waiting for application startup.
+2025-12-10 23:40:08,781 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-10 23:40:08,781 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-10 23:40:08,791 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-10 23:40:08,804 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-10 23:40:08,804 - main - INFO - ✅ Error logging system initialized
+2025-12-10 23:40:08,804 - main - INFO - ✅ Application startup complete!
+INFO:     Application startup complete.
+INFO:     127.0.0.1:52230 - "OPTIONS /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52232 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52232 - "OPTIONS /api/v1/monitoring/frontend-error HTTP/1.1" 200 OK
+2025-12-10 23:41:21,458 - utils.error_logger - ERROR - [frontend] Tabs is not defined | Component: ErrorBoundary | User: None
+INFO:     127.0.0.1:52230 - "POST /api/v1/monitoring/frontend-error HTTP/1.1" 201 Created
+INFO:     127.0.0.1:53938 - "OPTIONS /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53932 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53944 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53932 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32880 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32880 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39640 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55080 - "OPTIONS /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55088 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55088 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55088 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55088 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55088 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55088 - "GET /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50632 - "OPTIONS /api/v1/vapi/assistant/me HTTP/1.1" 200 OK
+2025-12-10 23:44:09,733 - services.vapi_service - ERROR - Failed to create Vapi assistant: AssistantsClient.create() got an unexpected keyword argument 'tool_ids'
+2025-12-10 23:44:09,734 - routers.vapi - ERROR - Error handling assistant creation: AssistantsClient.create() got an unexpected keyword argument 'tool_ids'
+2025-12-10 23:44:09,738 - utils.error_logger - WARNING - Slow endpoint: POST /api/v1/vapi/assistant/me took 3083.6267471313477ms
+INFO:     127.0.0.1:50638 - "POST /api/v1/vapi/assistant/me HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:39028 - "OPTIONS /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39030 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39844 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'services/vapi_service.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-11 10:01:55,710 - main - INFO - 🛑 Shutting down AI Receptionist application...
+2025-12-11 10:01:55,713 - database.mongo_config - INFO - Closing MongoDB connection...
+2025-12-11 10:01:55,719 - database.mongo_config - INFO - ✅ MongoDB connection closed
+2025-12-11 10:01:55,720 - main - INFO - ✅ Application shutdown complete!
+INFO:     Application shutdown complete.
+INFO:     Finished server process [32154]
+WhatsApp Cloud API credentials not configured
+2025-12-11 10:02:02,285 - main - INFO - ✅ Error handling middleware enabled
+2025-12-11 10:02:02,285 - main - INFO - ✅ CORS configured for: http://localhost:3000
+2025-12-11 10:02:02,527 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-11 10:02:02,529 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+INFO:     Started server process [33426]
+INFO:     Waiting for application startup.
+2025-12-11 10:02:05,966 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-11 10:02:05,966 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-11 10:02:06,008 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-11 10:02:06,031 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-11 10:02:06,032 - main - INFO - ✅ Error logging system initialized
+2025-12-11 10:02:06,032 - main - INFO - ✅ Application startup complete!
+INFO:     Application startup complete.
+INFO:     127.0.0.1:34426 - "OPTIONS /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34440 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'routers/assistants.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-11 10:04:46,417 - main - INFO - 🛑 Shutting down AI Receptionist application...
+2025-12-11 10:04:46,418 - database.mongo_config - INFO - Closing MongoDB connection...
+2025-12-11 10:04:46,421 - database.mongo_config - INFO - ✅ MongoDB connection closed
+2025-12-11 10:04:46,422 - main - INFO - ✅ Application shutdown complete!
+INFO:     Application shutdown complete.
+INFO:     Finished server process [33426]
+WARNING:  WatchFiles detected changes in 'routers/assistants.py'. Reloading...
+WhatsApp Cloud API credentials not configured
+2025-12-11 10:04:51,043 - main - INFO - ✅ Error handling middleware enabled
+2025-12-11 10:04:51,043 - main - INFO - ✅ CORS configured for: http://localhost:3000
+2025-12-11 10:04:51,205 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-11 10:04:51,206 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+INFO:     Started server process [33611]
+INFO:     Waiting for application startup.
+2025-12-11 10:04:54,142 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-11 10:04:54,142 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-11 10:04:54,167 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-11 10:04:54,183 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-11 10:04:54,183 - main - INFO - ✅ Error logging system initialized
+2025-12-11 10:04:54,183 - main - INFO - ✅ Application startup complete!
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-11 10:05:42,324 - main - INFO - 🛑 Shutting down AI Receptionist application...
+2025-12-11 10:05:42,324 - database.mongo_config - INFO - Closing MongoDB connection...
+2025-12-11 10:05:42,329 - database.mongo_config - INFO - ✅ MongoDB connection closed
+2025-12-11 10:05:42,330 - main - INFO - ✅ Application shutdown complete!
+INFO:     Application shutdown complete.
+INFO:     Finished server process [33611]
+WhatsApp Cloud API credentials not configured
+2025-12-11 10:05:48,167 - main - INFO - ✅ Error handling middleware enabled
+2025-12-11 10:05:48,167 - main - INFO - ✅ CORS configured for: http://localhost:3000
+2025-12-11 10:05:48,368 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-11 10:05:48,370 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+INFO:     Started server process [33710]
+INFO:     Waiting for application startup.
+2025-12-11 10:05:52,243 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-11 10:05:52,243 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-11 10:05:52,276 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-11 10:05:52,292 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-11 10:05:52,293 - main - INFO - ✅ Error logging system initialized
+2025-12-11 10:05:52,293 - main - INFO - ✅ Application startup complete!
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'routers/vapi.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-11 10:06:40,082 - main - INFO - 🛑 Shutting down AI Receptionist application...
+2025-12-11 10:06:40,083 - database.mongo_config - INFO - Closing MongoDB connection...
+2025-12-11 10:06:40,086 - database.mongo_config - INFO - ✅ MongoDB connection closed
+2025-12-11 10:06:40,087 - main - INFO - ✅ Application shutdown complete!
+INFO:     Application shutdown complete.
+INFO:     Finished server process [33710]
+WhatsApp Cloud API credentials not configured
+2025-12-11 10:06:44,387 - main - INFO - ✅ Error handling middleware enabled
+2025-12-11 10:06:44,387 - main - INFO - ✅ CORS configured for: http://localhost:3000
+2025-12-11 10:06:44,562 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-11 10:06:44,563 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+INFO:     Started server process [33771]
+INFO:     Waiting for application startup.
+2025-12-11 10:06:46,833 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-11 10:06:46,834 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-11 10:06:46,850 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-11 10:06:46,868 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-11 10:06:46,869 - main - INFO - ✅ Error logging system initialized
+2025-12-11 10:06:46,869 - main - INFO - ✅ Application startup complete!
+INFO:     Application startup complete.
+INFO:     127.0.0.1:54912 - "OPTIONS /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54924 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38750 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38750 - "GET /api/v1/voice-providers HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:38750 - "GET /api/v1/tools/built-in HTTP/1.1" 401 Unauthorized
+2025-12-11 10:21:01,223 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 10:21:01,229 - routers.vapi - INFO - Received Vapi webhook: function-call
+2025-12-11 10:21:01,229 - routers.vapi - INFO - Vapi Function Call: checkAvailability (tenant=test-tenant-001) args={'date': '2025-12-15'}
+INFO:     127.0.0.1:44190 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 10:21:01,338 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 10:21:01,339 - routers.vapi - INFO - Received Vapi webhook: function-call
+2025-12-11 10:21:01,339 - routers.vapi - INFO - Vapi Function Call: bookAppointment (tenant=test-tenant-001) args={'date': '2025-12-15', 'time': '14:00', 'name': 'John Doe', 'phone': '+1234567890', 'service': 'Haircut'}
+INFO:     127.0.0.1:44194 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 10:26:29,800 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 10:26:29,801 - routers.vapi - INFO - Received Vapi webhook: function-call
+2025-12-11 10:26:29,801 - routers.vapi - INFO - Vapi Function Call: checkAvailability (tenant=bella-salon-001) args={'date': '2025-12-14', 'service': 'haircut'}
+INFO:     127.0.0.1:50388 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 10:26:29,854 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 10:26:29,854 - routers.vapi - INFO - Received Vapi webhook: function-call
+2025-12-11 10:26:29,854 - routers.vapi - INFO - Vapi Function Call: bookAppointment (tenant=bella-salon-001) args={'date': '2025-12-14', 'time': '14:00', 'name': 'Emily Johnson', 'phone': '+1-312-555-1234', 'service': "Women's Haircut"}
+INFO:     127.0.0.1:50392 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50402 - "PUT /api/v1/appointments/693a8e45c4e56244bdf40855 HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:50408 - "DELETE /api/v1/appointments/693a8e45c4e56244bdf40855 HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:43316 - "OPTIONS /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43316 - "OPTIONS /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43328 - "OPTIONS /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43338 - "OPTIONS /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43354 - "OPTIONS /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43364 - "OPTIONS /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43380 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43328 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43380 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43380 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43380 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 10:35:03,973 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 10:35:03,979 - routers.vapi - INFO - Received Vapi webhook: function-call
+2025-12-11 10:35:03,979 - routers.vapi - INFO - Vapi Function Call: checkAvailability (tenant=bella-salon-001) args={'date': '2025-12-15'}
+INFO:     196.203.224.145:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 10:37:25,537 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 10:37:25,542 - routers.vapi - INFO - Received Vapi webhook: function-call
+2025-12-11 10:37:25,542 - routers.vapi - INFO - Vapi Function Call: checkAvailability (tenant=bella-salon-001) args={'date': '2025-12-16', 'service': 'haircut'}
+INFO:     196.203.224.145:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 10:37:26,030 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 10:37:26,030 - routers.vapi - INFO - Received Vapi webhook: function-call
+2025-12-11 10:37:26,030 - routers.vapi - INFO - Vapi Function Call: bookAppointment (tenant=bella-salon-001) args={'date': '2025-12-16', 'time': '14:00', 'name': 'Sarah Connor', 'phone': '+1-312-555-9876', 'service': 'Womens Haircut'}
+INFO:     196.203.224.145:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59970 - "GET /api/v1/appointments/ HTTP/1.1" 401 Unauthorized
+2025-12-11 10:37:52,368 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 10:37:52,368 - routers.vapi - INFO - Received Vapi webhook: function-call
+2025-12-11 10:37:52,369 - routers.vapi - INFO - Vapi Function Call: checkAvailability (tenant=bella-salon-001) args={'date': '2025-12-16'}
+INFO:     196.203.224.145:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 10:37:52,787 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 10:37:52,787 - routers.vapi - INFO - Received Vapi webhook: function-call
+2025-12-11 10:37:52,787 - routers.vapi - INFO - Vapi Function Call: bookAppointment (tenant=bella-salon-001) args={'date': '2025-12-16', 'time': '14:00', 'name': 'Sarah Connor', 'phone': '+1-312-555-9876', 'service': 'Haircut'}
+INFO:     196.203.224.145:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 10:38:14,175 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 10:38:14,175 - routers.vapi - INFO - Received Vapi webhook: function-call
+2025-12-11 10:38:14,175 - routers.vapi - INFO - Vapi Function Call: bookAppointment (tenant=bella-salon-001) args={'date': '2025-12-17', 'time': '10:30', 'name': 'John Smith', 'phone': '+1-312-555-1111', 'service': 'Mens Haircut'}
+INFO:     196.203.224.145:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55666 - "POST /api/v1/auth/register HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:43670 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43684 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34256 - "POST /api/v1/users/register HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:34264 - "POST /api/v1/users/login HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:55316 - "POST /api/v1/users/register HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:55328 - "POST /api/v1/users/login HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:35432 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35434 - "GET /api/v1/users/register HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:36250 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35952 - "POST /api/v1/users/register HTTP/1.1" 422 Unprocessable Entity
+2025-12-11 10:48:19,843 - routers.users - INFO - ✅ Created default business_config for tenant 693a9363c4e56244bdf40876
+2025-12-11 10:48:19,845 - routers.users - INFO - ✅ User registered and tenant created: bella_salon (Tenant: 693a9363c4e56244bdf40876)
+INFO:     127.0.0.1:53502 - "POST /api/v1/users/register HTTP/1.1" 201 Created
+2025-12-11 10:48:50,980 - routers.users - INFO - 🔐 User logged in: bella_salon
+INFO:     127.0.0.1:52676 - "POST /api/v1/users/login HTTP/1.1" 200 OK
+2025-12-11 10:48:52,349 - httpx - INFO - HTTP Request: POST https://api.vapi.ai/assistant "HTTP/1.1 201 Created"
+2025-12-11 10:48:52,350 - services.vapi_service - INFO - Created Vapi assistant 9fcffac8-3462-4533-ab2b-f0f3e0290e8a for tenant 693a9363c4e56244bdf40876
+2025-12-11 10:48:52,356 - routers.assistants - ERROR - Error creating assistant: 2 validation errors for AssistantResponse
+voice
+  Input should be a valid dictionary [type=dict_type, input_value='jennifer', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/dict_type
+model
+  Input should be a valid dictionary [type=dict_type, input_value='gpt-4o-mini', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/dict_type
+INFO:     127.0.0.1:52688 - "POST /api/v1/assistant/me HTTP/1.1" 500 Internal Server Error
+2025-12-11 10:48:55,149 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+2025-12-11 10:48:55,154 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me took 2755.206823348999ms
+INFO:     127.0.0.1:52694 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59888 - "OPTIONS /api/v1/monitoring/frontend-action HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59890 - "POST /api/v1/monitoring/frontend-action HTTP/1.1" 201 Created
+2025-12-11 10:51:21,246 - routers.users - INFO - 🔐 User logged in: bella_salon
+INFO:     127.0.0.1:59890 - "POST /api/v1/users/token HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59890 - "OPTIONS /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59888 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59888 - "POST /api/v1/monitoring/frontend-action HTTP/1.1" 201 Created
+INFO:     127.0.0.1:59888 - "OPTIONS /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59890 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59890 - "OPTIONS /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59888 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59888 - "OPTIONS /api/v1/appointments/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59890 - "OPTIONS /api/v1/conversations?limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59902 - "OPTIONS /api/v1/services/?active_only=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59910 - "OPTIONS /api/v1/whatsapp/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59888 - "GET /api/v1/conversations?limit=100 HTTP/1.1" 307 Temporary Redirect
+2025-12-11 10:51:23,418 - routers.services - INFO - Retrieved 0 services
+2025-12-11 10:51:23,420 - routers.appointments - INFO - Retrieved 0 appointments
+INFO:     127.0.0.1:59890 - "GET /api/v1/services/?active_only=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59934 - "GET /api/v1/appointments/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59902 - "GET /api/v1/whatsapp/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59918 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59918 - "OPTIONS /api/v1/conversations/?limit=100 HTTP/1.1" 200 OK
+2025-12-11 10:51:23,466 - routers.conversations - INFO - Retrieved 0 conversations
+INFO:     127.0.0.1:59902 - "GET /api/v1/conversations/?limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33778 - "OPTIONS /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33786 - "OPTIONS /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 10:52:51,864 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+2025-12-11 10:52:51,873 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me took 7108.559370040894ms
+INFO:     127.0.0.1:33802 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 10:53:00,031 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+2025-12-11 10:53:00,036 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me took 8154.470682144165ms
+INFO:     127.0.0.1:33802 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 10:55:27,513 - routers.users - INFO - 🔐 User logged in: bella_salon
+INFO:     127.0.0.1:52180 - "POST /api/v1/users/login HTTP/1.1" 200 OK
+2025-12-11 10:55:28,673 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:52188 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 10:55:29,728 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:52202 - "GET /api/v1/assistant/me/voice HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52218 - "GET /api/v1/voice-providers HTTP/1.1" 200 OK
+2025-12-11 10:55:31,340 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:52220 - "GET /api/v1/assistant/me/personality HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52224 - "GET /api/v1/tools/built-in HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52226 - "GET /api/v1/assistant/me/analytics/calls?days=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52228 - "GET /api/v1/assistant/me/conversations?limit=5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52230 - "POST /api/v1/assistant/me/test HTTP/1.1" 200 OK
+2025-12-11 10:56:16,152 - routers.users - INFO - 🔐 User logged in: bella_salon
+INFO:     127.0.0.1:53130 - "POST /api/v1/users/login HTTP/1.1" 200 OK
+2025-12-11 10:56:17,949 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:53132 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53146 - "GET /api/v1/voice-providers HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53152 - "POST /api/v1/assistant/me/test HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57716 - "OPTIONS /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57722 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57722 - "OPTIONS /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57716 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57716 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57716 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57716 - "OPTIONS /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57722 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57722 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57722 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57722 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43646 - "OPTIONS /api/v1/monitoring/frontend-action HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43646 - "OPTIONS /api/v1/users/token HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43652 - "POST /api/v1/monitoring/frontend-action HTTP/1.1" 201 Created
+2025-12-11 10:59:13,252 - routers.users - INFO - 🔐 User logged in: bella_salon
+INFO:     127.0.0.1:43656 - "POST /api/v1/users/token HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43656 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43656 - "POST /api/v1/monitoring/frontend-action HTTP/1.1" 201 Created
+INFO:     127.0.0.1:43656 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43656 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43656 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43656 - "OPTIONS /api/v1/appointments/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43652 - "OPTIONS /api/v1/conversations?limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43656 - "OPTIONS /api/v1/services/?active_only=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43668 - "OPTIONS /api/v1/whatsapp/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43670 - "GET /api/v1/conversations?limit=100 HTTP/1.1" 307 Temporary Redirect
+2025-12-11 10:59:14,211 - routers.appointments - INFO - Retrieved 0 appointments
+INFO:     127.0.0.1:43646 - "GET /api/v1/appointments/ HTTP/1.1" 200 OK
+2025-12-11 10:59:14,224 - routers.services - INFO - Retrieved 0 services
+INFO:     127.0.0.1:43652 - "GET /api/v1/whatsapp/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43668 - "GET /api/v1/services/?active_only=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43652 - "OPTIONS /api/v1/conversations/?limit=100 HTTP/1.1" 200 OK
+2025-12-11 10:59:14,278 - routers.conversations - INFO - Retrieved 0 conversations
+INFO:     127.0.0.1:43668 - "GET /api/v1/conversations/?limit=100 HTTP/1.1" 200 OK
+2025-12-11 10:59:21,581 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+2025-12-11 10:59:21,589 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me took 2767.343759536743ms
+INFO:     127.0.0.1:43668 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 10:59:22,665 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:43668 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41202 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41216 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+2025-12-11 11:02:41,491 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:41202 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 11:02:42,600 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:41202 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44866 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+2025-12-11 11:11:36,304 - routers.users - INFO - 🔐 User logged in: bella_salon
+INFO:     127.0.0.1:45444 - "POST /api/v1/users/login HTTP/1.1" 200 OK
+2025-12-11 11:11:37,258 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:45458 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45470 - "GET /api/v1/voice-providers HTTP/1.1" 200 OK
+2025-12-11 11:11:37,952 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:45486 - "GET /api/v1/assistant/me/voice HTTP/1.1" 200 OK
+2025-12-11 11:11:38,621 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:45488 - "GET /api/v1/assistant/me/personality HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45494 - "GET /api/v1/assistant/me/knowledge-base HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45506 - "GET /api/v1/tools/built-in HTTP/1.1" 200 OK
+2025-12-11 11:11:40,001 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:45522 - "GET /api/v1/assistant/me/tools HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45534 - "GET /api/v1/assistant/me/analytics/calls?days=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45548 - "GET /api/v1/assistant/me/conversations?limit=5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45554 - "POST /api/v1/assistant/me/test HTTP/1.1" 200 OK
+2025-12-11 11:11:59,102 - routers.users - INFO - 🔐 User logged in: bella_salon
+INFO:     127.0.0.1:34016 - "POST /api/v1/users/login HTTP/1.1" 200 OK
+2025-12-11 11:11:59,659 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:34024 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34028 - "GET /api/v1/voice-providers HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34038 - "GET /api/v1/tools/built-in HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34050 - "GET /api/v1/assistant/me/analytics/calls?days=7 HTTP/1.1" 200 OK
+2025-12-11 11:14:55,597 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 11:14:55,597 - routers.vapi - INFO - Received Vapi webhook: call-start
+INFO:     196.203.224.145:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 11:14:56,409 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 11:14:56,410 - routers.vapi - INFO - Received Vapi webhook: function-call
+2025-12-11 11:14:56,410 - routers.vapi - INFO - Vapi Function Call: checkAvailability (tenant=bella-tenant) args={'date': '2025-12-21', 'service': 'haircut'}
+INFO:     196.203.224.145:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 11:14:57,102 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 11:14:57,102 - routers.vapi - INFO - Received Vapi webhook: function-call
+2025-12-11 11:14:57,103 - routers.vapi - INFO - Vapi Function Call: bookAppointment (tenant=bella-tenant) args={'date': '2025-12-21', 'time': '14:00', 'name': 'Maria Garcia', 'phone': '+1-312-555-8899', 'service': 'Womens Haircut'}
+INFO:     196.203.224.145:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 11:14:57,903 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 11:14:57,903 - routers.vapi - INFO - Received Vapi webhook: end-of-call-report
+INFO:     196.203.224.145:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 11:14:57,945 - routers.vapi - INFO - Stored call log for tenant bella-tenant: live-call-bella-001
+2025-12-11 11:15:27,542 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 11:15:27,542 - routers.vapi - INFO - Received Vapi webhook: function-call
+2025-12-11 11:15:27,542 - routers.vapi - INFO - Vapi Function Call: bookAppointment (tenant=bella-tenant) args={'date': '2025-12-22', 'time': '11:00', 'name': 'Test Customer', 'phone': '+1-555-0000', 'service': 'Quick Test'}
+INFO:     196.203.224.145:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55326 - "OPTIONS /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55332 - "OPTIONS /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55332 - "OPTIONS /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55326 - "OPTIONS /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55326 - "OPTIONS /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55332 - "OPTIONS /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55326 - "OPTIONS /api/v1/assistant/me/personality HTTP/1.1" 200 OK
+2025-12-11 11:17:45,762 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+2025-12-11 11:17:45,773 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+2025-12-11 11:17:45,778 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me/personality took 4887.509107589722ms
+INFO:     127.0.0.1:55342 - "GET /api/v1/assistant/me/personality HTTP/1.1" 200 OK
+2025-12-11 11:17:45,786 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me took 4949.232578277588ms
+INFO:     127.0.0.1:55332 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 11:17:46,771 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:45288 - "GET /api/v1/assistant/me/personality HTTP/1.1" 200 OK
+2025-12-11 11:17:46,815 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:45298 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45298 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45298 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+2025-12-11 11:17:52,662 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+2025-12-11 11:17:52,670 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me took 3867.2828674316406ms
+INFO:     127.0.0.1:45298 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 11:17:53,766 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:45298 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41854 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41854 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41866 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41866 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+2025-12-11 11:21:54,424 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+2025-12-11 11:21:54,440 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me took 4118.364095687866ms
+INFO:     127.0.0.1:41854 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 11:21:59,573 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+2025-12-11 11:21:59,576 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me took 5128.101348876953ms
+INFO:     127.0.0.1:41854 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 11:22:20,717 - services.vapi_service - ERROR - Failed to get assistant 9fcffac8-3462-4533-ab2b-f0f3e0290e8a: Server disconnected without sending a response.
+2025-12-11 11:22:20,720 - services.vapi_service - ERROR - Failed to get assistant 9fcffac8-3462-4533-ab2b-f0f3e0290e8a: Server disconnected without sending a response.
+2025-12-11 11:22:20,725 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me/personality took 21136.97600364685ms
+2025-12-11 11:22:20,725 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me took 21140.47598838806ms
+INFO:     127.0.0.1:35562 - "GET /api/v1/assistant/me/personality HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:41854 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52792 - "OPTIONS /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52806 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52806 - "OPTIONS /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52792 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52792 - "OPTIONS /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52806 - "OPTIONS /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 11:29:20,114 - services.vapi_service - ERROR - Failed to get assistant 9fcffac8-3462-4533-ab2b-f0f3e0290e8a: 
+2025-12-11 11:29:20,127 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me took 23694.02575492859ms
+INFO:     127.0.0.1:52818 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 11:29:32,945 - services.vapi_service - ERROR - Failed to get assistant 9fcffac8-3462-4533-ab2b-f0f3e0290e8a: 
+2025-12-11 11:29:32,946 - services.vapi_service - ERROR - Failed to get assistant 9fcffac8-3462-4533-ab2b-f0f3e0290e8a: 
+2025-12-11 11:29:32,948 - services.vapi_service - ERROR - Failed to get assistant 9fcffac8-3462-4533-ab2b-f0f3e0290e8a: 
+2025-12-11 11:29:32,956 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me took 16520.500421524048ms
+INFO:     127.0.0.1:43540 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 11:29:32,959 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me took 16361.355543136597ms
+2025-12-11 11:29:32,960 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me took 16359.61103439331ms
+INFO:     127.0.0.1:43542 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43546 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35802 - "OPTIONS /api/v1/tools/built-in HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35816 - "OPTIONS /api/v1/assistant/me/tools HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35822 - "OPTIONS /api/v1/tools/built-in HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35828 - "OPTIONS /api/v1/assistant/me/tools HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35802 - "GET /api/v1/tools/built-in HTTP/1.1" 200 OK
+2025-12-11 11:29:34,608 - services.vapi_service - ERROR - Failed to get assistant 9fcffac8-3462-4533-ab2b-f0f3e0290e8a: [Errno -3] Temporary failure in name resolution
+INFO:     127.0.0.1:35822 - "GET /api/v1/assistant/me/tools HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35802 - "GET /api/v1/tools/built-in HTTP/1.1" 200 OK
+2025-12-11 11:29:34,803 - services.vapi_service - ERROR - Failed to get assistant 9fcffac8-3462-4533-ab2b-f0f3e0290e8a: [Errno -3] Temporary failure in name resolution
+INFO:     127.0.0.1:35822 - "GET /api/v1/assistant/me/tools HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47178 - "OPTIONS /api/v1/assistant/me/tools/check_availability/enable HTTP/1.1" 200 OK
+2025-12-11 11:29:48,965 - services.vapi_service - ERROR - Failed to get assistant 9fcffac8-3462-4533-ab2b-f0f3e0290e8a: 
+2025-12-11 11:29:48,975 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me took 22942.809343338013ms
+INFO:     127.0.0.1:59358 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 11:29:53,930 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+2025-12-11 11:29:58,253 - services.vapi_service - ERROR - Failed to get assistant 9fcffac8-3462-4533-ab2b-f0f3e0290e8a: 
+2025-12-11 11:29:58,258 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me took 38117.94471740723ms
+INFO:     127.0.0.1:59344 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45656 - "OPTIONS /api/v1/assistant/me/tools/book_appointment/enable HTTP/1.1" 200 OK
+2025-12-11 11:30:04,316 - httpx - INFO - HTTP Request: PATCH https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 400 Bad Request"
+2025-12-11 11:30:04,319 - services.vapi_service - ERROR - Failed to update Vapi assistant: Client error '400 Bad Request' for url 'https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
+2025-12-11 11:30:04,348 - utils.error_logger - ERROR - [unknown] HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400 | User: None | Tenant: None
+Traceback (most recent call last):
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 159, in call_next
+    message = await recv_stream.receive()
+  File "/home/montassar/.local/lib/python3.10/site-packages/anyio/streams/memory.py", line 126, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/montassar/Desktop/ai_receptionist/backend/middleware/error_handler.py", line 25, in dispatch
+    response = await call_next(request)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 165, in call_next
+    raise app_exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 151, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 762, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 782, in app
+    await route.handle(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 299, in app
+    raise e
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 294, in app
+    raw_response = await run_endpoint_function(
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/home/montassar/Desktop/ai_receptionist/backend/routers/assistants.py", line 619, in enable_tool
+    await vapi_service.update_assistant(
+  File "/home/montassar/Desktop/ai_receptionist/backend/services/vapi_service.py", line 201, in update_assistant
+    response.raise_for_status()
+  File "/home/montassar/.local/lib/python3.10/site-packages/httpx/_models.py", line 759, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
+2025-12-11 11:30:04,354 - middleware.error_handler - CRITICAL - Unhandled exception in POST /api/v1/assistant/me/tools/check_availability/enable: Client error '400 Bad Request' for url 'https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
+Traceback (most recent call last):
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 159, in call_next
+    message = await recv_stream.receive()
+  File "/home/montassar/.local/lib/python3.10/site-packages/anyio/streams/memory.py", line 126, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/montassar/Desktop/ai_receptionist/backend/middleware/error_handler.py", line 25, in dispatch
+    response = await call_next(request)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 165, in call_next
+    raise app_exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 151, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 762, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 782, in app
+    await route.handle(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 299, in app
+    raise e
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 294, in app
+    raw_response = await run_endpoint_function(
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/home/montassar/Desktop/ai_receptionist/backend/routers/assistants.py", line 619, in enable_tool
+    await vapi_service.update_assistant(
+  File "/home/montassar/Desktop/ai_receptionist/backend/services/vapi_service.py", line 201, in update_assistant
+    response.raise_for_status()
+  File "/home/montassar/.local/lib/python3.10/site-packages/httpx/_models.py", line 759, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
+INFO:     127.0.0.1:47190 - "POST /api/v1/assistant/me/tools/check_availability/enable HTTP/1.1" 500 Internal Server Error
+2025-12-11 11:30:06,205 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:47190 - "OPTIONS /api/v1/assistant/me/knowledge-base HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46916 - "OPTIONS /api/v1/assistant/me/knowledge-base HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46918 - "GET /api/v1/assistant/me/knowledge-base HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46918 - "GET /api/v1/assistant/me/knowledge-base HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46918 - "OPTIONS /api/v1/voice-providers HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46916 - "OPTIONS /api/v1/assistant/me/voice HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47190 - "OPTIONS /api/v1/voice-providers HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46920 - "OPTIONS /api/v1/assistant/me/voice HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46930 - "GET /api/v1/voice-providers HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46930 - "GET /api/v1/voice-providers HTTP/1.1" 200 OK
+2025-12-11 11:30:13,137 - httpx - INFO - HTTP Request: PATCH https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 400 Bad Request"
+2025-12-11 11:30:13,143 - services.vapi_service - ERROR - Failed to update Vapi assistant: Client error '400 Bad Request' for url 'https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
+2025-12-11 11:30:13,144 - utils.error_logger - ERROR - [unknown] HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400 | User: None | Tenant: None
+Traceback (most recent call last):
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 159, in call_next
+    message = await recv_stream.receive()
+  File "/home/montassar/.local/lib/python3.10/site-packages/anyio/streams/memory.py", line 126, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/montassar/Desktop/ai_receptionist/backend/middleware/error_handler.py", line 25, in dispatch
+    response = await call_next(request)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 165, in call_next
+    raise app_exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 151, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 762, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 782, in app
+    await route.handle(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 299, in app
+    raise e
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 294, in app
+    raw_response = await run_endpoint_function(
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/home/montassar/Desktop/ai_receptionist/backend/routers/assistants.py", line 619, in enable_tool
+    await vapi_service.update_assistant(
+  File "/home/montassar/Desktop/ai_receptionist/backend/services/vapi_service.py", line 201, in update_assistant
+    response.raise_for_status()
+  File "/home/montassar/.local/lib/python3.10/site-packages/httpx/_models.py", line 759, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
+2025-12-11 11:30:13,147 - middleware.error_handler - CRITICAL - Unhandled exception in POST /api/v1/assistant/me/tools/book_appointment/enable: Client error '400 Bad Request' for url 'https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
+Traceback (most recent call last):
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 159, in call_next
+    message = await recv_stream.receive()
+  File "/home/montassar/.local/lib/python3.10/site-packages/anyio/streams/memory.py", line 126, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/montassar/Desktop/ai_receptionist/backend/middleware/error_handler.py", line 25, in dispatch
+    response = await call_next(request)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 165, in call_next
+    raise app_exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 151, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 762, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 782, in app
+    await route.handle(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 299, in app
+    raise e
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 294, in app
+    raw_response = await run_endpoint_function(
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/home/montassar/Desktop/ai_receptionist/backend/routers/assistants.py", line 619, in enable_tool
+    await vapi_service.update_assistant(
+  File "/home/montassar/Desktop/ai_receptionist/backend/services/vapi_service.py", line 201, in update_assistant
+    response.raise_for_status()
+  File "/home/montassar/.local/lib/python3.10/site-packages/httpx/_models.py", line 759, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
+INFO:     127.0.0.1:45658 - "POST /api/v1/assistant/me/tools/book_appointment/enable HTTP/1.1" 500 Internal Server Error
+2025-12-11 11:30:17,774 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+2025-12-11 11:30:17,781 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me/voice took 6432.353973388672ms
+INFO:     127.0.0.1:46918 - "GET /api/v1/assistant/me/voice HTTP/1.1" 200 OK
+2025-12-11 11:30:18,706 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:46918 - "GET /api/v1/assistant/me/voice HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52238 - "OPTIONS /api/v1/assistant/me/voice HTTP/1.1" 200 OK
+2025-12-11 11:30:38,996 - httpx - INFO - HTTP Request: PATCH https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+2025-12-11 11:30:38,998 - services.vapi_service - INFO - Updated Vapi assistant 9fcffac8-3462-4533-ab2b-f0f3e0290e8a
+2025-12-11 11:30:39,057 - utils.error_logger - WARNING - Slow endpoint: PUT /api/v1/assistant/me/voice took 9797.289609909058ms
+INFO:     127.0.0.1:52242 - "PUT /api/v1/assistant/me/voice HTTP/1.1" 200 OK
+2025-12-11 11:30:50,111 - services.vapi_service - ERROR - Failed to get assistant 9fcffac8-3462-4533-ab2b-f0f3e0290e8a: 
+2025-12-11 11:30:50,114 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me took 9276.562929153442ms
+INFO:     127.0.0.1:52242 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 11:30:56,675 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+2025-12-11 11:30:56,681 - utils.error_logger - WARNING - Slow endpoint: GET /api/v1/assistant/me took 6559.428453445435ms
+INFO:     127.0.0.1:52242 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK

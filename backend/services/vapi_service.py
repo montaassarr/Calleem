@@ -463,6 +463,97 @@ Important guidelines:
     
     # ===== PHONE NUMBER MANAGEMENT =====
     
+    async def create_sip_credential(
+        self,
+        account_sid: str,
+        auth_token: str,
+        name: str = "Twilio SIP Trunk"
+    ) -> Dict[str, Any]:
+        """
+        Create SIP credential in Vapi for Twilio integration
+        
+        Args:
+            account_sid: Twilio Account SID
+            auth_token: Twilio Auth Token
+            name: Credential name
+            
+        Returns:
+            Vapi credential object with ID
+        """
+        if not self.is_configured():
+            raise ValueError("Vapi not configured")
+        
+        payload = {
+            "provider": "twilio",
+            "twilioAccountSid": account_sid,
+            "twilioAuthToken": auth_token,
+            "name": name
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/credential",
+                    headers=self.headers,
+                    json=payload
+                )
+                response.raise_for_status()
+                result = response.json()
+                logger.info(f"Created Vapi SIP credential: {result.get('id')}")
+                return result
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to create SIP credential: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response: {e.response.text}")
+            raise
+    
+    async def import_twilio_number(
+        self,
+        phone_number: str,
+        assistant_id: str,
+        credential_id: str,
+        name: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Import an existing Twilio number to Vapi
+        
+        Args:
+            phone_number: Phone number in E.164 format (+1234567890)
+            assistant_id: Vapi assistant ID to assign to this number
+            credential_id: Vapi credential ID (from create_sip_credential)
+            name: Optional friendly name for the phone number
+            
+        Returns:
+            Vapi phone number object with ID
+        """
+        if not self.is_configured():
+            raise ValueError("Vapi not configured")
+        
+        payload = {
+            "provider": "twilio",
+            "number": phone_number,
+            "credentialId": credential_id,
+            "assistantId": assistant_id,
+            "name": name or f"Phone {phone_number}"
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/phone-number",
+                    headers=self.headers,
+                    json=payload
+                )
+                response.raise_for_status()
+                result = response.json()
+                logger.info(f"Imported Twilio number {phone_number} to Vapi: {result.get('id')}")
+                return result
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to import Twilio number: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response: {e.response.text}")
+            raise
+    
     async def create_phone_number(self, provider: str = "twilio", area_code: str = "415") -> Dict[str, Any]:
         """Purchase/create a phone number in Vapi"""
         if not self.is_configured():

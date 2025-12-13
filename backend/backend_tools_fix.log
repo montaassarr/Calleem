@@ -1,0 +1,234 @@
+nohup: ignoring input
+INFO:     Loading environment from '.env'
+WhatsApp Cloud API credentials not configured
+2025-12-11 21:21:12,042 - main - INFO - ✅ Error handling middleware enabled
+2025-12-11 21:21:12,043 - main - INFO - ✅ CORS configured for: http://localhost:3000
+2025-12-11 21:21:12,128 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-11 21:21:12,129 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+INFO:     Started server process [27525]
+INFO:     Waiting for application startup.
+2025-12-11 21:21:13,526 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-11 21:21:13,526 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-11 21:21:13,545 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-11 21:21:13,550 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-11 21:21:13,550 - main - INFO - ✅ Error logging system initialized
+2025-12-11 21:21:13,550 - main - INFO - ✅ Application startup complete!
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:39110 - "OPTIONS /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39110 - "OPTIONS /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39110 - "OPTIONS /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39126 - "OPTIONS /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 21:22:58,062 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/7d4a73f6-09c7-420c-a9cd-76be5e9ea466 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:39132 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39126 - "OPTIONS /api/v1/assistant/me/personality HTTP/1.1" 200 OK
+2025-12-11 21:22:58,808 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/7d4a73f6-09c7-420c-a9cd-76be5e9ea466 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:39110 - "GET /api/v1/assistant/me/personality HTTP/1.1" 200 OK
+2025-12-11 21:22:58,910 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/7d4a73f6-09c7-420c-a9cd-76be5e9ea466 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:39132 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 21:22:59,530 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/7d4a73f6-09c7-420c-a9cd-76be5e9ea466 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:39132 - "GET /api/v1/assistant/me/personality HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50576 - "OPTIONS /api/v1/tools/built-in HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50582 - "OPTIONS /api/v1/assistant/me/tools HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50598 - "OPTIONS /api/v1/tools/built-in HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50606 - "OPTIONS /api/v1/assistant/me/tools HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50614 - "GET /api/v1/tools/built-in HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50598 - "GET /api/v1/assistant/me/tools HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50614 - "GET /api/v1/tools/built-in HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50598 - "GET /api/v1/assistant/me/tools HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50598 - "OPTIONS /api/v1/assistant/me/tools/check_availability HTTP/1.1" 200 OK
+2025-12-11 21:23:43,153 - utils.error_logger - ERROR - [unknown] NameError: name 'os' is not defined | User: None | Tenant: None
+Traceback (most recent call last):
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 159, in call_next
+    message = await recv_stream.receive()
+  File "/home/montassar/.local/lib/python3.10/site-packages/anyio/streams/memory.py", line 126, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/montassar/Desktop/ai_receptionist/backend/middleware/error_handler.py", line 25, in dispatch
+    response = await call_next(request)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 165, in call_next
+    raise app_exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 151, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 762, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 782, in app
+    await route.handle(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 299, in app
+    raise e
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 294, in app
+    raw_response = await run_endpoint_function(
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/home/montassar/Desktop/ai_receptionist/backend/routers/assistants.py", line 719, in disable_tool
+    webhook_url = os.getenv("VAPI_WEBHOOK_URL", "")
+NameError: name 'os' is not defined
+2025-12-11 21:23:43,161 - middleware.error_handler - CRITICAL - Unhandled exception in DELETE /api/v1/assistant/me/tools/check_availability: name 'os' is not defined
+Traceback (most recent call last):
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 159, in call_next
+    message = await recv_stream.receive()
+  File "/home/montassar/.local/lib/python3.10/site-packages/anyio/streams/memory.py", line 126, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/montassar/Desktop/ai_receptionist/backend/middleware/error_handler.py", line 25, in dispatch
+    response = await call_next(request)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 165, in call_next
+    raise app_exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 151, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 762, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 782, in app
+    await route.handle(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 299, in app
+    raise e
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 294, in app
+    raw_response = await run_endpoint_function(
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/home/montassar/Desktop/ai_receptionist/backend/routers/assistants.py", line 719, in disable_tool
+    webhook_url = os.getenv("VAPI_WEBHOOK_URL", "")
+NameError: name 'os' is not defined
+INFO:     127.0.0.1:50614 - "DELETE /api/v1/assistant/me/tools/check_availability HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:50614 - "OPTIONS /api/v1/assistant/me/tools/book_appointment HTTP/1.1" 200 OK
+2025-12-11 21:23:47,126 - utils.error_logger - ERROR - [unknown] NameError: name 'os' is not defined | User: None | Tenant: None
+Traceback (most recent call last):
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 159, in call_next
+    message = await recv_stream.receive()
+  File "/home/montassar/.local/lib/python3.10/site-packages/anyio/streams/memory.py", line 126, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/montassar/Desktop/ai_receptionist/backend/middleware/error_handler.py", line 25, in dispatch
+    response = await call_next(request)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 165, in call_next
+    raise app_exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 151, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 762, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 782, in app
+    await route.handle(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 299, in app
+    raise e
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 294, in app
+    raw_response = await run_endpoint_function(
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/home/montassar/Desktop/ai_receptionist/backend/routers/assistants.py", line 719, in disable_tool
+    webhook_url = os.getenv("VAPI_WEBHOOK_URL", "")
+NameError: name 'os' is not defined
+2025-12-11 21:23:47,127 - middleware.error_handler - CRITICAL - Unhandled exception in DELETE /api/v1/assistant/me/tools/book_appointment: name 'os' is not defined
+Traceback (most recent call last):
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 159, in call_next
+    message = await recv_stream.receive()
+  File "/home/montassar/.local/lib/python3.10/site-packages/anyio/streams/memory.py", line 126, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/montassar/Desktop/ai_receptionist/backend/middleware/error_handler.py", line 25, in dispatch
+    response = await call_next(request)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 165, in call_next
+    raise app_exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/base.py", line 151, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 762, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 782, in app
+    await route.handle(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/montassar/.local/lib/python3.10/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 299, in app
+    raise e
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 294, in app
+    raw_response = await run_endpoint_function(
+  File "/home/montassar/.local/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/home/montassar/Desktop/ai_receptionist/backend/routers/assistants.py", line 719, in disable_tool
+    webhook_url = os.getenv("VAPI_WEBHOOK_URL", "")
+NameError: name 'os' is not defined
+INFO:     127.0.0.1:50598 - "DELETE /api/v1/assistant/me/tools/book_appointment HTTP/1.1" 500 Internal Server Error
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-11 21:25:54,494 - main - INFO - 🛑 Shutting down AI Receptionist application...
+2025-12-11 21:25:54,494 - database.mongo_config - INFO - Closing MongoDB connection...
+2025-12-11 21:25:54,495 - database.mongo_config - INFO - ✅ MongoDB connection closed
+2025-12-11 21:25:54,495 - main - INFO - ✅ Application shutdown complete!
+INFO:     Application shutdown complete.
+INFO:     Finished server process [27525]
