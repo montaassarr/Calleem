@@ -1,0 +1,41 @@
+nohup: ignoring input
+INFO:     Loading environment from '.env'
+WhatsApp Cloud API credentials not configured
+2025-12-11 20:04:49,322 - main - INFO - ✅ Error handling middleware enabled
+2025-12-11 20:04:49,322 - main - INFO - ✅ CORS configured for: http://localhost:3000
+2025-12-11 20:04:49,401 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-11 20:04:49,402 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+INFO:     Started server process [5943]
+INFO:     Waiting for application startup.
+2025-12-11 20:04:50,911 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-11 20:04:50,911 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-11 20:04:50,932 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-11 20:04:50,940 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-11 20:04:50,940 - main - INFO - ✅ Error logging system initialized
+2025-12-11 20:04:50,941 - main - INFO - ✅ Application startup complete!
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-12-11 20:04:55,700 - routers.users - INFO - ✅ Created default business_config for tenant 693b15d74839bc4be990fb15
+2025-12-11 20:04:55,701 - routers.users - INFO - 🤖 Triggering auto-provisioning for new tenant...
+2025-12-11 20:04:55,701 - services.provisioning - INFO - 🤖 Starting Vapi provisioning for tenant 693b15d74839bc4be990fb15 (Auto Test 479895's Business)
+2025-12-11 20:04:55,701 - services.provisioning - INFO -    Creating Vapi assistant...
+2025-12-11 20:04:56,576 - httpx - INFO - HTTP Request: POST https://api.vapi.ai/assistant "HTTP/1.1 201 Created"
+2025-12-11 20:04:56,577 - services.vapi_service - INFO - Created Vapi assistant e82617b5-c546-4ec0-9aa8-5a15bf427f62 for tenant 693b15d74839bc4be990fb15
+2025-12-11 20:04:56,577 - services.provisioning - INFO -    ✅ Assistant created: e82617b5-c546-4ec0-9aa8-5a15bf427f62
+2025-12-11 20:04:56,577 - services.provisioning - ERROR - ❌ Vapi provisioning failed for tenant 693b15d74839bc4be990fb15: 'VapiService' object has no attribute 'webhook_url'
+Traceback (most recent call last):
+  File "/home/montassar/Desktop/ai_receptionist/backend/services/provisioning.py", line 107, in provision_tenant_assistant
+    "server": {"url": vapi_service.webhook_url}
+AttributeError: 'VapiService' object has no attribute 'webhook_url'
+2025-12-11 20:04:56,584 - routers.users - INFO - ✅ User registered and tenant created: auto_test_479895@provisioning.com (Tenant: 693b15d74839bc4be990fb15)
+❌ [DEBUG] Vapi provisioning failed: 'VapiService' object has no attribute 'webhook_url'
+INFO:     127.0.0.1:52700 - "POST /api/v1/users/register HTTP/1.1" 201 Created
+INFO:     127.0.0.1:52700 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-11 20:05:59,506 - main - INFO - 🛑 Shutting down AI Receptionist application...
+2025-12-11 20:05:59,506 - database.mongo_config - INFO - Closing MongoDB connection...
+2025-12-11 20:05:59,507 - database.mongo_config - INFO - ✅ MongoDB connection closed
+2025-12-11 20:05:59,507 - main - INFO - ✅ Application shutdown complete!
+INFO:     Application shutdown complete.
+INFO:     Finished server process [5943]

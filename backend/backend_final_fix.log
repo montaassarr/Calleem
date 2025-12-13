@@ -1,0 +1,321 @@
+nohup: ignoring input
+INFO:     Loading environment from '.env'
+WhatsApp Cloud API credentials not configured
+2025-12-11 20:27:44,117 - main - INFO - ✅ Error handling middleware enabled
+2025-12-11 20:27:44,118 - main - INFO - ✅ CORS configured for: http://localhost:3000
+2025-12-11 20:27:44,184 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-11 20:27:44,184 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+INFO:     Started server process [14485]
+INFO:     Waiting for application startup.
+2025-12-11 20:27:45,776 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-11 20:27:45,776 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-11 20:27:45,803 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-11 20:27:45,810 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-11 20:27:45,810 - main - INFO - ✅ Error logging system initialized
+2025-12-11 20:27:45,810 - main - INFO - ✅ Application startup complete!
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:40004 - "OPTIONS /api/v1/monitoring/frontend-action HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40022 - "POST /api/v1/monitoring/frontend-action HTTP/1.1" 201 Created
+2025-12-11 20:29:16,642 - routers.users - INFO - 🔐 User logged in: bella_salon
+INFO:     127.0.0.1:40012 - "POST /api/v1/users/token HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40012 - "OPTIONS /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40022 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40022 - "POST /api/v1/monitoring/frontend-action HTTP/1.1" 201 Created
+INFO:     127.0.0.1:40022 - "OPTIONS /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40012 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40012 - "OPTIONS /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40022 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40022 - "GET /api/v1/admin/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40022 - "OPTIONS /api/v1/appointments/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40012 - "OPTIONS /api/v1/conversations?limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40004 - "OPTIONS /api/v1/services/?active_only=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40028 - "OPTIONS /api/v1/whatsapp/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40004 - "GET /api/v1/conversations?limit=100 HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:40012 - "GET /api/v1/whatsapp/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40004 - "OPTIONS /api/v1/conversations/?limit=100 HTTP/1.1" 200 OK
+2025-12-11 20:29:17,803 - routers.services - INFO - Retrieved 4 services
+INFO:     127.0.0.1:40022 - "GET /api/v1/services/?active_only=false HTTP/1.1" 200 OK
+2025-12-11 20:29:17,808 - routers.appointments - INFO - Retrieved 2 appointments
+INFO:     127.0.0.1:40044 - "GET /api/v1/appointments/ HTTP/1.1" 200 OK
+2025-12-11 20:29:17,818 - routers.conversations - INFO - Retrieved 0 conversations
+INFO:     127.0.0.1:40012 - "GET /api/v1/conversations/?limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50288 - "OPTIONS /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50292 - "OPTIONS /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 20:29:24,706 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:50294 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50292 - "OPTIONS /api/v1/assistant/me/personality HTTP/1.1" 200 OK
+2025-12-11 20:29:25,333 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:50294 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 20:29:25,524 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:50288 - "GET /api/v1/assistant/me/personality HTTP/1.1" 200 OK
+2025-12-11 20:29:26,347 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:50288 - "GET /api/v1/assistant/me/personality HTTP/1.1" 200 OK
+2025-12-11 20:29:33,821 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:54686 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 20:29:34,840 - httpx - INFO - HTTP Request: GET https://api.vapi.ai/assistant/9fcffac8-3462-4533-ab2b-f0f3e0290e8a "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:54686 - "GET /api/v1/assistant/me HTTP/1.1" 200 OK
+2025-12-11 20:29:45,296 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:29:45,296 - routers.vapi - INFO - Received Vapi webhook: assistant.started
+2025-12-11 20:29:45,296 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:29:45,297 - routers.vapi - INFO - Received Vapi webhook: status-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:29:45,643 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:29:45,643 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:29:47,190 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:29:47,190 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:29:49,368 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:29:49,369 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:29:49,372 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:29:49,372 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:29:50,391 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:29:50,391 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:29:52,184 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:29:52,184 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:29:52,536 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:29:52,537 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:29:53,032 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:29:53,032 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:29:54,361 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:29:54,361 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:29:59,365 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:29:59,365 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:29:59,624 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:29:59,624 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:29:59,729 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:29:59,729 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:00,332 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:00,332 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:02,425 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:02,425 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:02,771 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:02,771 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:03,387 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:03,387 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:03,825 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:03,825 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:04,064 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:04,064 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:04,548 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:04,548 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:07,623 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:07,623 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:09,299 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:09,299 - routers.vapi - INFO - Received Vapi webhook: user-interrupted
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:09,476 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:09,476 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:09,510 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:09,510 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:09,637 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:09,637 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:12,051 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:12,052 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:12,408 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:12,408 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:16,559 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:16,560 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:18,281 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:18,281 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:20,124 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:20,124 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:23,646 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:23,646 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:24,018 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:24,019 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:24,862 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:24,863 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:25,400 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:25,400 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:29,022 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:29,022 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:31,592 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:31,592 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:31,955 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:31,955 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:33,437 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:33,437 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:37,136 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:37,136 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:37,782 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:37,782 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:38,674 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:38,674 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:41,741 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:41,741 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:41,963 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:41,963 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:42,076 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:42,076 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:42,205 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:42,206 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:43,157 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:43,157 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:44,563 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:44,564 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:44,784 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:44,784 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:46,309 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:46,310 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:46,686 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:46,686 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:46,950 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:46,950 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:47,373 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:47,374 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:50,443 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:50,443 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:51,258 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:51,259 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:30:51,485 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:30:51,485 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:02,981 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:02,981 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:03,306 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:03,306 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:03,346 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:03,346 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:04,374 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:04,374 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:07,961 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:07,961 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:10,018 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:10,018 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:13,345 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:13,357 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:13,648 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:13,648 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:14,696 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:14,697 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:16,044 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:16,045 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:17,671 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:17,672 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:17,720 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:17,720 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:18,123 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:18,123 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:19,087 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:19,087 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:22,536 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:22,537 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:25,039 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:25,039 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:25,323 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:25,324 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     146.235.224.251:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:33,981 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:33,981 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:34,604 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:34,605 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:34,903 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:34,904 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:36,661 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:36,661 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:41,297 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:41,298 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:43,118 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:43,118 - routers.vapi - INFO - Received Vapi webhook: conversation-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:44,093 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:44,093 - routers.vapi - INFO - Received Vapi webhook: speech-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+2025-12-11 20:31:46,561 - routers.vapi - WARNING - Vapi webhook signature verification failed
+2025-12-11 20:31:46,562 - routers.vapi - INFO - Received Vapi webhook: status-update
+INFO:     170.9.5.187:0 - "POST /api/v1/vapi/webhook HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59332 - "OPTIONS /api/v1/tools/built-in HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59348 - "OPTIONS /api/v1/assistant/me/tools HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59352 - "OPTIONS /api/v1/tools/built-in HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59358 - "OPTIONS /api/v1/assistant/me/tools HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59370 - "GET /api/v1/tools/built-in HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59332 - "GET /api/v1/assistant/me/tools HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59332 - "GET /api/v1/tools/built-in HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59370 - "GET /api/v1/assistant/me/tools HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44188 - "OPTIONS /api/v1/services/ HTTP/1.1" 200 OK
+2025-12-11 20:32:40,893 - routers.appointments - INFO - Retrieved 2 appointments
+2025-12-11 20:32:40,896 - routers.services - INFO - Retrieved 4 services
+INFO:     127.0.0.1:44202 - "GET /api/v1/appointments/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44208 - "GET /api/v1/services/ HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-11 20:46:19,315 - main - INFO - 🛑 Shutting down AI Receptionist application...
+2025-12-11 20:46:19,315 - database.mongo_config - INFO - Closing MongoDB connection...
+2025-12-11 20:46:19,316 - database.mongo_config - INFO - ✅ MongoDB connection closed
+2025-12-11 20:46:19,316 - main - INFO - ✅ Application shutdown complete!
+INFO:     Application shutdown complete.
+INFO:     Finished server process [14485]

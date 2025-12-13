@@ -6,6 +6,9 @@ from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
+import logging
+
+logger = logging.getLogger(__name__)
 
 class PlanTier(str, Enum):
     FREE = "free"
@@ -16,6 +19,34 @@ class TenantStatus(str, Enum):
     ACTIVE = "active"
     SUSPENDED = "suspended"
     PENDING = "pending"
+
+class PhoneProvider(str, Enum):
+    """Phone number provider types"""
+    VAPI = "vapi"
+    TWILIO = "twilio"
+    NONE = "none"
+
+class TwilioCredentials(BaseModel):
+    """Encrypted Twilio credentials for phone integration"""
+    account_sid_encrypted: Optional[str] = None
+    auth_token_encrypted: Optional[str] = None
+    phone_number: Optional[str] = None  # E.164 format
+    number_sid: Optional[str] = None  # Twilio phone number SID
+    credential_id: Optional[str] = None  # Vapi SIP credential ID
+    
+    model_config = ConfigDict(extra="allow")
+
+class TenantPhoneConfig(BaseModel):
+    """Phone number configuration for tenant"""
+    vapi_phone_number_id: Optional[str] = None  # Vapi phone number resource ID
+    phone_number: Optional[str] = None  # Actual phone number (E.164)
+    phone_provider: PhoneProvider = PhoneProvider.NONE
+    twilio_credentials: Optional[TwilioCredentials] = None  # Encrypted Twilio creds
+    is_active: bool = False
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    
+    model_config = ConfigDict(extra="allow")
 
 class TenantSettings(BaseModel):
     """Tenant-specific configuration"""
@@ -64,6 +95,9 @@ class TenantInDB(TenantBase):
     id: str = Field(alias="_id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Phone configuration
+    phone_config: TenantPhoneConfig = Field(default_factory=TenantPhoneConfig)
     
     # Usage metrics (simple counters for now)
     total_calls: int = 0

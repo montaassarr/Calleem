@@ -1,0 +1,17 @@
+nohup: ignoring input
+INFO:     Loading environment from '.env'
+WhatsApp Cloud API credentials not configured
+2025-12-11 19:43:44,465 - main - INFO - ✅ Error handling middleware enabled
+2025-12-11 19:43:44,465 - main - INFO - ✅ CORS configured for: http://localhost:3000
+2025-12-11 19:43:44,516 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-11 19:43:44,516 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+INFO:     Started server process [81087]
+INFO:     Waiting for application startup.
+2025-12-11 19:43:45,359 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-11 19:43:45,359 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-11 19:43:45,367 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-11 19:43:45,371 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-11 19:43:45,372 - main - INFO - ✅ Error logging system initialized
+2025-12-11 19:43:45,372 - main - INFO - ✅ Application startup complete!
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)

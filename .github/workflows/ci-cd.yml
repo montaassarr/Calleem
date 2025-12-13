@@ -28,7 +28,10 @@ jobs:
           
       - name: Run tests
         working-directory: ./backend
-        run: pytest tests/ -v --tb=short || echo "Tests completed"
+        env:
+          PYTHONPATH: .
+          DEBUG: true
+        run: pytest tests/ -v --tb=short
 
   # ===== TEST FRONTEND =====
   test-frontend:

@@ -1,1 +1,0 @@
-(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,22165,e=>{"use strict";function o(e){return new Promise((o,t)=>{let r=document.createElement("script");r.src=e,r.onload=()=>o(),r.onerror=()=>t(Error(`Failed to load script: ${e}`)),document.head.appendChild(r)})}e.s(["loadScript",()=>o])}]);
