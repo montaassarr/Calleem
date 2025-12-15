@@ -66,9 +66,20 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS Configuration - MUST be added FIRST (processed LAST in middleware stack)
 cors_origins = settings.cors_origins_list
+
+# Always include production frontend
+production_origins = [
+    "https://aireceptionist-lake.vercel.app",
+    "https://www.aireceptionist-lake.vercel.app",
+]
+cors_origins.extend(production_origins)
+
+# Add localhost for development
 if os.getenv("ENVIRONMENT") != "production":
     cors_origins.extend(["http://localhost:3000", "http://localhost:5173"])
+
 cors_origins = list(set(cors_origins))
+logger.info(f"🌐 CORS allowed origins: {cors_origins}")
 
 app.add_middleware(
     CORSMiddleware,
