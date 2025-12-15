@@ -49,7 +49,7 @@ class TenantLookupResponse(BaseModel):
 async def lookup_tenant_by_phone(request: TenantLookupRequest = Body(...)):
     """
     Lookup a tenant by their business phone number.
-    Used by N8N workflows to route calls to the correct tenant.
+    Used by webhooks/automations to route calls to the correct tenant.
     """
     db = get_database()
     
@@ -101,8 +101,6 @@ class OnboardingCompleteRequest(BaseModel):
     """Request to mark onboarding as complete"""
     groq_api_key: Optional[str] = None
     openai_api_key: Optional[str] = None
-    n8n_url: Optional[str] = None
-    n8n_api_key: Optional[str] = None
     business_name: Optional[str] = None
     business_description: Optional[str] = None
     industry: Optional[str] = None
@@ -173,16 +171,6 @@ async def complete_onboarding(
             },
             upsert=True
         )
-    
-    # Save n8n config
-    if request.n8n_url or request.n8n_api_key:
-        n8n_config = {}
-        if request.n8n_url:
-            n8n_config["url"] = request.n8n_url
-        if request.n8n_api_key:
-            n8n_config["api_key"] = request.n8n_api_key
-        
-        update_data["n8n_config"] = n8n_config
     
     # Update tenant
     await db.tenants.update_one(

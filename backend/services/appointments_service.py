@@ -109,7 +109,7 @@ class AppointmentsService:
             
             return {
                 "available": is_available,
-                "slot_available": is_available, # Alias for n8n compatibility
+                "slot_available": is_available, # Alias for API compatibility
                 "requested_datetime": requested_datetime.isoformat(),
                 "date": date,
                 "time": time,
