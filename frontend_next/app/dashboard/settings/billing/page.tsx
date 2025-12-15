@@ -33,7 +33,7 @@ export default function BillingPage() {
             description: "Advanced automation for growing teams",
             features: [
                 "Everything in Basic",
-                "Smart Automations (n8n)",
+                "Smart Automations",
                 "Team Management",
                 "CRM Integrations",
                 "Priority Support",
