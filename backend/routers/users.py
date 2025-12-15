@@ -5,63 +5,28 @@ User management and JWT authentication
 
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from passlib.context import CryptContext
-from jose import JWTError, jwt
-from datetime import datetime, timedelta
-from typing import Optional
-from bson import ObjectId
+from datetime import datetime
 import logging
 
 from models.core.users import (
-    User, 
     UserCreate, 
     UserUpdate, 
     UserResponse, 
     Token, 
     TokenData, 
-    LoginRequest,
     UserRole
 )
-from services.provisioning import vapi_provisioning
-from models.core.tenants import Tenant, TenantCreate, TenantStatus
-from database.mongo_config import get_database
 from utils.config import settings
-from utils.error_logger import error_logger, ErrorCategory, ErrorLevel
+from utils.error_logger import error_logger
+from services.user_service import UserService
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-# Password hashing (using argon2 instead of bcrypt due to compatibility issues)
-pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+user_service = UserService()
 
 # OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/users/login")
-
-
-def hash_password(password: str) -> str:
-    """Hash a password using argon2"""
-    return pwd_context.hash(password)
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash"""
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    """Create JWT access token"""
-    to_encode = data.copy()
-    
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    
-    return encoded_jwt
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -73,28 +38,22 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     )
     
     try:
+        from jose import jwt, JWTError
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id = payload.get("sub")
         
-        if user_id is None or not isinstance(user_id, str):
+        if user_id is None:
             raise credentials_exception
-        
-        token_data = TokenData(user_id=user_id)
         
     except JWTError:
         raise credentials_exception
     
-    db = get_database()
-    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    user = await user_service.get_user_by_id(user_id)
     
     if user is None:
         raise credentials_exception
     
-    user["id"] = str(user["_id"])
-    
     # STRICT TENANT ISOLATION CHECK
-    # If user is not a super admin, they MUST have a tenant_id
-    # Otherwise, they might see all data (global access)
     if user.get("role") != UserRole.SUPER_ADMIN.value:
         tenant_id = user.get("tenant_id") or user.get("business_id")
         if not tenant_id:
@@ -130,239 +89,38 @@ async def get_super_admin(current_user: dict = Depends(get_current_user)):
 @router.post("/register", response_model=Token, status_code=201)
 async def register_user(user: UserCreate):
     """Register a new user and return JWT token"""
-    await error_logger.log_action(
-        action='registration_attempt',
-        data={
-            'email': user.email,
-            'username': user.username,
-            'business_name': getattr(user, 'business_name', None)
-        }
-    )
-    
-    try:
-        db = get_database()
-
-        if not settings.ALLOW_SELF_REGISTRATION and not settings.TESTING:
-            raise HTTPException(
-                status_code=403,
-                detail="Self-service registration is disabled. Please contact the shop owner to request access."
-            )
-
-        max_users = settings.MAX_DASHBOARD_USERS
-        if (not settings.TESTING) and max_users and max_users > 0:
-            active_users = await db.users.count_documents({"active": True})
-            if active_users >= max_users:
-                raise HTTPException(
-                    status_code=403,
-                    detail=f"User limit reached (max {max_users} active users). Deactivate an account before adding another."
-                )
-        
-        # Check if user exists
-        existing_email = await db.users.find_one({"email": user.email})
-        if existing_email:
-            logger.warning(f"Registration attempt with existing email: {user.email}")
-            raise HTTPException(status_code=400, detail="Email already registered")
-        
-        existing_username = await db.users.find_one({"username": user.username})
-        if existing_username:
-            logger.warning(f"Registration attempt with existing username: {user.username}")
-            raise HTTPException(status_code=400, detail="Username already taken")
-        
-        # Hash password
-        user_dict = user.dict(exclude={"password"})
-        user_dict["hashed_password"] = hash_password(user.password)
-        user_dict["created_at"] = datetime.utcnow()
-        user_dict["updated_at"] = datetime.utcnow()
-        user_dict["last_login"] = datetime.utcnow()  # Set initial login time
-        
-        # Insert user first to get ID
-        result = await db.users.insert_one(user_dict)
-        user_id = str(result.inserted_id)
-        
-        await error_logger.log_action(
-            action='user_record_created',
-            user_id=user_id,
-            data={'email': user.email}
-        )
-        
-        # Create a new tenant for this user
-        # Use business_name if provided during signup, otherwise default
-        business_name = user.business_name if hasattr(user, 'business_name') and user.business_name else f"{user.full_name}'s Business"
-        tenant_dict = {
-            "owner_id": user_id,
-            "name": business_name,
-            "status": TenantStatus.ACTIVE,
-            "plan": "free",
-            "is_configured": False,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow(),
-            "total_calls": 0,
-            "total_minutes": 0.0
-        }
-        
-        tenant_result = await db.tenants.insert_one(tenant_dict)
-        tenant_id = str(tenant_result.inserted_id)
-        
-        await error_logger.log_action(
-            action='tenant_record_created',
-            user_id=user_id,
-            tenant_id=tenant_id,
-            data={'business_name': business_name}
-        )
-        
-        # Update user with tenant_id
-        await db.users.update_one(
-            {"_id": result.inserted_id},
-            {
-                "$set": {
-                    "tenant_id": tenant_id,
-                    "business_id": tenant_id, # Legacy support
-                    "role": UserRole.OWNER # First user is always owner
-                }
-            }
-        )
-        
-        # Create default business_config for the tenant
-        business_config = {
-            "tenant_id": tenant_id,
-            "business_name": business_name,
-            "timezone": "UTC",
-            "api_keys": [],
-            "features_enabled": {
-                "voice_agent": False
-            },
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        }
-        await db.business_config.insert_one(business_config)
-        logger.info(f"✅ Created default business_config for tenant {tenant_id}")
-        
-        # [AUTO-PROVISIONING] Create Vapi Assistant
-        try:
-            logger.info("🤖 Triggering auto-provisioning for new tenant...")
-            await vapi_provisioning.provision_tenant_assistant(tenant_id, business_name)
-        except Exception as e:
-            logger.error(f"⚠️ Auto-provisioning failed for {tenant_id}: {e}")
-            # Non-blocking: User is still registered
-        
-        # Retrieve created user with updated fields
-        created_user = await db.users.find_one({"_id": result.inserted_id})
-        
-        logger.info(f"✅ User registered and tenant created: {created_user['username']} (Tenant: {tenant_id})")
-        
-        # Create and return access token
-        access_token = create_access_token(
-            data={
-                "sub": user_id,
-                "username": created_user["username"],
-                "email": created_user["email"],
-                "role": created_user["role"],
-                "tenant_id": tenant_id
-            }
-        )
-        
-        return Token(access_token=access_token, token_type="bearer")
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error registering user: {e}", exc_info=True)
-        await error_logger.log_error(
-            error=e,
-            category=ErrorCategory.USER,
-            level=ErrorLevel.ERROR,
-            context={
-                'email': user.email,
-                'username': user.username,
-                'business_name': getattr(user, 'business_name', None)
-            }
-        )
-        raise HTTPException(status_code=500, detail="Failed to register user")
+    return await user_service.register_user(user)
 
 
 @router.post("/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """User login - returns JWT token (supports both username and email)"""
-    try:
-        db = get_database()
-        
-        # Find user by username or email
-        user = await db.users.find_one({
-            "$or": [
-                {"username": form_data.username},
-                {"email": form_data.username}
-            ]
-        })
-        
-        if not user or not verify_password(form_data.password, user["hashed_password"]):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect username or password",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        
-        if not user.get("active", True):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User account is inactive"
-            )
-        
-        # Update last login
-        await db.users.update_one(
-            {"_id": user["_id"]},
-            {"$set": {"last_login": datetime.utcnow()}}
+    user = await user_service.authenticate_user(form_data.username, form_data.password)
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-        
-        # Get tenant_id
-        tenant_id = user.get("tenant_id") or user.get("business_id")
-        
-        # Ensure business_config exists (auto-create if missing)
-        if tenant_id:
-            existing_config = await db.business_config.find_one({"tenant_id": tenant_id})
-            if not existing_config:
-                logger.info(f"⚠️  business_config missing for tenant {tenant_id}, creating default...")
-                # Get tenant info for business name
-                try:
-                    tenant = await db.tenants.find_one({"_id": ObjectId(tenant_id)})
-                except:
-                    # If tenant_id is not a valid ObjectId, try as string
-                    tenant = await db.tenants.find_one({"tenant_id": tenant_id}) or await db.tenants.find_one({"_id": tenant_id})
-                
-                business_name = tenant.get("name", "My Business") if tenant else "My Business"
-                
-                business_config = {
-                    "tenant_id": tenant_id,
-                    "business_name": business_name,
-                    "timezone": "UTC",
-                    "api_keys": [],
-                    "features_enabled": {
-                        "voice_agent": False
-                    },
-                    "created_at": datetime.utcnow(),
-                    "updated_at": datetime.utcnow()
-                }
-                await db.business_config.insert_one(business_config)
-                logger.info(f"✅ Created business_config for tenant {tenant_id} during login")
-        
-        # Create access token with tenant_id
-        access_token = create_access_token(
-            data={
-                "sub": str(user["_id"]),
-                "username": user["username"],
-                "role": user["role"],
-                "tenant_id": tenant_id
-            }
-        )
-        
-        logger.info(f"🔐 User logged in: {user['username']}")
-        
-        return {"access_token": access_token, "token_type": "bearer"}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error during login: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Login failed")
+    
+    # Ensure tenant config exists
+    tenant_id = user.get("tenant_id") or user.get("business_id")
+    await user_service.ensure_tenant_config(tenant_id)
+    
+    # Create access token
+    access_token = user_service.create_access_token(
+        data={
+            "sub": str(user["_id"]),
+            "username": user["username"],
+            "role": user["role"],
+            "tenant_id": tenant_id
+        }
+    )
+    
+    logger.info(f"🔐 User logged in: {user['username']}")
+    
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 # Alias for /token endpoint (standard OAuth2)
@@ -385,38 +143,12 @@ async def update_current_user(
 ):
     """Update current user information"""
     try:
-        db = get_database()
-        
-        # Prepare update data
-        update_data = {k: v for k, v in update.dict(exclude_unset=True).items() if v is not None}
-        
-        # Hash password if being updated
-        if "password" in update_data:
-            update_data["hashed_password"] = hash_password(update_data.pop("password"))
-        
-        if not update_data:
-            raise HTTPException(status_code=400, detail="No fields to update")
-        
-        update_data["updated_at"] = datetime.utcnow()
-        
-        # Update user
-        await db.users.update_one(
-            {"_id": ObjectId(current_user["id"])},
-            {"$set": update_data}
-        )
-        
-        # Retrieve updated user
-        updated_user = await db.users.find_one({"_id": ObjectId(current_user["id"])})
-        updated_user["id"] = str(updated_user["_id"])
-        
+        updated_user = await user_service.update_user(current_user["id"], update)
         logger.info(f"✏️ User updated: {updated_user['username']}")
-        
         return UserResponse(**updated_user)
-        
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"Error updating user: {e}", exc_info=True)
+        if isinstance(e, HTTPException): raise e
+        logger.error(f"Error updating user: {e}")
         raise HTTPException(status_code=500, detail="Failed to update user")
 
 
@@ -426,39 +158,5 @@ async def delete_user(
     current_user: dict = Depends(get_super_admin)
 ):
     """Delete a user and their tenant data (Super Admin only)"""
-    db = get_database()
-    
-    try:
-        user_oid = ObjectId(user_id)
-        user = await db.users.find_one({"_id": user_oid})
-    except:
-        raise HTTPException(400, "Invalid user ID")
-    
-    if not user:
-        raise HTTPException(404, "User not found")
-        
-    if user.get("role") == "super_admin":
-        raise HTTPException(400, "Cannot delete super admin")
-    
-    # Delete Tenant Data
-    tenant_id = user.get("tenant_id")
-    if tenant_id:
-        try:
-            # Delete Tenant
-            await db.tenants.delete_one({"_id": ObjectId(tenant_id)})
-            
-            # Delete Appointments
-            await db.appointments.delete_many({"tenant_id": str(tenant_id)})
-            
-            # Delete Call Logs
-            await db.call_logs.delete_many({"tenant_id": str(tenant_id)})
-            
-            # Delete Conversations
-            await db.conversations.delete_many({"tenant_id": str(tenant_id)})
-        except Exception as e:
-            logger.error(f"Error cleaning tenant data: {e}")
-            
-    # Delete User
-    await db.users.delete_one({"_id": user_oid})
-    
+    await user_service.delete_user_and_tenant(user_id)
     return {"message": "User and associated data deleted successfully"}

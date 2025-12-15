@@ -1,47 +1,37 @@
-nohup: ignoring input
-INFO:     Loading environment from '.env'
 WhatsApp Cloud API credentials not configured
-2025-12-11 20:21:03,133 - main - INFO - ✅ Error handling middleware enabled
-2025-12-11 20:21:03,133 - main - INFO - ✅ CORS configured for: http://localhost:3000
-2025-12-11 20:21:03,279 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
-2025-12-11 20:21:03,280 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+VAPI_API_KEY not configured - Vapi features disabled
+VAPI_API_KEY not configured - Vapi features disabled
+2025-12-15 14:24:03,569 - main - INFO - ✅ Error handling middleware enabled
+2025-12-15 14:24:03,569 - main - INFO - ✅ CORS configured for origins: https://aireceptionist-lake.vercel.app, http://127.0.0.1:3000, https://aireceptionist-lake.vercel.app/, http://localhost:3000, http://localhost:5173, http://127.0.0.1:5173
+2025-12-15 14:24:03,613 - services.twilio_service - INFO - Twilio service initialized
+2025-12-15 14:24:03,640 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-15 14:24:03,641 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+INFO:     Started server process [15808]
+INFO:     Waiting for application startup.
+2025-12-15 14:24:03,671 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-15 14:24:03,671 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-15 14:24:03,721 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-15 14:24:03,725 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-15 14:24:03,725 - main - INFO - ✅ Error logging system initialized
+2025-12-15 14:24:03,725 - main - INFO - ✅ Application startup complete!
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57884 - "GET /health HTTP/1.1" 200 OK
+2025-12-15 14:24:33,967 - services.user_service - INFO - 🤖 Triggering auto-provisioning for 69400c111df2c5659b0a4c88
+2025-12-15 14:24:33,967 - services.provisioning - INFO - 🤖 Starting Vapi provisioning for tenant 69400c111df2c5659b0a4c88 (Integration Corp)
+2025-12-15 14:24:33,967 - services.provisioning - INFO -    Creating Vapi assistant...
+2025-12-15 14:24:33,967 - services.provisioning - ERROR - ❌ Vapi provisioning failed for tenant 69400c111df2c5659b0a4c88: Vapi not configured
 Traceback (most recent call last):
-  File "/home/montassar/.local/bin/uvicorn", line 8, in <module>
-    sys.exit(main())
-  File "/home/montassar/.local/lib/python3.10/site-packages/click/core.py", line 1462, in __call__
-    return self.main(*args, **kwargs)
-  File "/home/montassar/.local/lib/python3.10/site-packages/click/core.py", line 1383, in main
-    rv = self.invoke(ctx)
-  File "/home/montassar/.local/lib/python3.10/site-packages/click/core.py", line 1246, in invoke
-    return ctx.invoke(self.callback, **ctx.params)
-  File "/home/montassar/.local/lib/python3.10/site-packages/click/core.py", line 814, in invoke
-    return callback(*args, **kwargs)
-  File "/home/montassar/.local/lib/python3.10/site-packages/uvicorn/main.py", line 418, in main
-    run(
-  File "/home/montassar/.local/lib/python3.10/site-packages/uvicorn/main.py", line 587, in run
-    server.run()
-  File "/home/montassar/.local/lib/python3.10/site-packages/uvicorn/server.py", line 62, in run
-    return asyncio.run(self.serve(sockets=sockets))
-  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
-    return loop.run_until_complete(main)
-  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
-  File "/home/montassar/.local/lib/python3.10/site-packages/uvicorn/server.py", line 69, in serve
-    config.load()
-  File "/home/montassar/.local/lib/python3.10/site-packages/uvicorn/config.py", line 458, in load
-    self.loaded_app = import_from_string(self.app)
-  File "/home/montassar/.local/lib/python3.10/site-packages/uvicorn/importer.py", line 21, in import_from_string
-    module = importlib.import_module(module_str)
-  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
-  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
-  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
-  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
-  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
-  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-  File "/home/montassar/Desktop/ai_receptionist/backend/main.py", line 285, in <module>
-    from routers import assistants as assistants_router
-  File "/home/montassar/Desktop/ai_receptionist/backend/routers/assistants.py", line 379
-    return {
-           ^
-SyntaxError: '{' was never closed
+  File "/home/montassar/Desktop/ai_receptionist/backend/services/provisioning.py", line 69, in provision_tenant_assistant
+    assistant = await vapi_service.create_assistant(
+  File "/home/montassar/Desktop/ai_receptionist/backend/services/vapi_service.py", line 67, in create_assistant
+    raise ValueError("Vapi not configured")
+ValueError: Vapi not configured
+❌ [DEBUG] Vapi provisioning failed: Vapi not configured
+INFO:     127.0.0.1:57884 - "POST /api/v1/users/register HTTP/1.1" 201 Created
+INFO:     127.0.0.1:57884 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+2025-12-15 14:24:34,029 - services.appointments_service - INFO - ✅ Appointment created: 69400c121df2c5659b0a4c8c
+INFO:     127.0.0.1:57884 - "POST /api/v1/appointments/ HTTP/1.1" 201 Created
+INFO:     127.0.0.1:57884 - "GET /api/v1/appointments/availability/check?date=2025-12-16&time=13%3A24&duration_minutes=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57884 - "GET /api/v1/conversations/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57884 - "POST /api/v1/appointments/69400c121df2c5659b0a4c8c/cancel HTTP/1.1" 200 OK

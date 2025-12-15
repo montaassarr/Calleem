@@ -16,7 +16,7 @@ export default function SettingsPage() {
         },
         {
             title: "AI Configuration",
-            description: "Select STT/LLM/TTS models (FREE via LiveKit Cloud)",
+            description: "Configure AI Voice Assistant (Vapi)",
             icon: Bot,
             path: "/dashboard/settings/ai",
             color: "from-green-500 to-emerald-500",

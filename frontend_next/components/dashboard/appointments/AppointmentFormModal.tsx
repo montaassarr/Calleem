@@ -1,7 +1,3 @@
-import { useState, useEffect } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { appointmentsApi, servicesApi } from "@/lib/api-endpoints";
-import { AppointmentCreate, AppointmentUpdate, AppointmentResponse, ServiceResponse } from "@/lib/types";
 import {
     Dialog,
     DialogContent,
@@ -27,10 +23,11 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
-import { toast } from "sonner";
 import { Loader2, Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { AppointmentResponse } from "@/lib/types";
+import { useAppointmentForm } from "@/hooks/domain/useAppointmentForm";
 
 interface AppointmentFormModalProps {
     open: boolean;
@@ -39,197 +36,22 @@ interface AppointmentFormModalProps {
     mode: "create" | "edit";
 }
 
-interface FormData {
-    client_name: string;
-    client_phone: string;
-    service: string;
-    date: Date | undefined;
-    time: string;
-    duration_minutes: number;
-    notes?: string;
-}
-
 export default function AppointmentFormModal({
     open,
     onOpenChange,
     appointment,
     mode,
 }: AppointmentFormModalProps) {
-    const queryClient = useQueryClient();
-    const [formData, setFormData] = useState<FormData>({
-        client_name: "",
-        client_phone: "",
-        service: "",
-        date: undefined,
-        time: "",
-        duration_minutes: 30,
-        notes: "",
-    });
-
-    // Generate time slots (every 15 mins)
-    const timeSlots = [];
-    for (let i = 0; i < 24 * 4; i++) {
-        const hour = Math.floor(i / 4);
-        const minute = (i % 4) * 15;
-        const date = new Date();
-        date.setHours(hour, minute);
-        const timeString = format(date, "h:mm a"); // 9:00 AM
-        const value = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`; // 09:00
-        timeSlots.push({ value, label: timeString });
-    }
-
-    // Fetch active services for dropdown
-    const { data: services } = useQuery<ServiceResponse[]>({
-        queryKey: ["services"],
-        queryFn: () => servicesApi.list(),
-    });
-
-    // Pre-fill form when editing
-    useEffect(() => {
-        if (mode === "edit" && appointment) {
-            const dateObj = new Date(appointment.datetime);
-            const hours = String(dateObj.getHours()).padStart(2, "0");
-            const minutes = String(dateObj.getMinutes()).padStart(2, "0");
-
-            setFormData({
-                client_name: appointment.client_name,
-                client_phone: appointment.client_phone,
-                service: appointment.service || "",
-                date: dateObj,
-                time: `${hours}:${minutes}`,
-                duration_minutes: appointment.duration_minutes || 30,
-                notes: appointment.notes || "",
-            });
-        } else {
-            // Reset for create mode
-            setFormData({
-                client_name: "",
-                client_phone: "",
-                service: "",
-                date: undefined,
-                time: "09:00", // Default to 9 AM
-                duration_minutes: 30,
-                notes: "",
-            });
-        }
-    }, [mode, appointment, open]);
-
-    // Create mutation
-    const createMutation = useMutation({
-        mutationFn: appointmentsApi.create,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["appointments"] });
-            queryClient.refetchQueries({ queryKey: ["appointments"] });
-            toast.success("Appointment created successfully!");
-            onOpenChange(false);
-        },
-        onError: (error: any) => {
-            console.error("Create error:", error);
-            if (error.response?.data?.detail) {
-                const detail = error.response.data.detail;
-                if (Array.isArray(detail)) {
-                    const errorMessages = detail.map((err: any) =>
-                        `${err.loc?.join(' -> ') || 'Error'}: ${err.msg}`
-                    ).join(', ');
-                    toast.error(errorMessages);
-                } else if (typeof detail === 'string') {
-                    toast.error(detail);
-                } else {
-                    toast.error("Failed to create appointment");
-                }
-            } else {
-                toast.error(error.message || "Failed to create appointment");
-            }
-        },
-    });
-
-    // Update mutation
-    const updateMutation = useMutation({
-        mutationFn: ({ id, data }: { id: string; data: AppointmentUpdate }) =>
-            appointmentsApi.update(id, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["appointments"] });
-            queryClient.refetchQueries({ queryKey: ["appointments"] });
-            toast.success("Appointment updated successfully!");
-            onOpenChange(false);
-        },
-        onError: (error: any) => {
-            console.error("Update error:", error);
-            if (error.response?.data?.detail) {
-                const detail = error.response.data.detail;
-                if (Array.isArray(detail)) {
-                    const errorMessages = detail.map((err: any) =>
-                        `${err.loc?.join(' -> ') || 'Error'}: ${err.msg}`
-                    ).join(', ');
-                    toast.error(errorMessages);
-                } else if (typeof detail === 'string') {
-                    toast.error(detail);
-                } else {
-                    toast.error("Failed to update appointment");
-                }
-            } else {
-                toast.error(error.message || "Failed to update appointment");
-            }
-        },
+    const { formData, setFormData, services, timeSlots, submit, isLoading } = useAppointmentForm({
+        mode,
+        appointment,
+        onSuccess: () => onOpenChange(false),
     });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
-        // Validation
-        if (!formData.client_name || !formData.client_phone || !formData.service || !formData.date || !formData.time) {
-            toast.error("Please fill in all required fields");
-            return;
-        }
-
-        // Combine date and time
-        const [hours, minutes] = formData.time.split(":").map(Number);
-        const combinedDate = new Date(formData.date);
-        combinedDate.setHours(hours, minutes, 0, 0);
-
-        // Convert to ISO string
-        const isoDatetime = combinedDate.toISOString();
-
-        if (mode === "create") {
-            const createData: AppointmentCreate = {
-                client_name: formData.client_name,
-                client_phone: formData.client_phone,
-                service: formData.service,
-                datetime: isoDatetime,
-                duration_minutes: formData.duration_minutes,
-                notes: formData.notes,
-            };
-            createMutation.mutate(createData);
-        } else if (appointment?.id) {
-            const updateData: AppointmentUpdate = {};
-
-            if (formData.client_name && formData.client_name !== appointment.client_name) {
-                updateData.client_name = formData.client_name;
-            }
-            if (formData.service && formData.service !== appointment.service) {
-                updateData.service = formData.service;
-            }
-            if (isoDatetime !== appointment.datetime) {
-                updateData.datetime = isoDatetime;
-            }
-            if (formData.duration_minutes && formData.duration_minutes !== appointment.duration_minutes) {
-                updateData.duration_minutes = formData.duration_minutes;
-            }
-            if (formData.notes !== appointment.notes) {
-                updateData.notes = formData.notes || undefined;
-            }
-
-            if (Object.keys(updateData).length === 0) {
-                toast.info("No changes to save");
-                onOpenChange(false);
-                return;
-            }
-
-            updateMutation.mutate({ id: appointment.id, data: updateData });
-        }
+        submit();
     };
-
-    const isLoading = createMutation.isPending || updateMutation.isPending;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -290,8 +112,8 @@ export default function AppointmentFormModal({
                                 </SelectTrigger>
                                 <SelectContent>
                                     {services
-                                        ?.filter((s) => s.active)
-                                        .map((service) => (
+                                        ?.filter((s: any) => s.active)
+                                        .map((service: any) => (
                                             <SelectItem key={service.id} value={service.name}>
                                                 {service.name} ({service.duration_minutes} min - ${service.price})
                                             </SelectItem>

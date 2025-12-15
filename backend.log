@@ -19,3 +19,7 @@ INFO:     127.0.0.1:47938 - "POST /api/v1/phone-numbers/provision/693d9f7ee2ff84
 INFO:     127.0.0.1:47944 - "GET /api/v1/phone-numbers/status/693d9f7ee2ff84550c5791af HTTP/1.1" 200 OK
 2025-12-13 19:24:11,445 - routers.phone_numbers - INFO - Removed phone number for tenant 693d9f7ee2ff84550c5791af
 INFO:     127.0.0.1:47960 - "DELETE /api/v1/phone-numbers/693d9f7ee2ff84550c5791af?delete_from_vapi=False HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-13 20:43:31,812 - main - INFO - 🛑 Shutting down AI Receptionist application...
+2025-12-13 20:43:31,819 - database.mongo_config - INFO - Closing MongoDB connection...

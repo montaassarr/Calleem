@@ -32,9 +32,18 @@ class Settings(BaseSettings):
     WHATSAPP_PHONE_NUMBER_ID: str = ""
     WHATSAPP_VERIFY_TOKEN: str = ""
     
-    # Groq API
-    GROQ_API_KEY: str = ""
-    GROQ_MODEL: str = "mixtral-8x7b-32768"
+    # Groq API - REMOVED
+    # GROQ_API_KEY: str = ""
+    # GROQ_MODEL: str = "mixtral-8x7b-32768"
+
+    # Vapi Configuration
+    VAPI_API_KEY: str = ""
+    VAPI_PRIVATE_API_KEY: str = ""
+    VAPI_PUBLIC_KEY: str = ""
+    VAPI_WEBHOOK_SECRET: str = ""
+    VAPI_WEBHOOK_URL: str = ""
+    VAPI_ORGANIZATION_ID: str = ""
+    VAPI_BASE_URL: str = "https://api.vapi.ai"
 
     # n8n Integration
     # NOTE: N8N_API_KEY is the ONLY intentionally hardcoded API key in this application.

@@ -8,7 +8,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { appointmentsApi } from "@/lib/api-endpoints";
 import { useRouter } from "next/navigation";
 import type { AppointmentResponse } from "@/lib/types";
-import AppointmentFormModal from "@/components/dashboard/AppointmentFormModal";
+import AppointmentFormModal from "@/components/dashboard/appointments/AppointmentFormModal";
 import { toast } from "sonner";
 import {
     AlertDialog,
