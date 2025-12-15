@@ -4,6 +4,7 @@ Handles Vapi webhooks (call events, function calls, transcripts)
 """
 
 import logging
+import json
 from typing import Dict, Any
 from fastapi import APIRouter, Request, Header, BackgroundTasks
 from datetime import datetime
@@ -207,7 +208,6 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
 
 async def handle_function_call(data: dict) -> dict:
     """Handle legacy Vapi function calls (single tool)"""
-    import json
     call = data.get("message", {}).get("call", {})
     function_call = data.get("message", {}).get("functionCall", {})
     name = function_call.get("name")
@@ -227,7 +227,6 @@ async def handle_function_call(data: dict) -> dict:
 
 async def handle_tool_calls(data: dict) -> dict:
     """Handle new Vapi tool calls (multiple tools)"""
-    import json
     call = data.get("message", {}).get("call", {})
     tool_calls = data.get("message", {}).get("toolCalls", [])
     
