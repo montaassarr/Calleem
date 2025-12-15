@@ -152,11 +152,27 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
         
         elif name == "bookAppointment":
             from models.appointment import AppointmentCreate
+            from datetime import timezone
+            import pytz
+            from utils.config import settings
+            
+            # Sanitize phone number (remove spaces and non-digit chars except +)
+            phone = args.get("phone", "")
+            phone = "".join(c for c in phone if c.isdigit() or c == "+")
+            
+            # Create timezone-aware datetime in business timezone
+            date_str = args.get('date')
+            time_str = args.get('time')
+            naive_dt = datetime.fromisoformat(f"{date_str}T{time_str}:00")
+            # Localize to business timezone (user's local time)
+            tz = pytz.timezone(settings.TIMEZONE)
+            aware_dt = tz.localize(naive_dt)
+            
             appointment = AppointmentCreate(
                 client_name=args.get("name"),
-                client_phone=args.get("phone"),
+                client_phone=phone,
                 service=args.get("service", "Appointment"),
-                datetime=datetime.fromisoformat(f"{args.get('date')}T{args.get('time')}:00"),
+                datetime=aware_dt,
                 duration_minutes=30
             )
             app_result = await appointments_service.create_appointment(tenant_id, appointment)
