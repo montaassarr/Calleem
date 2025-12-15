@@ -88,6 +88,7 @@ class UserService:
             # Prepare User
             user_dict = user_create.dict(exclude={"password"})
             user_dict["hashed_password"] = self.hash_password(user_create.password)
+            user_dict["active"] = True
             user_dict["created_at"] = datetime.utcnow()
             user_dict["updated_at"] = datetime.utcnow()
             user_dict["last_login"] = datetime.utcnow()

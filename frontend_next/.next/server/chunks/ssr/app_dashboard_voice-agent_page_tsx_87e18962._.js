@@ -1,3 +1,0 @@
-module.exports=[24889,a=>{"use strict";var b=a.i(87924),c=a.i(72131),d=a.i(50944);function e(){let a=(0,d.useRouter)();return(0,c.useEffect)(()=>{a.replace("/dashboard/voice-agent/control-center")},[a]),(0,b.jsx)("div",{className:"flex items-center justify-center h-screen",children:(0,b.jsx)("div",{className:"animate-spin rounded-full h-12 w-12 border-b-2 border-primary"})})}a.s(["default",()=>e])}];
-
-//# sourceMappingURL=app_dashboard_voice-agent_page_tsx_87e18962._.js.map

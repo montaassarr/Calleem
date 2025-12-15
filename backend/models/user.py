@@ -59,8 +59,9 @@ class UserResponse(BaseModel):
     username: str
     full_name: str
     tenant_id: str
-    active: bool
-    created_at: datetime
+    role: Optional[str] = "owner"
+    active: bool = True  # Default to True for backward compatibility
+    created_at: Optional[datetime] = None
     last_login: Optional[datetime] = None
 
 

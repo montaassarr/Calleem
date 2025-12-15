@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///home/montassar/Desktop/ai_receptionist/frontend_next/app/dashboard/settings/ai/page.tsx"],"sourcesContent":["\"use client\";\n\nimport { useEffect } from \"react\";\nimport { useRouter } from \"next/navigation\";\n\nexport default function AISettingsPage() {\n  const router = useRouter();\n\n  useEffect(() => {\n    router.replace(\"/dashboard/voice-agent/control-center\");\n  }, [router]);\n\n  return (\n    <div className=\"flex items-center justify-center p-12\">\n      <div className=\"animate-spin rounded-full h-8 w-8 border-b-2 border-primary\" />\n    </div>\n  );\n}\n"],"names":[],"mappings":";;;;;AAEA;AACA;;;AAHA;;;AAKe,SAAS;;IACtB,MAAM,SAAS,IAAA,mKAAS;IAExB,IAAA,2LAAS;oCAAC;YACR,OAAO,OAAO,CAAC;QACjB;mCAAG;QAAC;KAAO;IAEX,qBACE,8MAAC;QAAI,WAAU;kBACb,cAAA,8MAAC;YAAI,WAAU;;;;;;;;;;;AAGrB;GAZwB;;QACP,mKAAS;;;KADF"}}]
-}

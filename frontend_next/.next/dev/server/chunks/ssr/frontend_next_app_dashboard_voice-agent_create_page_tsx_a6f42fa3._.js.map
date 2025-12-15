@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///home/montassar/Desktop/ai_receptionist/frontend_next/app/dashboard/voice-agent/create/page.tsx"],"sourcesContent":["\"use client\";\n\nimport { useEffect } from \"react\";\nimport { useRouter } from \"next/navigation\";\n\n/**\n * DEPRECATED: This page has been replaced by the AI settings page.\n * Redirects to the settings/ai page where users manage their single agent.\n */\nexport default function CreateAgentPage() {\n    const router = useRouter();\n\n    useEffect(() => {\n        router.replace(\"/dashboard/settings/ai\");\n    }, [router]);\n\n    return (\n        <div className=\"flex items-center justify-center min-h-screen\">\n            <div className=\"text-center\">\n                <div className=\"animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4\" />\n                <p className=\"text-muted-foreground\">Redirecting to AI Configuration...</p>\n            </div>\n        </div>\n    );\n}\n"],"names":[],"mappings":";;;;;AAEA;AACA;AAHA;;;;AASe,SAAS;IACpB,MAAM,SAAS,IAAA,gKAAS;IAExB,IAAA,mOAAS,EAAC;QACN,OAAO,OAAO,CAAC;IACnB,GAAG;QAAC;KAAO;IAEX,qBACI,+PAAC;QAAI,WAAU;kBACX,cAAA,+PAAC;YAAI,WAAU;;8BACX,+PAAC;oBAAI,WAAU;;;;;;8BACf,+PAAC;oBAAE,WAAU;8BAAwB;;;;;;;;;;;;;;;;;AAIrD"}}]
-}
