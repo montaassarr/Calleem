@@ -8,8 +8,8 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 
 from database.mongo_config import get_database
-from models.core.users import User, UserCreate, UserUpdate, UserRole, Token, TokenData
-from models.core.tenants import TenantStatus
+from models.user import UserCreate, UserUpdate, Token, TokenData, UserRole
+from models.tenant import TenantStatus
 from utils.config import settings
 from utils.error_logger import error_logger, ErrorCategory, ErrorLevel
 from services.provisioning import vapi_provisioning

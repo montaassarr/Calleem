@@ -5,7 +5,7 @@ from bson import ObjectId
 from fastapi import HTTPException
 
 from database.mongo_config import get_database
-from models.communication.conversations import Conversation, ConversationResponse
+from models.conversation import ConversationResponse
 from services.vapi_service import VapiService
 
 logger = logging.getLogger(__name__)

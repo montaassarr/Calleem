@@ -8,7 +8,7 @@ from typing import List, Optional
 from datetime import datetime
 import logging
 
-from models.appointments.appointments import (
+from models.appointment import (
     AppointmentCreate, 
     AppointmentUpdate, 
     AppointmentResponse, 

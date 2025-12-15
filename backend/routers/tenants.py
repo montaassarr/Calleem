@@ -6,13 +6,36 @@ from bson import ObjectId
 from datetime import datetime
 import logging
 
-router = APIRouter(
-    prefix="/tenants",
-    tags=["tenants"],
-    responses={404: {"description": "Not found"}},
-)
+from routers.users import get_current_user
+
+router = APIRouter()
 
 logger = logging.getLogger(__name__)
+
+
+@router.get("/me")
+async def get_current_tenant(current_user: dict = Depends(get_current_user)):
+    """Get the current user's tenant information"""
+    db = get_database()
+    tenant_id = current_user.get("tenant_id") or current_user.get("business_id")
+    
+    if not tenant_id:
+        raise HTTPException(status_code=404, detail="No tenant associated with user")
+    
+    try:
+        tenant = await db.tenants.find_one({"_id": ObjectId(tenant_id)})
+    except:
+        tenant = await db.tenants.find_one({"tenant_id": tenant_id})
+    
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    # Convert ObjectId to string
+    tenant["id"] = str(tenant["_id"])
+    tenant["_id"] = str(tenant["_id"])
+    
+    return tenant
+
 
 class TenantLookupRequest(BaseModel):
     phone: str

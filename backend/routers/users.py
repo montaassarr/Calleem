@@ -8,12 +8,12 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import datetime
 import logging
 
-from models.core.users import (
+from models.user import (
     UserCreate, 
     UserUpdate, 
     UserResponse, 
     Token, 
-    TokenData, 
+    TokenData,
     UserRole
 )
 from utils.config import settings
