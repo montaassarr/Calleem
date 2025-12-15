@@ -91,6 +91,16 @@ Always be polite, concise, and helpful. Ask for name and phone number before boo
             
             # Let's enable the standard tools by adding them to the assistant
             # We'll fetch the standard tool definitions we want
+            # Construct webhook URL
+            from utils.config import settings
+            webhook_url = os.getenv("VAPI_WEBHOOK_URL") or settings.VAPI_WEBHOOK_URL
+            if not webhook_url:
+                # Fallback: construct from BACKEND_URL
+                backend_url = os.getenv("BACKEND_URL") or settings.BACKEND_URL
+                webhook_url = f"{backend_url}/api/v1/vapi/webhook"
+            
+            logger.info(f"   Using webhook URL: {webhook_url}")
+            
             core_tools = [
                 {
                     "type": "function",
@@ -105,7 +115,7 @@ Always be polite, concise, and helpful. Ask for name and phone number before boo
                             "required": ["date"]
                         }
                     },
-                    "server": {"url": os.getenv("VAPI_WEBHOOK_URL")} 
+                    "server": {"url": webhook_url} 
                 },
                 {
                     "type": "function",
@@ -123,7 +133,7 @@ Always be polite, concise, and helpful. Ask for name and phone number before boo
                             "required": ["date", "time", "name", "phone"]
                         }
                     },
-                    "server": {"url": os.getenv("VAPI_WEBHOOK_URL")}
+                    "server": {"url": webhook_url}
                 }
             ]
             
