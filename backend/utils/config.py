@@ -41,7 +41,8 @@ class Settings(BaseSettings):
     VAPI_PRIVATE_API_KEY: str = ""
     VAPI_PUBLIC_KEY: str = ""
     VAPI_WEBHOOK_SECRET: str = ""
-    VAPI_WEBHOOK_URL: str = ""
+    VAPI_WEBHOOK_URL: str = ""  # Can be set explicitly or will be constructed from BACKEND_URL
+    BACKEND_URL: str = "https://ai-receptionist-production-299a.up.railway.app"  # Production backend URL
     VAPI_ORGANIZATION_ID: str = ""
     VAPI_BASE_URL: str = "https://api.vapi.ai"
     

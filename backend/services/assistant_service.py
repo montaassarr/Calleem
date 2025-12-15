@@ -378,8 +378,18 @@ class AssistantService:
 
     async def _sync_tools_to_vapi(self, tenant_id: str, tools: List[Dict[str, Any]]):
         import os
+        from utils.config import settings
+        
         tenant = await self._get_tenant(tenant_id)
-        webhook_url = os.getenv("VAPI_WEBHOOK_URL", "")
+        
+        # Get webhook URL with proper fallback
+        webhook_url = os.getenv("VAPI_WEBHOOK_URL") or settings.VAPI_WEBHOOK_URL
+        if not webhook_url:
+            backend_url = os.getenv("BACKEND_URL") or settings.BACKEND_URL
+            webhook_url = f"{backend_url}/api/v1/vapi/webhook"
+        
+        logger.info(f"Syncing tools to Vapi with webhook URL: {webhook_url}")
+        
         vapi_tools = []
         for tool in tools:
             if tool.get("type") == "function":
