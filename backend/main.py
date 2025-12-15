@@ -64,10 +64,7 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Error handling middleware
-app.add_middleware(ErrorHandlingMiddleware)
-
-# CORS Configuration
+# CORS Configuration - MUST be added FIRST (processed LAST in middleware stack)
 cors_origins = settings.cors_origins_list
 if os.getenv("ENVIRONMENT") != "production":
     cors_origins.extend(["http://localhost:3000", "http://localhost:5173"])
@@ -80,7 +77,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
     max_age=3600,
+    expose_headers=["*"],
 )
+
+# Error handling middleware - added after CORS so CORS wraps it
+app.add_middleware(ErrorHandlingMiddleware)
 
 
 # ============== ROUTERS ==============
