@@ -5,7 +5,7 @@ from database.mongo_config import get_database
 
 class TenantRepository:
     def __init__(self, db=None):
-        self.db = db or get_database()
+        self.db = db if db is not None else get_database()
         self.collection = self.db.tenants
 
     async def get_by_id(self, tenant_id: str) -> Optional[Dict[str, Any]]:
