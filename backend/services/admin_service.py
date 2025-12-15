@@ -180,10 +180,6 @@ class AdminService:
         if tenant_id:
             query["tenant_id"] = tenant_id
             config_dict["tenant_id"] = tenant_id
-            
-        # n8n Integration
-        # n8n Integration Removed
-        pass
 
         # Encrypt
         encrypted_fields = ["openai_api_key", "groq_api_key", "elevenlabs_api_key", 

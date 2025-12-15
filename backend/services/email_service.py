@@ -54,7 +54,7 @@ def get_welcome_email_html(business_name: str, user_name: str) -> str:
                             </p>
                             
                             <p style="margin: 0 0 30px; color: #374151; font-size: 16px; line-height: 1.6;">
-                                You now have access to our most powerful features, including Smart Automations powered by n8n. Here's what you can do right now:
+                                You now have access to our most powerful features, including Smart Automations. Here's what you can do right now:
                             </p>
                             
                             <!-- Features -->
@@ -183,7 +183,7 @@ Hi {user_name},
 
 Congratulations on upgrading {business_name} to CallFlow AI Pro! 🚀
 
-You now have access to our most powerful features, including Smart Automations powered by n8n.
+You now have access to our most powerful features, including Smart Automations.
 
 HERE'S WHAT YOU CAN DO RIGHT NOW:
 

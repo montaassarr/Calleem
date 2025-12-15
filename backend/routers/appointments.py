@@ -25,12 +25,12 @@ router = APIRouter()
 appointments_service = AppointmentsService()
 
 # ============================================================================
-# INTERNAL ENDPOINTS (Called by n8n workflows, not directly by agent)
+# INTERNAL ENDPOINTS (Called by automations/webhooks, not directly by agent)
 # These require X-Tenant-ID header for multi-tenant isolation
 # ============================================================================
 
 def get_tenant_from_header(request: Request) -> str:
-    """Extract tenant_id from X-Tenant-ID header for n8n/internal calls"""
+    """Extract tenant_id from X-Tenant-ID header for internal calls"""
     tenant_id = request.headers.get("X-Tenant-ID")
     if not tenant_id:
         raise HTTPException(status_code=400, detail="X-Tenant-ID header required")
