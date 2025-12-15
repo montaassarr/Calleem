@@ -77,8 +77,8 @@ async def create_indexes():
         await database.conversations.create_index("created_at")
         await database.conversations.create_index("conversation_id")
         
-        # Services indexes
-        await database.services.create_index("name", unique=True)
+        # Services indexes - compound unique on name + tenant_id
+        await database.services.create_index([("name", 1), ("tenant_id", 1)], unique=True)
         await database.services.create_index("active")
         
         # Users indexes

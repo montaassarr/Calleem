@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import List, Optional, Dict, Any
 import logging
 
-from models.communication.conversations import ConversationResponse
+from models.conversation import ConversationResponse
 from routers.users import get_current_user
 from services.conversation_service import ConversationService
 

@@ -9,7 +9,7 @@ from bson import ObjectId
 from fastapi import HTTPException
 
 from database.mongo_config import get_database
-from models.appointments.appointments import AppointmentStatus, AppointmentCreate, AppointmentUpdate
+from models.appointment import AppointmentStatus, AppointmentCreate, AppointmentUpdate
 from utils.datetime_utils import datetime_utils
 # from services.whatsapp_cloud import whatsapp_cloud # Disabled as per user request
 from utils.config import settings

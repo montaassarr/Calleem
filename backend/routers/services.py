@@ -9,8 +9,7 @@ from datetime import datetime
 from bson import ObjectId
 import logging
 
-from models.business.services import (
-    Service, 
+from models.service import (
     ServiceCreate, 
     ServiceUpdate, 
     ServiceResponse

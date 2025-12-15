@@ -14,7 +14,7 @@ from datetime import datetime
 
 from routers.users import get_current_user
 from database.mongo_config import get_database
-from services.appointments import check_availability, book_appointment
+from services.appointments_service import AppointmentsService
 from bson import ObjectId
 
 logger = logging.getLogger(__name__)
@@ -84,20 +84,28 @@ async def execute_tool(tool_name: str, args: dict, tenant_id: str) -> dict:
     """Execute a tool and return result"""
     logger.info(f"Executing tool: {tool_name} with args: {args} for tenant: {tenant_id}")
     
+    appointments_service = AppointmentsService()
+    
     if tool_name == "checkAvailability":
         date_str = args.get("date") or datetime.now().strftime("%Y-%m-%d")
-        result = await check_availability(tenant_id, date_str)
-        return {"available_slots": result}
+        time_str = args.get("time", "09:00")
+        result = await appointments_service.check_availability(tenant_id, date_str, time_str)
+        return {"available": result.get("available", False), "details": result}
     
     elif tool_name == "bookAppointment":
-        result = await book_appointment(
-            tenant_id=tenant_id,
-            date=args.get("date"),
-            time=args.get("time"),
-            customer_name=args.get("name"),
-            customer_phone=args.get("phone")
-        )
-        return result
+        from models.appointment import AppointmentCreate
+        try:
+            appointment = AppointmentCreate(
+                client_name=args.get("name"),
+                client_phone=args.get("phone"),
+                service=args.get("service", "Appointment"),
+                datetime=datetime.fromisoformat(f"{args.get('date')}T{args.get('time')}:00"),
+                duration_minutes=30
+            )
+            result = await appointments_service.create_appointment(tenant_id, appointment)
+            return {"success": True, "appointment": result}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
     
     return {"error": f"Unknown tool: {tool_name}"}
 

@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+.venv/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+backend/logs/*.log
+
+# Node
+node_modules/
+.next/
+.npm
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Build
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local config
+.env.local
+.env.*.local
+*.local
+
+# Database
+*.db
+*.sqlite3
+
+# Temporary files
+tmp/
+temp/
+*.tmp

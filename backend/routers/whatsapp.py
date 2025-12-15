@@ -12,7 +12,6 @@ from database.mongo_config import get_database
 from routers.users import get_current_user, get_current_admin
 from models.business.business_config import BusinessConfig, BusinessConfigUpdate
 from utils.config import settings
-from utils.security import security
 
 logger = logging.getLogger(__name__)
 

@@ -10,12 +10,46 @@ from datetime import datetime
 
 from services.vapi_service import vapi_service
 from services.socket_manager import socket_manager
-from services.appointments import check_availability, book_appointment
+from services.appointments_service import AppointmentsService
 from database.mongo_config import get_database
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["vapi-webhooks"])
+
+
+@router.post("/webhook/{tenant_id}")
+async def vapi_webhook_tenant(
+    tenant_id: str,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    x_vapi_signature: str = Header(None)
+):
+    """
+    Tenant-specific webhook endpoint for Vapi
+    """
+    data = await request.json()
+    message_type = data.get("message", {}).get("type")
+    
+    logger.info(f"Received Vapi webhook for tenant {tenant_id}: {message_type}")
+    
+    # Inject tenant_id into call metadata
+    if "message" in data and "call" in data["message"]:
+        if "metadata" not in data["message"]["call"]:
+            data["message"]["call"]["metadata"] = {}
+        data["message"]["call"]["metadata"]["tenant_id"] = tenant_id
+    
+    # Route by message type
+    if message_type == "function-call":
+        return await handle_function_call(data)
+    
+    elif message_type == "tool-calls":
+        return await handle_tool_calls(data)
+    
+    elif message_type == "end-of-call-report":
+        background_tasks.add_task(store_call_log, data)
+    
+    return {"success": True}
 
 
 @router.post("/webhook")
@@ -96,6 +130,8 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
     """Process a single tool call execution and broadcasting"""
     logger.info(f"Processing Tool Call: {name} (tenant={tenant_id}) args={args}")
     
+    appointments_service = AppointmentsService()
+    
     # Broadcast available to tenant
     if tenant_id:
         await socket_manager.broadcast_to_tenant(tenant_id, {
@@ -110,17 +146,20 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
     try:
         if name == "checkAvailability":
             date_str = args.get("date") or datetime.now().strftime("%Y-%m-%d")
-            slots = await check_availability(tenant_id, date_str)
-            result_data = {"available_slots": slots}
+            time_str = args.get("time", "09:00")
+            result = await appointments_service.check_availability(tenant_id, date_str, time_str)
+            result_data = {"available": result.get("available", False), "details": result}
         
         elif name == "bookAppointment":
-            app_result = await book_appointment(
-                tenant_id=tenant_id,
-                date=args.get("date"),
-                time=args.get("time"),
-                customer_name=args.get("name"),
-                customer_phone=args.get("phone")
+            from models.appointment import AppointmentCreate
+            appointment = AppointmentCreate(
+                client_name=args.get("name"),
+                client_phone=args.get("phone"),
+                service=args.get("service", "Appointment"),
+                datetime=datetime.fromisoformat(f"{args.get('date')}T{args.get('time')}:00"),
+                duration_minutes=30
             )
+            app_result = await appointments_service.create_appointment(tenant_id, appointment)
             result_data = {"success": True, "details": app_result}
         
         else:

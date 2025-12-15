@@ -19,14 +19,22 @@ class AppointmentStatus(str, Enum):
 
 class AppointmentBase(BaseModel):
     """Base appointment model"""
-    client_name: str = Field(..., min_length=2, max_length=100)
-    client_phone: str = Field(..., pattern=r'^\+?1?\d{9,15}$')
+    client_name: Optional[str] = Field(None, min_length=2, max_length=100)
+    client_phone: Optional[str] = Field(None, pattern=r'^\+?1?\d{9,15}$')
     client_email: Optional[str] = Field(None, pattern=r'^[\w\.-]+@[\w\.-]+\.\w+$')
-    service: str = Field(..., min_length=2)
-    datetime: dt
+    service: Optional[str] = Field(None, min_length=2)
+    datetime: Optional[dt] = None
     duration_minutes: int = Field(default=30, ge=15, le=240)
     barber_preference: Optional[str] = None
     notes: Optional[str] = None
+    # Alternative field names (for compatibility)
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
+    # Service reference
+    service_id: Optional[str] = None
+    # Alternative time fields
+    start_time: Optional[dt] = None
+    end_time: Optional[dt] = None
 
 
 class AppointmentCreate(AppointmentBase):

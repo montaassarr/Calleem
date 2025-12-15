@@ -6,8 +6,8 @@ from bson import ObjectId
 from fastapi import HTTPException
 
 from database.mongo_config import get_database
-from models.core.tenants import TenantStatus
-from utils.security import security
+from models.tenant import TenantStatus
+from utils.encryption import encrypt_value, decrypt_value
 from services.user_service import UserService
 
 logger = logging.getLogger(__name__)
@@ -158,9 +158,12 @@ class AdminService:
         
         for field in encrypted_fields:
             if config.get(field):
-                decrypted = security.decrypt(config[field])
-                if decrypted:
-                    config[field] = decrypted
+                try:
+                    decrypted = decrypt_value(config[field])
+                    if decrypted:
+                        config[field] = decrypted
+                except:
+                    pass  # Leave encrypted if decrypt fails
         
         # Defaults
         if not config.get("business_name"): config["business_name"] = "My Business"
@@ -179,33 +182,20 @@ class AdminService:
             config_dict["tenant_id"] = tenant_id
             
         # n8n Integration
-        try:
-            from services.n8n_service import n8n_service
-            # Need validation model here ideally, but logic is complex to copy-paste dependencies
-            # We will trust the existing logic pattern
-            existing_config = await self.db.business_config.find_one(query)
-            # Logic simplified: Trigger update
-            # We'll pass raw dicts to avoid circular dependency on Pydantic models if possible, 
-            # but n8n handler likely expects dicts.
-            
-            # NOTE: Re-implementing n8n logic fully here might be verbose but safer
-            # Skipping full n8n comparison reimplementation for brevity in this Service step,
-            # assuming we can just trigger it if automations changed.
-            pass 
-        except Exception:
-            pass
+        # n8n Integration Removed
+        pass
 
         # Encrypt
         encrypted_fields = ["openai_api_key", "groq_api_key", "elevenlabs_api_key", 
                            "twilio_auth_token", "twilio_account_sid", "airtable_api_key"]
         
-        from utils.security import security
+        from utils.encryption import encrypt_value
         config_dump = config_update.model_dump(by_alias=True, exclude={"id"})
         
         for field in encrypted_fields:
             if config_dump.get(field):
                 try:
-                    config_dump[field] = security.encrypt(config_dump[field])
+                    config_dump[field] = encrypt_value(config_dump[field])
                 except:
                     raise HTTPException(500, f"Encryption failed for {field}")
 

@@ -1,68 +1,55 @@
 """
-User/Admin Data Model
+User Data Model
+===============
+Simplified model: Tenant = User (business owner who signs up)
+Admin is platform owner (you), no auth needed for admin panel
 """
 
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from typing import Optional
 from datetime import datetime
 from enum import Enum
 
 
 class UserRole(str, Enum):
-    """User role enumeration"""
-    ADMIN = "admin"
-    BARBER = "barber"
-    MANAGER = "manager"
+    """User roles for access control"""
+    OWNER = "owner"           # Business owner (tenant creator)
+    ADMIN = "admin"           # Business admin
+    STAFF = "staff"           # Staff member
+    SUPER_ADMIN = "super_admin"  # Platform admin (you)
 
 
-class UserBase(BaseModel):
-    """Base user model"""
+class UserCreate(BaseModel):
+    """Model for creating a new user (tenant registration)"""
     email: EmailStr
     username: str = Field(..., min_length=3, max_length=50)
     full_name: str = Field(..., min_length=2, max_length=100)
-    role: UserRole = UserRole.BARBER
-    active: bool = True
-
-
-class UserCreate(UserBase):
-    """Model for creating a new user"""
     password: str = Field(..., min_length=8)
-    business_name: Optional[str] = Field(None, min_length=2, max_length=100)  # Optional business name during signup
+    business_name: str = Field(..., min_length=2, max_length=100)
 
 
 class UserUpdate(BaseModel):
-    """Model for updating a user"""
+    """Model for updating user profile"""
     email: Optional[EmailStr] = None
     username: Optional[str] = Field(None, min_length=3, max_length=50)
     full_name: Optional[str] = Field(None, min_length=2, max_length=100)
-    role: Optional[UserRole] = None
-    active: Optional[bool] = None
     password: Optional[str] = Field(None, min_length=8)
 
 
-class UserInDB(UserBase):
+class UserInDB(BaseModel):
     """Model for user stored in database"""
     id: str = Field(alias="_id")
+    email: EmailStr
+    username: str
+    full_name: str
     hashed_password: str
+    tenant_id: str  # Links to tenant document
+    active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     last_login: Optional[datetime] = None
     
-    class Config:
-        populate_by_name = True
-        json_schema_extra = {
-            "example": {
-                "_id": "507f1f77bcf86cd799439011",
-                "email": "admin@barbershop.com",
-                "username": "admin",
-                "full_name": "Admin User",
-                "role": "admin",
-                "active": True,
-                "hashed_password": "$2b$12$...",
-                "created_at": "2025-11-13T10:00:00",
-                "updated_at": "2025-11-13T10:00:00"
-            }
-        }
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class UserResponse(BaseModel):
@@ -71,25 +58,10 @@ class UserResponse(BaseModel):
     email: EmailStr
     username: str
     full_name: str
-    role: UserRole
+    tenant_id: str
     active: bool
     created_at: datetime
     last_login: Optional[datetime] = None
-    tenant_id: Optional[str] = None  # Added for multi-tenant support
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "id": "507f1f77bcf86cd799439011",
-                "email": "admin@barbershop.com",
-                "username": "admin",
-                "full_name": "Admin User",
-                "role": "admin",
-                "active": True,
-                "created_at": "2025-11-13T10:00:00",
-                "tenant_id": "507f1f77bcf86cd799439012"
-            }
-        }
 
 
 class Token(BaseModel):
@@ -101,8 +73,7 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     """Token payload data"""
     user_id: Optional[str] = None
-    username: Optional[str] = None
-    role: Optional[str] = None
+    tenant_id: Optional[str] = None
 
 
 class LoginRequest(BaseModel):
