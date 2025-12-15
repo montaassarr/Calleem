@@ -31,7 +31,7 @@ const pricingPlans = [
     description: "For growing businesses that need powerful automation",
     features: [
       "Unlimited AI calls",
-      "🔥 Smart Automations (n8n powered)",
+      "🔥 Smart Automations (built-in)",
       "Google Calendar sync",
       "Airtable data logging",
       "WhatsApp/SMS confirmations",
@@ -56,7 +56,7 @@ const pricingPlans = [
       "Everything in Pro",
       "White-label dashboard",
       "Multi-tenant management",
-      "Custom n8n workflows",
+      "Custom automated workflows",
       "Dedicated account manager",
       "Custom onboarding",
       "SLA guarantees",
