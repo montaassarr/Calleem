@@ -80,7 +80,6 @@ start_docker() {
     echo "Frontend:     http://localhost:3000"
     echo "Backend:      http://localhost:8000"
     echo "API Docs:     http://localhost:8000/docs"
-    echo "N8N:          http://localhost:5678"
     echo "MongoDB:      mongodb://localhost:27017"
     echo ""
     echo -e "${YELLOW}View logs:${NC}"
@@ -106,7 +105,7 @@ start_localhost() {
     fi
     
     # 1. MongoDB
-    echo -e "${BLUE}📦 Step 1/4: MongoDB${NC}"
+    echo -e "${BLUE}📦 Step 1/3: MongoDB${NC}"
     if systemctl is-active --quiet mongod 2>/dev/null; then
         echo -e "${GREEN}✅ MongoDB already running${NC}"
     elif sudo systemctl start mongod 2>/dev/null; then
@@ -118,23 +117,8 @@ start_localhost() {
     fi
     echo ""
     
-    # 2. N8N
-    echo -e "${BLUE}🔧 Step 2/4: N8N${NC}"
-    if docker ps | grep -q "n8n"; then
-        echo -e "${GREEN}✅ N8N already running${NC}"
-    elif docker ps -a | grep -q "n8n"; then
-        docker start n8n && echo -e "${GREEN}✅ N8N started${NC}"
-    else
-        echo -e "${YELLOW}📦 Creating N8N container...${NC}"
-        docker run -d --name n8n \
-            -p 5678:5678 \
-            -v ~/.n8n:/home/node/.n8n \
-            n8nio/n8n && echo -e "${GREEN}✅ N8N created and started${NC}"
-    fi
-    echo ""
-    
-    # 3. Backend
-    echo -e "${BLUE}🐍 Step 3/4: Backend API${NC}"
+    # 2. Backend
+    echo -e "${BLUE}🐍 Step 2/3: Backend API${NC}"
     if check_port 8000; then
         echo -e "${YELLOW}⚠️  Port 8000 in use, stopping existing process...${NC}"
         pkill -f "uvicorn main:app" 2>/dev/null || true
@@ -167,8 +151,8 @@ start_localhost() {
     wait_for_service "http://localhost:8000/docs" "Backend API"
     echo ""
     
-    # 4. Frontend
-    echo -e "${BLUE}⚛️  Step 4/4: Frontend${NC}"
+    # 3. Frontend
+    echo -e "${BLUE}⚛️  Step 3/3: Frontend${NC}"
     if check_port 3000; then
         echo -e "${YELLOW}⚠️  Port 3000 in use, stopping existing process...${NC}"
         pkill -f "next dev" 2>/dev/null || true
@@ -204,7 +188,6 @@ start_localhost() {
     echo "Frontend:     http://localhost:3000"
     echo "Backend:      http://localhost:8000"
     echo "API Docs:     http://localhost:8000/docs"
-    echo "N8N:          http://localhost:5678"
     echo "MongoDB:      mongodb://localhost:27017"
     echo ""
     echo -e "${BLUE}📊 Process IDs:${NC}"
