@@ -155,6 +155,7 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
             from datetime import timezone
             import pytz
             from utils.config import settings
+            from utils.datetime_utils import DateTimeUtils
             
             # Sanitize phone number (remove spaces and non-digit chars except +)
             phone = args.get("phone", "")
@@ -163,10 +164,17 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
             # Create timezone-aware datetime in business timezone
             date_str = args.get('date')
             time_str = args.get('time')
+            
+            # Log incoming values for debugging
+            now = DateTimeUtils.now()
+            logger.info(f"📅 Booking request - Date: {date_str}, Time: {time_str}, Current time: {now}")
+            
             naive_dt = datetime.fromisoformat(f"{date_str}T{time_str}:00")
             # Localize to business timezone (user's local time)
             tz = pytz.timezone(settings.TIMEZONE)
             aware_dt = tz.localize(naive_dt)
+            
+            logger.info(f"⏰ Parsed datetime: {aware_dt}, Is future? {aware_dt > now}")
             
             appointment = AppointmentCreate(
                 client_name=args.get("name"),
@@ -199,6 +207,7 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
 
 async def handle_function_call(data: dict) -> dict:
     """Handle legacy Vapi function calls (single tool)"""
+    import json
     call = data.get("message", {}).get("call", {})
     function_call = data.get("message", {}).get("functionCall", {})
     name = function_call.get("name")
@@ -207,11 +216,18 @@ async def handle_function_call(data: dict) -> dict:
     tenant_id = await resolve_tenant(call)
     
     result_data = await process_tool_call(name, args, tenant_id)
-    return {"result": str(result_data)}
+    
+    # Convert to single-line JSON string per Vapi requirements
+    if "error" in result_data:
+        return {"error": str(result_data.get("error"))}
+    else:
+        result_str = json.dumps(result_data, default=str).replace('\n', ' ')
+        return {"result": result_str}
 
 
 async def handle_tool_calls(data: dict) -> dict:
     """Handle new Vapi tool calls (multiple tools)"""
+    import json
     call = data.get("message", {}).get("call", {})
     tool_calls = data.get("message", {}).get("toolCalls", [])
     
@@ -226,17 +242,25 @@ async def handle_tool_calls(data: dict) -> dict:
             # args can be string or dict depending on Vapi version
             args = function.get("arguments", {})
             if isinstance(args, str):
-                import json
                 args = json.loads(args)
         except:
             args = {}
             
         result_data = await process_tool_call(name, args, tenant_id)
         
-        results.append({
-            "toolCallId": tc_id,
-            "result": str(result_data)
-        })
+        # Convert result to single-line JSON string (Vapi requirement)
+        if "error" in result_data:
+            results.append({
+                "toolCallId": tc_id,
+                "error": str(result_data.get("error"))
+            })
+        else:
+            # Return clean JSON string without Python representations
+            result_str = json.dumps(result_data, default=str).replace('\n', ' ')
+            results.append({
+                "toolCallId": tc_id,
+                "result": result_str
+            })
         
     return {"results": results}
 
