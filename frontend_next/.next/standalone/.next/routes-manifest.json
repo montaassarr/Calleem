@@ -151,12 +151,6 @@
       "namedRegex": "^/dashboard/help(?:/)?$"
     },
     {
-      "page": "/dashboard/onboarding",
-      "regex": "^/dashboard/onboarding(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/dashboard/onboarding(?:/)?$"
-    },
-    {
       "page": "/dashboard/schedule",
       "regex": "^/dashboard/schedule(?:/)?$",
       "routeKeys": {},
@@ -287,12 +281,6 @@
       "regex": "^/login(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/login(?:/)?$"
-    },
-    {
-      "page": "/onboarding",
-      "regex": "^/onboarding(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/onboarding(?:/)?$"
     },
     {
       "page": "/payment/cancel",

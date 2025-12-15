@@ -30,8 +30,6 @@ from routers import (
     conversations,
     admin,
     platform_keys,
-    simple_setup,
-    onboarding,
     monitoring,
 )
 
@@ -269,13 +267,7 @@ app.include_router(
     tags=["Billing & Subscriptions"]
 )
 
-# LiveKit Token Server (equivalent to official livekit/token-server)
-# from routers import livekit_token
-# app.include_router(
-#     livekit_token.router,
-#     prefix=f"{settings.API_V1_PREFIX}/livekit",
-#     tags=["LiveKit Token"]
-# )
+
 
 # Monitoring endpoints for diagnostics
 app.include_router(
@@ -284,28 +276,16 @@ app.include_router(
     tags=["Monitoring"]
 )
 
-# Simple Setup for Non-Technical Users
-app.include_router(
-    simple_setup.router,
-    prefix=f"{settings.API_V1_PREFIX}",
-    tags=["Easy Setup"]
-)
-
-# Onboarding Wizard (Voice Provider Setup)
-app.include_router(
-    onboarding.router,
-    prefix=f"{settings.API_V1_PREFIX}",
-    tags=["Onboarding"]
-)
 
 
-# AI Chat Router (Replaces n8n)
-from routers import ai_chat
-app.include_router(
-    ai_chat.router,
-    prefix=f"{settings.API_V1_PREFIX}",
-    tags=["AI Chat"]
-)
+
+# AI Chat Router (Replaces n8n) - DISABLED (Groq Removed)
+# from routers import ai_chat
+# app.include_router(
+#     ai_chat.router,
+#     prefix=f"{settings.API_V1_PREFIX}",
+#     tags=["AI Chat"]
+# )
 
 # Chat Completions Router (OpenAI text chat)
 from routers import chat

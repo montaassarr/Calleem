@@ -5,50 +5,26 @@ import { RecentActivities } from "@/components/dashboard/widgets/RecentActivitie
 import { LiveCallStatus } from "@/components/dashboard/widgets/LiveCallStatus";
 import { Phone, CheckCircle2, Calendar, MessageSquare, Scissors, Plus, Upload, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
-import { appointmentsApi, conversationsApi, servicesApi, webhookApi } from "@/lib/api-endpoints";
 import { useRouter } from "next/navigation";
 import { useTenant } from "@/contexts/TenantContext";
+import { useDashboardStats } from "@/hooks/domain/useDashboardStats";
 
 export default function DashboardPage() {
     const { config } = useTenant();
     const router = useRouter();
+    const { data, isLoading } = useDashboardStats();
 
-    // Fetch appointments
-    const { data: appointments = [], isLoading: appointmentsLoading } = useQuery({
-        queryKey: ["appointments"],
-        queryFn: () => appointmentsApi.list(),
-    });
-
-    // Fetch conversations
-    const { data: conversations = [], isLoading: conversationsLoading } = useQuery({
-        queryKey: ["conversations"],
-        queryFn: () => conversationsApi.list({ limit: 100 }),
-    });
-
-    // Fetch services
-    const { data: services = [], isLoading: servicesLoading } = useQuery({
-        queryKey: ["services"],
-        queryFn: () => servicesApi.list({ active_only: false }),
-    });
-
-    // Fetch webhook status
-    const { data: webhookStatus } = useQuery({
-        queryKey: ["webhook-status"],
-        queryFn: () => webhookApi.getStatus(),
-    });
-
-    const now = new Date();
-    const upcomingAppointments = appointments.filter(
-        (apt: any) => new Date(apt.datetime) > now && apt.status === 'confirmed'
-    ).length;
-
-    const completedToday = appointments.filter((apt: any) => {
-        const aptDate = new Date(apt.datetime);
-        return aptDate.toDateString() === now.toDateString() && apt.status === 'completed';
-    }).length;
-
-    const activeServices = services.filter((s: any) => s.active !== false).length;
+    const {
+        appointments = [],
+        conversations = [],
+        metrics = {
+            totalAppointments: 0,
+            upcomingAppointments: 0,
+            completedToday: 0,
+            activeServices: 0
+        },
+        webhookStatus
+    } = data || {};
 
     return (
         <div className="p-6">
@@ -82,28 +58,28 @@ export default function DashboardPage() {
                 />
                 <StatCard
                     title="Total Appointments"
-                    value={appointmentsLoading ? "..." : appointments.length.toString()}
+                    value={isLoading ? "..." : metrics.totalAppointments.toString()}
                     icon={Calendar}
                     trend={{ value: "All time bookings", isPositive: true }}
                 />
                 <StatCard
                     title="Upcoming"
-                    value={appointmentsLoading ? "..." : upcomingAppointments.toString()}
+                    value={isLoading ? "..." : metrics.upcomingAppointments.toString()}
                     icon={CheckCircle2}
                     trend={{ value: "Scheduled ahead", isPositive: true }}
                 />
                 <StatCard
                     title="Conversations"
-                    value={conversationsLoading ? "..." : conversations.length.toString()}
+                    value={isLoading ? "..." : (conversations.length || 0).toString()}
                     icon={MessageSquare}
-                    trend={{ value: `${completedToday} completed today`, isPositive: true }}
+                    trend={{ value: `${metrics.completedToday} completed today`, isPositive: true }}
                 />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 <div className="lg:col-span-2 glass rounded-2xl p-6">
                     <h3 className="text-lg font-semibold mb-4">Recent Appointments</h3>
-                    {appointmentsLoading ? (
+                    {isLoading ? (
                         <p className="text-muted-foreground">Loading...</p>
                     ) : appointments.length === 0 ? (
                         <p className="text-muted-foreground">No appointments yet</p>

@@ -20725,3 +20725,90 @@ NameError: name 'os' is not defined
 2025-12-13 19:23:46,002 - main - INFO - ✅ Error logging system initialized
 2025-12-13 19:23:46,002 - main - INFO - ✅ Application startup complete!
 2025-12-13 19:24:11,445 - routers.phone_numbers - INFO - Removed phone number for tenant 693d9f7ee2ff84550c5791af
+2025-12-13 20:43:31,812 - main - INFO - 🛑 Shutting down AI Receptionist application...
+2025-12-13 20:43:31,819 - database.mongo_config - INFO - Closing MongoDB connection...
+2025-12-15 12:11:06,892 - main - INFO - ✅ Error handling middleware enabled
+2025-12-15 12:11:06,894 - main - INFO - ✅ CORS configured for origins: http://127.0.0.1:5173, https://aireceptionist-lake.vercel.app, http://localhost:3000, https://aireceptionist-lake.vercel.app/, http://127.0.0.1:3000, http://localhost:5173
+2025-12-15 12:11:07,319 - services.twilio_service - INFO - Twilio service initialized
+2025-12-15 12:11:07,647 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-15 12:11:07,660 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+2025-12-15 14:12:01,517 - main - INFO - ✅ Error handling middleware enabled
+2025-12-15 14:12:01,520 - main - INFO - ✅ CORS configured for origins: http://127.0.0.1:5173, http://localhost:3000, https://aireceptionist-lake.vercel.app/, http://127.0.0.1:3000, http://localhost:5173, https://aireceptionist-lake.vercel.app
+2025-12-15 14:12:01,581 - services.twilio_service - INFO - Twilio service initialized
+2025-12-15 14:12:01,611 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-15 14:12:01,611 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+2025-12-15 14:12:02,715 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-15 14:12:02,715 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-15 14:12:02,771 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-15 14:12:02,794 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-15 14:12:02,794 - main - INFO - ✅ Error logging system initialized
+2025-12-15 14:12:02,794 - main - INFO - ✅ Application startup complete!
+2025-12-15 14:12:35,101 - services.user_service - ERROR - Registration error: 'UserCreate' object has no attribute 'business_name'
+2025-12-15 14:12:35,105 - utils.error_logger - ERROR - [user] AttributeError: 'UserCreate' object has no attribute 'business_name' | User: None | Tenant: None
+Traceback (most recent call last):
+  File "/home/montassar/Desktop/ai_receptionist/backend/services/user_service.py", line 102, in register_user
+    business_name = user_create.business_name or f"{user_create.full_name}'s Business"
+  File "/home/montassar/.local/lib/python3.10/site-packages/pydantic/main.py", line 1026, in __getattr__
+    raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')
+AttributeError: 'UserCreate' object has no attribute 'business_name'. Did you mean: 'business_id'?
+2025-12-15 14:13:02,345 - main - INFO - ✅ Error handling middleware enabled
+2025-12-15 14:13:02,345 - main - INFO - ✅ CORS configured for origins: http://localhost:3000, https://aireceptionist-lake.vercel.app/, http://127.0.0.1:5173, http://127.0.0.1:3000, https://aireceptionist-lake.vercel.app, http://localhost:5173
+2025-12-15 14:13:02,422 - services.twilio_service - INFO - Twilio service initialized
+2025-12-15 14:13:02,523 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-15 14:13:02,524 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+2025-12-15 14:13:03,792 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-15 14:13:03,792 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-15 14:13:03,804 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-15 14:13:03,809 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-15 14:13:03,809 - main - INFO - ✅ Error logging system initialized
+2025-12-15 14:13:03,809 - main - INFO - ✅ Application startup complete!
+2025-12-15 14:13:03,810 - main - INFO - 🛑 Shutting down AI Receptionist application...
+2025-12-15 14:13:03,810 - database.mongo_config - INFO - Closing MongoDB connection...
+2025-12-15 14:13:03,812 - database.mongo_config - INFO - ✅ MongoDB connection closed
+2025-12-15 14:13:03,812 - main - INFO - ✅ Application shutdown complete!
+2025-12-15 14:13:25,554 - main - INFO - 🛑 Shutting down AI Receptionist application...
+2025-12-15 14:13:25,555 - database.mongo_config - INFO - Closing MongoDB connection...
+2025-12-15 14:13:25,556 - database.mongo_config - INFO - ✅ MongoDB connection closed
+2025-12-15 14:13:25,556 - main - INFO - ✅ Application shutdown complete!
+2025-12-15 14:13:31,911 - main - INFO - ✅ Error handling middleware enabled
+2025-12-15 14:13:31,911 - main - INFO - ✅ CORS configured for origins: http://localhost:3000, http://127.0.0.1:3000, https://aireceptionist-lake.vercel.app, http://localhost:5173, http://127.0.0.1:5173, https://aireceptionist-lake.vercel.app/
+2025-12-15 14:13:31,955 - services.twilio_service - INFO - Twilio service initialized
+2025-12-15 14:13:31,984 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-15 14:13:31,984 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+2025-12-15 14:13:32,925 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-15 14:13:32,925 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-15 14:13:32,932 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-15 14:13:32,937 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-15 14:13:32,937 - main - INFO - ✅ Error logging system initialized
+2025-12-15 14:13:32,937 - main - INFO - ✅ Application startup complete!
+2025-12-15 14:13:43,959 - services.user_service - INFO - 🤖 Triggering auto-provisioning for 69400987b99053e50fccd9c7
+2025-12-15 14:13:43,959 - services.provisioning - INFO - 🤖 Starting Vapi provisioning for tenant 69400987b99053e50fccd9c7 (Integration Corp)
+2025-12-15 14:13:43,959 - services.provisioning - INFO -    Creating Vapi assistant...
+2025-12-15 14:13:43,959 - services.provisioning - ERROR - ❌ Vapi provisioning failed for tenant 69400987b99053e50fccd9c7: Vapi not configured
+2025-12-15 14:13:44,051 - services.appointments_service - INFO - ✅ Appointment created: 69400988b99053e50fccd9cb
+2025-12-15 14:21:16,735 - main - INFO - 🛑 Shutting down AI Receptionist application...
+2025-12-15 14:21:16,735 - database.mongo_config - INFO - Closing MongoDB connection...
+2025-12-15 14:21:16,736 - database.mongo_config - INFO - ✅ MongoDB connection closed
+2025-12-15 14:21:16,736 - main - INFO - ✅ Application shutdown complete!
+2025-12-15 14:21:59,618 - main - INFO - ✅ Error handling middleware enabled
+2025-12-15 14:21:59,618 - main - INFO - ✅ CORS configured for origins: http://127.0.0.1:5173, http://localhost:5173, http://localhost:3000, http://127.0.0.1:3000, https://aireceptionist-lake.vercel.app/, https://aireceptionist-lake.vercel.app
+2025-12-15 14:21:59,660 - services.twilio_service - INFO - Twilio service initialized
+2025-12-15 14:21:59,689 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-15 14:21:59,689 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+2025-12-15 14:22:00,614 - ai.agent - WARNING - GROQ_API_KEY not found in environment variables.
+2025-12-15 14:24:03,569 - main - INFO - ✅ Error handling middleware enabled
+2025-12-15 14:24:03,569 - main - INFO - ✅ CORS configured for origins: https://aireceptionist-lake.vercel.app, http://127.0.0.1:3000, https://aireceptionist-lake.vercel.app/, http://localhost:3000, http://localhost:5173, http://127.0.0.1:5173
+2025-12-15 14:24:03,613 - services.twilio_service - INFO - Twilio service initialized
+2025-12-15 14:24:03,640 - services.stripe_service - INFO - 🧪 STRIPE MOCK MODE ENABLED - No real charges will be made
+2025-12-15 14:24:03,641 - services.mock_stripe_service - INFO - 🧪 MockStripeService initialized - NO REAL CHARGES WILL BE MADE
+2025-12-15 14:24:03,671 - main - INFO - 🚀 Starting AI Receptionist application...
+2025-12-15 14:24:03,671 - database.mongo_config - INFO - Connecting to MongoDB at mongodb://localhost:27017/ai_barber_receptionist
+2025-12-15 14:24:03,721 - database.mongo_config - INFO - ✅ Successfully connected to MongoDB database: ai_barber_receptionist
+2025-12-15 14:24:03,725 - database.mongo_config - INFO - ✅ Database indexes created successfully
+2025-12-15 14:24:03,725 - main - INFO - ✅ Error logging system initialized
+2025-12-15 14:24:03,725 - main - INFO - ✅ Application startup complete!
+2025-12-15 14:24:33,967 - services.user_service - INFO - 🤖 Triggering auto-provisioning for 69400c111df2c5659b0a4c88
+2025-12-15 14:24:33,967 - services.provisioning - INFO - 🤖 Starting Vapi provisioning for tenant 69400c111df2c5659b0a4c88 (Integration Corp)
+2025-12-15 14:24:33,967 - services.provisioning - INFO -    Creating Vapi assistant...
+2025-12-15 14:24:33,967 - services.provisioning - ERROR - ❌ Vapi provisioning failed for tenant 69400c111df2c5659b0a4c88: Vapi not configured
+2025-12-15 14:24:34,029 - services.appointments_service - INFO - ✅ Appointment created: 69400c121df2c5659b0a4c8c
