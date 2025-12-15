@@ -3,7 +3,7 @@ Appointment Service
 Decoupled business logic for appointment management (API & AI Agent)
 """
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict, Any, Tuple
 from bson import ObjectId
 from fastapi import HTTPException
@@ -46,10 +46,15 @@ class AppointmentsService:
                 datetime_str = f"{date}T{time_clean}"
                 try:
                     requested_datetime = datetime.fromisoformat(datetime_str)
+                    # Make UTC-aware if naive
+                    if requested_datetime.tzinfo is None:
+                        requested_datetime = requested_datetime.replace(tzinfo=timezone.utc)
                 except ValueError:
                     # Fallback for some formats
                     try:
                         requested_datetime = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
+                        # Make UTC-aware
+                        requested_datetime = requested_datetime.replace(tzinfo=timezone.utc)
                     except:
                          return {"available": False, "reason": "Invalid date/time format"}
             else:
@@ -166,8 +171,8 @@ class AppointmentsService:
             "status": AppointmentStatus.CONFIRMED,
             "source": "api",
             "notes": appointment.notes,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
         }
         if appointment.service_id:
             doc["service_id"] = appointment.service_id
@@ -292,7 +297,7 @@ class AppointmentsService:
             update_data["datetime"] = start_time
             update_data["duration_minutes"] = duration
 
-        update_data["updated_at"] = datetime.utcnow()
+        update_data["updated_at"] = datetime.now(timezone.utc)
 
         await self.db.appointments.update_one(
             {"_id": ObjectId(appointment_id)},
@@ -359,6 +364,9 @@ class AppointmentsService:
             if len(time_clean.split(":")) == 2:
                 time_clean = f"{time_clean}:00"
             start_time = datetime.fromisoformat(f"{date}T{time_clean}")
+            # Make UTC-aware if naive
+            if start_time.tzinfo is None:
+                start_time = start_time.replace(tzinfo=timezone.utc)
             end_time = start_time + timedelta(minutes=duration_minutes)
             
             doc = {
@@ -375,8 +383,8 @@ class AppointmentsService:
                 "status": AppointmentStatus.CONFIRMED,
                 "source": "voice_agent",
                 "notes": notes,
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc)
             }
             res = await self.db.appointments.insert_one(doc)
             return {
