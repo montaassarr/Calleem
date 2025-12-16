@@ -3,7 +3,7 @@ Services API Router
 CRUD operations for barber shop services
 """
 
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, Request
 from typing import List, Optional
 from datetime import datetime
 from bson import ObjectId
@@ -20,6 +20,54 @@ from routers.users import get_current_user
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def get_tenant_from_header(request: Request) -> str:
+    """Extract tenant_id from X-Tenant-ID header for internal calls"""
+    tenant_id = request.headers.get("X-Tenant-ID")
+    if not tenant_id:
+        raise HTTPException(status_code=400, detail="X-Tenant-ID header required")
+    return tenant_id
+
+
+@router.get("/agent/list")
+async def agent_list_services(
+    request: Request,
+    active_only: bool = Query(True, description="Return only active services")
+):
+    """
+    Agent-accessible service listing (no JWT required)
+    Used by AI assistant to fetch available services dynamically
+    """
+    try:
+        tenant_id = get_tenant_from_header(request)
+        
+        db = get_database()
+        query = {"tenant_id": tenant_id}
+        if active_only:
+            query["active"] = True
+        
+        services = await db.services.find(query).to_list(length=100)
+        
+        # Format for AI consumption - simplified response
+        result = []
+        for svc in services:
+            result.append({
+                "name": svc.get("name"),
+                "description": svc.get("description", ""),
+                "duration_minutes": svc.get("duration_minutes", 30),
+                "price": float(svc.get("price", 0)) if svc.get("price") else 0
+            })
+        
+        logger.info(f"Agent fetched {len(result)} services for tenant {tenant_id}")
+        
+        return {"services": result, "count": len(result)}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in agent services list: {e}", exc_info=True)
+        return {"services": [], "count": 0, "error": "Failed to fetch services"}
 
 
 @router.post("/", response_model=ServiceResponse, status_code=201)
