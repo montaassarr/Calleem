@@ -104,11 +104,9 @@ from routers import (
     tenants,
     assistants,
     api_keys,
-    platform_keys,
     phone_numbers,
     billing,
     vapi,
-    chat,
     whatsapp,
     websocket,
     admin,
@@ -131,7 +129,6 @@ app.include_router(assistants.router, prefix=f"{settings.API_V1_PREFIX}", tags=[
 
 # API Keys (Tenant BYOK + Platform)
 app.include_router(api_keys.router, prefix=f"{settings.API_V1_PREFIX}", tags=["API Keys"])
-app.include_router(platform_keys.router, prefix=f"{settings.API_V1_PREFIX}", tags=["Platform Keys"])
 
 # Phone & Voice
 app.include_router(phone_numbers.router, prefix=f"{settings.API_V1_PREFIX}/phone-numbers", tags=["Phone"])
@@ -140,8 +137,7 @@ app.include_router(vapi.router, prefix=f"{settings.API_V1_PREFIX}/vapi", tags=["
 # Billing
 app.include_router(billing.router, prefix=f"{settings.API_V1_PREFIX}/billing", tags=["Billing"])
 
-# Chat & WhatsApp
-app.include_router(chat.router, prefix=f"{settings.API_V1_PREFIX}", tags=["Chat"])
+# WhatsApp
 app.include_router(whatsapp.router, prefix=f"{settings.API_V1_PREFIX}/whatsapp", tags=["WhatsApp"])
 
 # WebSocket
