@@ -70,7 +70,13 @@ class VapiService:
 
 {instructions}
 
+AVAILABLE TOOLS:
+- getAvailableServices(): Fetch current service offerings (use this when customer asks about services)
+- checkAvailability(date): Check available appointment slots
+- bookAppointment(date, time, name, phone, email, service): Book an appointment
+
 Important guidelines:
+- ALWAYS call getAvailableServices() when customer asks about services or pricing
 - Be professional, friendly, and helpful
 - Speak naturally and conversationally
 - If you need to book an appointment, collect: name, phone, email, preferred date/time
@@ -816,6 +822,24 @@ Important guidelines:
                                 "service": {"type": "string", "description": "Service requested (optional)"}
                             },
                             "required": ["date", "time", "name", "phone"]
+                        }
+                    }
+                }
+            },
+            {
+                "id": "get_available_services",
+                "name": "Get Available Services",
+                "description": "Fetch the current list of services offered by the business",
+                "category": "information",
+                "config": {
+                    "type": "function",
+                    "function": {
+                        "name": "getAvailableServices",
+                        "description": "Get list of services with prices, durations, and descriptions. Call this when customer asks about services or pricing.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {},
+                            "required": []
                         }
                     }
                 }

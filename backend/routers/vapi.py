@@ -151,6 +151,37 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
             result = await appointments_service.check_availability(tenant_id, date_str, time_str)
             result_data = {"available": result.get("available", False), "details": result}
         
+        elif name == "getAvailableServices":
+            # Fetch services from database
+            db = get_database()
+            services_cursor = db.services.find({
+                "tenant_id": tenant_id,
+                "active": True
+            })
+            services = await services_cursor.to_list(length=100)
+            
+            services_list = []
+            for svc in services:
+                services_list.append({
+                    "name": svc.get("name"),
+                    "description": svc.get("description", ""),
+                    "duration": f"{svc.get('duration_minutes', 30)} minutes",
+                    "price": f"${svc.get('price', 0):.2f}" if svc.get('price') else "Price on request"
+                })
+            
+            if not services_list:
+                result_data = {
+                    "services": [],
+                    "message": "No services currently available. Please call for more information."
+                }
+            else:
+                result_data = {
+                    "services": services_list,
+                    "count": len(services_list)
+                }
+            
+            logger.info(f"Fetched {len(services_list)} services for AI agent")
+        
         elif name == "bookAppointment":
             from models.appointment import AppointmentCreate
             from datetime import timezone

@@ -18,26 +18,48 @@ class AdminService:
 
     # --- Tenant Management ---
     async def list_tenants(self, skip: int, limit: int, search: Optional[str]) -> List[Dict[str, Any]]:
-        query = {}
-        if search:
-            query["name"] = {"$regex": search, "$options": "i"}
+        try:
+            query = {}
+            if search:
+                query["name"] = {"$regex": search, "$options": "i"}
+                
+            cursor = self.db.tenants.find(query).skip(skip).limit(limit)
+            tenants = await cursor.to_list(length=limit)
             
-        cursor = self.db.tenants.find(query).skip(skip).limit(limit)
-        tenants = await cursor.to_list(length=limit)
-        
-        results = []
-        for t in tenants:
-            t["_id"] = str(t["_id"])
-            if "total_calls" not in t: t["total_calls"] = 0
-            if "total_minutes" not in t: t["total_minutes"] = 0.0
-            if "settings" not in t:
-                t["settings"] = {
-                    "business_name": t.get("name", "Unknown"),
-                    "timezone": "UTC",
-                    "currency": "USD"
-                }
-            results.append(t)
-        return results
+            results = []
+            for t in tenants:
+                # Convert ObjectId to string
+                t["id"] = str(t["_id"])
+                del t["_id"]
+                
+                # Ensure required fields exist
+                if "total_calls" not in t: 
+                    t["total_calls"] = 0
+                if "total_minutes" not in t: 
+                    t["total_minutes"] = 0.0
+                if "name" not in t:
+                    t["name"] = "Unknown Tenant"
+                if "email" not in t:
+                    t["email"] = "no-email@example.com"
+                if "plan" not in t:
+                    t["plan"] = "free"
+                if "status" not in t:
+                    t["status"] = "active"
+                if "created_at" not in t:
+                    t["created_at"] = datetime.utcnow()
+                if "settings" not in t:
+                    t["settings"] = {
+                        "business_name": t.get("name", "Unknown"),
+                        "timezone": "UTC",
+                        "currency": "USD"
+                    }
+                results.append(t)
+            
+            logger.info(f"Listed {len(results)} tenants")
+            return results
+        except Exception as e:
+            logger.error(f"Error listing tenants: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to list tenants: {str(e)}")
 
     async def create_tenant(self, tenant_data: Any) -> Dict[str, Any]:
         if await self.db.tenants.find_one({"name": tenant_data.name}):
