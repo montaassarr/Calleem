@@ -10,7 +10,7 @@ import logging
 
 from database.mongo_config import get_database
 from routers.users import get_current_user, get_current_admin
-from models.business.business_config import BusinessConfig, BusinessConfigUpdate
+# Business models removed - use tenant settings instead
 from utils.config import settings
 
 logger = logging.getLogger(__name__)

@@ -49,6 +49,4 @@ from models.conversation import (
 #     AgentCreate, AgentUpdate, Agent, AgentResponse
 # )
 
-# Business config models
-from models.business.business_config import BusinessConfig, BusinessConfigUpdate
-from models.business.api_keys import ApiKey, ApiKeyCreate, ApiKeyResponse
+# Business models removed - use tenant settings instead
