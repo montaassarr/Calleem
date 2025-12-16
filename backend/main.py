@@ -103,7 +103,6 @@ from routers import (
     conversations,
     tenants,
     assistants,
-    api_keys,
     phone_numbers,
     billing,
     vapi,
@@ -127,8 +126,7 @@ app.include_router(tenants.router, prefix=f"{settings.API_V1_PREFIX}/tenants", t
 # AI Assistant (Vapi) - tags defined in router
 app.include_router(assistants.router, prefix=f"{settings.API_V1_PREFIX}")
 
-# API Keys (Tenant BYOK + Platform)
-app.include_router(api_keys.router, prefix=f"{settings.API_V1_PREFIX}", tags=["API Keys"])
+# API Keys removed - not using BYOK system
 
 # Phone & Voice - tags defined in routers
 app.include_router(phone_numbers.router, prefix=f"{settings.API_V1_PREFIX}/phone-numbers")

@@ -15,7 +15,6 @@ from models.user import UserResponse, Token, UserCreate, UserUpdate
 from models.appointment import AppointmentStatus, AppointmentCreate, AppointmentUpdate, AppointmentResponse
 from models.service import ServiceCreate, ServiceUpdate, ServiceResponse
 from models.conversation import ConversationResponse
-from models.business.business_config import BusinessConfig, BusinessConfigUpdate
 from routers.users import get_current_admin
 from services.admin_service import get_admin_service, AdminService
 from database.mongo_config import get_database
@@ -242,27 +241,27 @@ async def delete_conversation(
 
 # ==================== BUSINESS CONFIG ====================
 
-@router.get("/config", response_model=BusinessConfig)
+@router.get("/config")
 async def get_business_config(
     current_admin: dict = Depends(get_current_admin),
     service: AdminService = Depends(get_admin_service)
 ):
-    """Get business configuration"""
+    """Get business configuration (tenant settings)"""
     tenant_id = current_admin.get("tenant_id") or current_admin.get("business_id")
     config = await service.get_business_config(tenant_id)
-    return BusinessConfig(**config)
+    return config
 
 
-@router.put("/config", response_model=BusinessConfig)
+@router.put("/config")
 async def update_business_config(
-    config: BusinessConfigUpdate,
+    config: dict,
     current_admin: dict = Depends(get_current_admin),
     service: AdminService = Depends(get_admin_service)
 ):
-    """Update business configuration"""
+    """Update business configuration (tenant settings)"""
     tenant_id = current_admin.get("tenant_id") or current_admin.get("business_id")
     updated = await service.update_business_config(tenant_id, config)
-    return BusinessConfig(**updated)
+    return updated
 
 
 # ==================== ANALYTICS ====================
