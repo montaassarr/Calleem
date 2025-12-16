@@ -43,11 +43,11 @@ from models.conversation import (
     ConversationCreate, ConversationInDB, ConversationResponse
 )
 
-# Agent models
-from models.agent import (
-    AgentStatus, VoiceProvider, VoiceSettings, AgentTools,
-    AgentCreate, AgentUpdate, Agent, AgentResponse
-)
+# Agent models - Commented out until agent.py is created
+# from models.agent import (
+#     AgentStatus, VoiceProvider, VoiceSettings, AgentTools,
+#     AgentCreate, AgentUpdate, Agent, AgentResponse
+# )
 
 # Business config models
 from models.business.business_config import BusinessConfig, BusinessConfigUpdate
