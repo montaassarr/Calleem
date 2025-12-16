@@ -6,7 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["websocket"])
+router = APIRouter(tags=["WebSocket"])
 
 async def get_tenant_from_token(token: str) -> str:
     """Validate JWT token and return tenant_id"""
