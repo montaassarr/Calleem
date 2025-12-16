@@ -36,7 +36,7 @@ async def find_tenant(db, tenant_id_str: str):
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    tags=["phone-numbers"]
+    tags=["Phone Numbers"]
 )
 
 

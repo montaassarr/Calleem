@@ -16,7 +16,7 @@ from database.mongo_config import get_database
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["vapi-webhooks"])
+router = APIRouter(tags=["Vapi Webhooks"])
 
 
 @router.post("/webhook/{tenant_id}")

@@ -9,7 +9,7 @@ from routers.users import get_current_user
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["assistant"])
+router = APIRouter(tags=["Assistants"])
 
 
 # ===== PYDANTIC MODELS =====
