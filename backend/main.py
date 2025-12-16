@@ -124,15 +124,15 @@ app.include_router(conversations.router, prefix=f"{settings.API_V1_PREFIX}/conve
 # Tenant Management
 app.include_router(tenants.router, prefix=f"{settings.API_V1_PREFIX}/tenants", tags=["Tenants"])
 
-# AI Assistant (Vapi)
-app.include_router(assistants.router, prefix=f"{settings.API_V1_PREFIX}", tags=["Assistant"])
+# AI Assistant (Vapi) - tags defined in router
+app.include_router(assistants.router, prefix=f"{settings.API_V1_PREFIX}")
 
 # API Keys (Tenant BYOK + Platform)
 app.include_router(api_keys.router, prefix=f"{settings.API_V1_PREFIX}", tags=["API Keys"])
 
-# Phone & Voice
-app.include_router(phone_numbers.router, prefix=f"{settings.API_V1_PREFIX}/phone-numbers", tags=["Phone"])
-app.include_router(vapi.router, prefix=f"{settings.API_V1_PREFIX}/vapi", tags=["Vapi Webhooks"])
+# Phone & Voice - tags defined in routers
+app.include_router(phone_numbers.router, prefix=f"{settings.API_V1_PREFIX}/phone-numbers")
+app.include_router(vapi.router, prefix=f"{settings.API_V1_PREFIX}/vapi")
 
 # Billing
 app.include_router(billing.router, prefix=f"{settings.API_V1_PREFIX}/billing", tags=["Billing"])
