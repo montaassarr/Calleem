@@ -9,6 +9,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 from bson import ObjectId
 import logging
+import os
 
 from models.tenant import TenantResponse, TenantCreate, TenantUpdate
 from models.user import UserResponse, Token, UserCreate, UserUpdate
@@ -348,13 +349,34 @@ When customers say 'tomorrow', they mean {tomorrow_str}.
         # Insert at the very beginning
         updated_prompt = date_header + updated_prompt
     
-    # Update assistant
-    result = await vapi_service.update_assistant(
-        assistant_id=assistant_id,
-        instructions=updated_prompt
-    )
+    # Update assistant directly with the model config
+    # Can't use update_assistant because it wraps instructions with a template
+    # Need to use the Vapi API directly
+    import httpx
+    vapi_api_key = os.getenv("VAPI_API_KEY") or os.getenv("VAPI_PRIVATE_KEY")
+    if not vapi_api_key:
+        return {"error": "Vapi API key not configured"}
     
-    if result.get("updated"):
+    headers = {
+        "Authorization": f"Bearer {vapi_api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    # Get current model config
+    current_model = model_config.copy()
+    current_model["messages"] = [{"role": "system", "content": updated_prompt}]
+    
+    update_payload = {"model": current_model}
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.patch(
+                f"https://api.vapi.ai/assistant/{assistant_id}",
+                headers=headers,
+                json=update_payload
+            )
+            response.raise_for_status()
+            
         return {
             "success": True,
             "message": f"Assistant date updated to {current_date_str}",
@@ -362,7 +384,8 @@ When customers say 'tomorrow', they mean {tomorrow_str}.
             "tomorrow": tomorrow_str,
             "assistant_id": assistant_id
         }
-    else:
-        return {"error": "Failed to update assistant", "details": result}
+    except Exception as e:
+        logger.error(f"Failed to update assistant: {e}")
+        return {"error": f"Failed to update assistant: {str(e)}"}
 
 
