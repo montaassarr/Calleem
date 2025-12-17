@@ -1,22 +1,39 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { CallButton } from "@/components/vapi/CallButton";
-import { useVapi } from "@/components/vapi/VapiProvider";
+import React, { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 
-// Prevent SSR to avoid VapiProvider issues during build
-export const dynamic = 'force-dynamic';
+// Dynamically import components that use Vapi hooks to prevent SSR
+const CallButton = dynamic(
+  () => import("@/components/vapi/CallButton").then((mod) => mod.CallButton),
+  { ssr: false }
+);
+
+// Import useVapi conditionally
+const VapiStatus = dynamic(
+  () => import("./VapiStatus"),
+  { ssr: false }
+);
 
 export default function VapiTestPage() {
-  const { status } = useVapi();
   const [assistantId, setAssistantId] = useState<string>("");
+  const [mounted, setMounted] = useState(false);
 
-  // Read assistantId from query for quick testing
   useEffect(() => {
+    setMounted(true);
     const params = new URLSearchParams(window.location.search);
     const a = params.get("assistantId");
     if (a) setAssistantId(a);
   }, []);
+
+  if (!mounted) {
+    return (
+      <div className="max-w-2xl mx-auto py-8">
+        <h1 className="text-2xl font-semibold">Vapi Test Call</h1>
+        <p className="text-sm text-muted-foreground mt-2">Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto py-8">
@@ -35,10 +52,7 @@ export default function VapiTestPage() {
         <CallButton assistantId={assistantId} />
       </div>
 
-      <div className="mt-8 p-4 rounded border bg-secondary/20">
-        <div className="font-medium">Connection Status</div>
-        <div className="mt-2 text-sm">{status}</div>
-      </div>
+      <VapiStatus />
     </div>
   );
 }
