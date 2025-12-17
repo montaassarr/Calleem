@@ -219,6 +219,25 @@ export const apiEndpoints = {
     }
 }
 
+export const phoneApi = {
+    // Get phone number status
+    getStatus: async (): Promise<any> => {
+        return await api.get(`/phone-numbers/status`);
+    },
+    // Sync phone numbers from Vapi dashboard
+    syncFromVapi: async (tenantId: string): Promise<any> => {
+        return await api.post(`/phone-numbers/sync/${tenantId}`, {});
+    },
+    // Provision new phone number
+    provision: async (data: any): Promise<any> => {
+        return await api.post(`/phone-numbers/provision`, data);
+    },
+    // Remove phone number
+    remove: async (): Promise<any> => {
+        return await api.delete(`/phone-numbers/remove`);
+    }
+};
+
 export const vapiApi = {
     // Legacy methods - kept for backward compatibility
     getMyAssistant: async (): Promise<any> => {
