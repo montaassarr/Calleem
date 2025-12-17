@@ -27,7 +27,8 @@ import {
     Waves,
     Zap,
     MessageCircle,
-    Key, // Added for API Keys
+    Key,
+    Activity,
 } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { useRouter, usePathname } from "next/navigation";
