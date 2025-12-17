@@ -131,7 +131,7 @@ export const servicesApi = {
 
 export const conversationsApi = {
     list: async (params?: { search?: string; limit?: number }): Promise<ConversationResponse[]> => {
-        const response = await api.get<ConversationResponse[]>("/conversations", {
+        const response = await api.get<ConversationResponse[]>("/conversations/", {
             params,
         })
         return response

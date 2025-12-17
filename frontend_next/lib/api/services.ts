@@ -15,7 +15,7 @@ export const servicesApi = {
      * List all services
      */
     list: async (filters?: ServiceFilters): Promise<ServiceResponse[]> => {
-        const response = await api.get<ServiceResponse[]>('/services', {
+        const response = await api.get<ServiceResponse[]>('/services/', {
             params: filters,
         });
         return response;
@@ -33,7 +33,7 @@ export const servicesApi = {
      * Create a new service
      */
     create: async (data: ServiceCreate): Promise<ServiceResponse> => {
-    const response = await api.post<ServiceResponse>('/services', data);
+    const response = await api.post<ServiceResponse>('/services/', data);
     return response;
     },
 

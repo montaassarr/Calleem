@@ -10,7 +10,7 @@ export const conversationsApi = {
      * List all conversations with optional search
      */
     list: async (filters?: ConversationFilters): Promise<ConversationResponse[]> => {
-        const response = await api.get<ConversationResponse[]>('/conversations', {
+        const response = await api.get<ConversationResponse[]>('/conversations/', {
             params: filters,
         });
         return response;
