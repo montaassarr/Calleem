@@ -354,7 +354,7 @@ When customers say 'tomorrow', they mean {tomorrow_str}.
         instructions=updated_prompt
     )
     
-    if result.get("success"):
+    if result.get("updated"):
         return {
             "success": True,
             "message": f"Assistant date updated to {current_date_str}",
