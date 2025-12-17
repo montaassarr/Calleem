@@ -10,7 +10,7 @@ export const webhookApi = {
      * Get webhook status
      */
     getStatus: async (): Promise<WebhookStatus> => {
-    const response = await api.get<WebhookStatus>('/webhook/status');
+    const response = await api.get<WebhookStatus>('/whatsapp/status');
     return response;
     },
 };

@@ -77,47 +77,99 @@ class ApiClient {
         this.client.interceptors.response.use(
             (response) => response,
             (error) => {
+                // Log error details for debugging
+                if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+                    console.error('API Error:', {
+                        url: error.config?.url,
+                        method: error.config?.method,
+                        status: error.response?.status,
+                        data: error.response?.data,
+                    });
+                }
+
                 // Only redirect to login on 401 if it's not a config fetch
                 // Config fetch failures should be handled gracefully by the component
                 const isConfigEndpoint = error.config?.url?.includes('/admin/config');
+                const isWhatsAppStatus = error.config?.url?.includes('/whatsapp/status');
 
-                if (error.response?.status === 401 && !isConfigEndpoint) {
+                if (error.response?.status === 401 && !isConfigEndpoint && !isWhatsAppStatus) {
                     // Redirect to login on unauthorized (but not for config fetches)
                     if (typeof window !== 'undefined') {
                         localStorage.removeItem('token');
                         localStorage.removeItem('access_token');
                         localStorage.removeItem('user');
+                        localStorage.removeItem('tenant_id');
                         window.location.href = '/login';
                     }
                 }
+
+                // Enhance error object with more details
+                if (error.response) {
+                    error.message = error.response.data?.detail || error.response.data?.message || error.message;
+                }
+
                 return Promise.reject(error);
             }
         );
     }
 
     async get<T = any>(url: string, config?: AxiosRequestConfig) {
-        const response = await this.client.get<T>(url, config);
-        return response.data;
+        try {
+            const response = await this.client.get<T>(url, config);
+            return response.data;
+        } catch (error: any) {
+            throw this.handleError(error);
+        }
     }
 
     async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig) {
-        const response = await this.client.post<T>(url, data, config);
-        return response.data;
+        try {
+            const response = await this.client.post<T>(url, data, config);
+            return response.data;
+        } catch (error: any) {
+            throw this.handleError(error);
+        }
     }
 
     async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig) {
-        const response = await this.client.put<T>(url, data, config);
-        return response.data;
+        try {
+            const response = await this.client.put<T>(url, data, config);
+            return response.data;
+        } catch (error: any) {
+            throw this.handleError(error);
+        }
     }
 
     async delete<T = any>(url: string, config?: AxiosRequestConfig) {
-        const response = await this.client.delete<T>(url, config);
-        return response.data;
+        try {
+            const response = await this.client.delete<T>(url, config);
+            return response.data;
+        } catch (error: any) {
+            throw this.handleError(error);
+        }
     }
 
     async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig) {
-        const response = await this.client.patch<T>(url, data, config);
-        return response.data;
+        try {
+            const response = await this.client.patch<T>(url, data, config);
+            return response.data;
+        } catch (error: any) {
+            throw this.handleError(error);
+        }
+    }
+
+    private handleError(error: any) {
+        // Extract meaningful error message
+        const message = error.response?.data?.detail 
+            || error.response?.data?.message 
+            || error.message 
+            || 'An unexpected error occurred';
+
+        return {
+            message,
+            status: error.response?.status,
+            data: error.response?.data,
+        };
     }
 }
 

@@ -15,7 +15,7 @@ export const appointmentsApi = {
      * List appointments with optional filters
      */
     list: async (filters?: AppointmentFilters): Promise<AppointmentResponse[]> => {
-        const response = await api.get<AppointmentResponse[]>('/appointments', {
+        const response = await api.get<AppointmentResponse[]>('/appointments/', {
             params: filters,
         });
             return response;
@@ -33,7 +33,7 @@ export const appointmentsApi = {
      * Create a new appointment
      */
     create: async (data: AppointmentCreate): Promise<AppointmentResponse> => {
-        const response = await api.post<AppointmentResponse>('/appointments', data);
+        const response = await api.post<AppointmentResponse>('/appointments/', data);
         return response;
     },
 
