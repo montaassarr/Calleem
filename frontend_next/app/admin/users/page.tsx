@@ -252,11 +252,11 @@ export default function UsersAdminPage() {
                                                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                                                 onClick={async () => {
                                                                     try {
-                                                                        await api.delete(`/users/${user.id}`);
+                                                                        await api.delete(`/admin/users/${user.id}`);
                                                                         toast.success("User deleted successfully");
                                                                         refetch();
-                                                                    } catch (error) {
-                                                                        toast.error("Failed to delete user");
+                                                                    } catch (error: any) {
+                                                                        toast.error(error?.message || "Failed to delete user");
                                                                     }
                                                                 }}
                                                             >
