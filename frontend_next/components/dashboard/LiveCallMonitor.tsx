@@ -96,8 +96,55 @@ export default function LiveCallMonitor() {
     const handleEvent = (event: CallEvent) => {
         switch (event.type) {
             case 'call_started':
+            case 'call-start':
                 setStatus('active');
-                addLog(`Call Started (ID: ${event.call_id?.slice(0, 8)}...)`, 'info');
+                addLog(`📞 Call Started (ID: ${event.call_id?.slice(0, 8) || 'N/A'}...)`, 'info');
+                if (event.phone_number) {
+                    addLog(`Caller: ${event.phone_number}`, 'info');
+                }
+                break;
+
+            case 'transcript':
+                // Handle real-time transcript messages
+                const role = event.role || 'unknown';
+                const text = event.transcript || event.text || event.message || '';
+                if (text) {
+                    addLog(text, 'transcript', role as 'assistant' | 'user');
+                }
+                break;
+
+            case 'status-update':
+            case 'status_update':
+                // Handle call status updates
+                if (event.status) {
+                    addLog(`Status: ${event.status}`, 'info');
+                    if (event.status === 'ended') {
+                        setStatus('idle');
+                    }
+                }
+                break;
+
+            case 'call_ended':
+            case 'end-of-call-report':
+                setStatus('idle');
+                addLog(`📵 Call Ended`, 'info');
+                if (event.duration) {
+                    addLog(`Duration: ${Math.round(event.duration / 60)} minutes`, 'info');
+                }
+                break;
+
+            case 'tool_usage':
+            case 'tool-calls':
+            case 'function-call':
+                // Handle tool/function calls
+                const toolName = event.tool_name || event.function_name || event.name || 'Unknown';
+                addLog(`🔧 Tool: ${toolName}`, 'tool');
+                break;
+
+            default:
+                console.log('Unhandled event type:', event.type, event);
+        }
+    };
                 break;
             case 'transcript':
                 addLog(event.text, 'transcript', event.role);

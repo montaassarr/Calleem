@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Phone, Check, X, Shield, Lock, Loader2, Trash2 } from 'lucide-react';
+import { Phone, Check, X, Shield, Lock, Loader2, Trash2, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { phoneApi } from '@/lib/api-endpoints';
 
 interface PhoneStatus {
     has_phone: boolean;
@@ -112,6 +113,36 @@ export function PhoneNumberManager() {
         }
     };
 
+    const handleSync = async () => {
+        try {
+            setLoading(true);
+            const tenantId = user?.tenant_id;
+            if (!tenantId) {
+                throw new Error("Tenant ID not found");
+            }
+
+            const result = await phoneApi.syncFromVapi(tenantId);
+            
+            if (result.success) {
+                toast({
+                    title: "✅ Sync Successful",
+                    description: result.synced 
+                        ? `Synced phone: ${result.phone_number}`
+                        : "No phone numbers found in Vapi dashboard",
+                });
+                fetchStatus();
+            }
+        } catch (error: any) {
+            toast({
+                title: "Sync Failed",
+                description: error.message || "Failed to sync from Vapi dashboard",
+                variant: "destructive"
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleRemove = async () => {
         if (!confirm("Are you sure you want to remove this phone number? This will disconnect your AI assistant from calls.")) {
             return;
@@ -182,7 +213,16 @@ export function PhoneNumberManager() {
                             </AlertDescription>
                         </Alert>
 
-                        <div className="flex justify-end">
+                        <div className="flex justify-between gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={handleSync}
+                                disabled={loading}
+                                className="gap-2"
+                            >
+                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                                Sync from Vapi
+                            </Button>
                             <Button
                                 variant="destructive"
                                 onClick={handleRemove}
@@ -201,8 +241,23 @@ export function PhoneNumberManager() {
                             <AlertTitle className="text-blue-800">Secure Integration</AlertTitle>
                             <AlertDescription className="text-blue-700 text-xs">
                                 Your credentials are encrypted using AES-256 before storage. We verify ownership before connecting.
+                                <br />
+                                <strong className="mt-2 block">💡 Tip:</strong> If you added a phone in the Vapi dashboard manually, click the "Sync from Vapi" button below.
                             </AlertDescription>
                         </Alert>
+
+                        <div className="flex justify-end mb-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleSync}
+                                disabled={loading}
+                                className="gap-2"
+                            >
+                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                                Sync from Vapi Dashboard
+                            </Button>
+                        </div>
 
                         <div className="grid gap-2">
                             <Label htmlFor="sid">Twilio Account SID</Label>
