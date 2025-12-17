@@ -2,12 +2,12 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Phone, PhoneOff, Mic, Activity } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface CallEvent {
-    type: 'call_started' | 'call_ended' | 'transcript' | 'tool_usage';
+    type: string;
     [key: string]: any;
 }
 
@@ -24,7 +24,6 @@ export default function LiveCallMonitor() {
     const [logs, setLogs] = useState<LogItem[]>([]);
     const [socket, setSocket] = useState<WebSocket | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
-    const tenantIdRef = useRef<string | null>(null);
 
     // Auto-scroll logs
     useEffect(() => {
@@ -36,15 +35,12 @@ export default function LiveCallMonitor() {
     // Initialize WebSocket
     useEffect(() => {
         const connectWs = () => {
-            // Get tenant_id from local storage (or user context)
-            // Ideally this comes from a hook e.g. useAuth()
             const userStr = localStorage.getItem('user');
             if (!userStr) return;
 
             try {
                 const user = JSON.parse(userStr);
                 const tenantId = user.tenant_id;
-                tenantIdRef.current = tenantId;
                 const token = localStorage.getItem('token');
 
                 if (!tenantId || !token) return;
@@ -72,7 +68,6 @@ export default function LiveCallMonitor() {
                     setConnected(false);
                     setStatus('idle');
                     addLog("Disconnected from Live Monitor", 'info');
-                    // Reconnect logic could go here
                 };
 
                 setSocket(ws);
@@ -105,7 +100,6 @@ export default function LiveCallMonitor() {
                 break;
 
             case 'transcript':
-                // Handle real-time transcript messages
                 const role = event.role || 'unknown';
                 const text = event.transcript || event.text || event.message || '';
                 if (text) {
@@ -115,7 +109,6 @@ export default function LiveCallMonitor() {
 
             case 'status-update':
             case 'status_update':
-                // Handle call status updates
                 if (event.status) {
                     addLog(`Status: ${event.status}`, 'info');
                     if (event.status === 'ended') {
@@ -136,31 +129,12 @@ export default function LiveCallMonitor() {
             case 'tool_usage':
             case 'tool-calls':
             case 'function-call':
-                // Handle tool/function calls
                 const toolName = event.tool_name || event.function_name || event.name || 'Unknown';
                 addLog(`🔧 Tool: ${toolName}`, 'tool');
                 break;
 
             default:
                 console.log('Unhandled event type:', event.type, event);
-        }
-    };
-                break;
-            case 'transcript':
-                addLog(event.text, 'transcript', event.role);
-                break;
-            case 'tool_usage':
-                if (event.status === 'started') {
-                    addLog(`Executing Tool: ${event.tool}`, 'tool');
-                } else {
-                    addLog(`Tool Completed: ${event.tool}`, 'tool');
-                }
-                break;
-            case 'call_ended':
-                setStatus('idle');
-                addLog(`Call Ended (Duration: ${event.duration || '?'}s)`, 'info');
-                break;
-            default:
                 break;
         }
     };
@@ -196,9 +170,11 @@ export default function LiveCallMonitor() {
                     ) : (
                         <div className="space-y-4">
                             {logs.map((log, i) => (
-                                <div key={i} className={`flex flex-col gap-1 ${log.type === 'transcript' ? (log.role === 'user' ? 'items-end' : 'items-start') : 'items-center'
-                                    }`}>
-
+                                <div key={i} className={`flex flex-col gap-1 ${
+                                    log.type === 'transcript' 
+                                        ? (log.role === 'user' ? 'items-end' : 'items-start') 
+                                        : 'items-center'
+                                }`}>
                                     {log.type === 'info' && (
                                         <div className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-full my-1">
                                             {log.message}
@@ -212,18 +188,18 @@ export default function LiveCallMonitor() {
                                     )}
 
                                     {log.type === 'transcript' && (
-                                        <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${log.role === 'user'
-                                                ? 'bg-blue-600 text-white rounded-br-none'
-                                                : 'bg-gray-100 text-gray-800 rounded-bl-none'
+                                        <>
+                                            <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                                                log.role === 'user'
+                                                    ? 'bg-blue-600 text-white rounded-br-none'
+                                                    : 'bg-gray-100 text-gray-800 rounded-bl-none'
                                             }`}>
-                                            <p>{log.message}</p>
-                                        </div>
-                                    )}
-
-                                    {log.type === 'transcript' && (
-                                        <span className="text-[10px] text-gray-300 px-1">
-                                            {log.role === 'user' ? 'Anonymous' : 'AI Assistant'} • {log.time}
-                                        </span>
+                                                <p>{log.message}</p>
+                                            </div>
+                                            <span className="text-[10px] text-gray-300 px-1">
+                                                {log.role === 'user' ? 'Anonymous' : 'AI Assistant'} • {log.time}
+                                            </span>
+                                        </>
                                     )}
                                 </div>
                             ))}
