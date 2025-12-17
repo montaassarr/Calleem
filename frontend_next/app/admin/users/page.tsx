@@ -15,7 +15,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Search, Users as UsersIcon, TrendingUp, Activity, Mail, Phone, Calendar, Building2 } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Search, Users as UsersIcon, TrendingUp, Activity, Mail, Phone, Calendar, Building2, Trash, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 
 interface User {
