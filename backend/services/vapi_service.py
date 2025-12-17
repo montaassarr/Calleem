@@ -107,6 +107,16 @@ Important guidelines:
                 "language": transcriber_language
             },
             "serverUrl": os.getenv("VAPI_WEBHOOK_URL", ""),
+            # Ensure webhook events are delivered to our server per Vapi docs
+            # https://docs.vapi.ai/api-reference/webhooks/server-message
+            "serverMessages": [
+                "tool-calls",
+                "function-call",
+                "transcript",
+                "status-update",
+                "end-of-call-report",
+                "call-start"
+            ],
             "metadata": {
                 "tenant_id": tenant_id,
                 "company_name": company_name

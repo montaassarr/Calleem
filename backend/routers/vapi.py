@@ -29,6 +29,11 @@ async def vapi_webhook_tenant(
     """
     Tenant-specific webhook endpoint for Vapi
     """
+    payload = await request.body()
+    # Verify signature strictly
+    if not vapi_service.verify_webhook_signature(payload, x_vapi_signature or ""):
+        logger.warning("Vapi webhook signature verification failed (tenant endpoint)")
+        return {"error": "invalid_signature"}
     data = await request.json()
     message_type = data.get("message", {}).get("type")
     
@@ -64,10 +69,10 @@ async def vapi_webhook(
     """
     payload = await request.body()
     
-    # Verify signature
+    # Verify signature strictly
     if not vapi_service.verify_webhook_signature(payload, x_vapi_signature or ""):
         logger.warning("Vapi webhook signature verification failed")
-        # For now log warn, strict later
+        return {"error": "invalid_signature"}
     
     data = await request.json()
     message_type = data.get("message", {}).get("type")
@@ -86,6 +91,28 @@ async def vapi_webhook(
                 "call_id": call.get("id"),
                 "caller_number": call.get("customer", {}).get("number")
             })
+            # Persist initial call record for live analytics/history
+            try:
+                db = get_database()
+                await db.call_logs.update_one(
+                    {"vapi_call_id": call.get("id")},
+                    {
+                        "$set": {
+                            "vapi_call_id": call.get("id"),
+                            "assistant_id": call.get("assistantId"),
+                            "tenant_id": tenant_id,
+                            "customer_phone": call.get("customer", {}).get("number"),
+                            "status": call.get("status", "started"),
+                            "started_at": call.get("startedAt") or datetime.utcnow(),
+                            "updated_at": datetime.utcnow(),
+                            # Initialize messages array for incremental transcripts
+                            "messages": []
+                        }
+                    },
+                    upsert=True
+                )
+            except Exception as e:
+                logger.error(f"Failed to upsert call-start record: {e}")
     
     elif message_type == "transcript":
         if tenant_id:
@@ -96,6 +123,41 @@ async def vapi_webhook(
                 "role": role,
                 "text": transcript_text
             })
+            # Append transcript message to call record for conversation history
+            try:
+                db = get_database()
+                message_doc = {
+                    "role": role,
+                    "text": transcript_text,
+                    "timestamp": datetime.utcnow()
+                }
+                await db.call_logs.update_one(
+                    {"vapi_call_id": call.get("id"), "tenant_id": tenant_id},
+                    {
+                        "$push": {"messages": message_doc},
+                        "$set": {"updated_at": datetime.utcnow()}
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Failed to append transcript: {e}")
+
+    elif message_type == "status-update":
+        # Update call status and broadcast
+        status_val = data.get("message", {}).get("call", {}).get("status")
+        if tenant_id and status_val:
+            await socket_manager.broadcast_to_tenant(tenant_id, {
+                "type": "status_update",
+                "call_id": call.get("id"),
+                "status": status_val
+            })
+            try:
+                db = get_database()
+                await db.call_logs.update_one(
+                    {"vapi_call_id": call.get("id"), "tenant_id": tenant_id},
+                    {"$set": {"status": status_val, "updated_at": datetime.utcnow()}}
+                )
+            except Exception as e:
+                logger.error(f"Failed to update status: {e}")
     
     elif message_type == "function-call":
         return await handle_function_call(data)
