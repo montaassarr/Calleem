@@ -282,3 +282,61 @@ async def remove_phone_number(tenant_id: str, delete_from_vapi: bool = False):
             status_code=500,
             detail=f"Failed to remove phone number: {str(e)}"
         )
+
+
+@router.post("/sync/{tenant_id}")
+async def sync_phone_number(tenant_id: str):
+    """
+    Sync tenant phone configuration from Vapi.
+    Useful when numbers are linked manually in the Vapi dashboard.
+    """
+    db = get_database()
+
+    # Find tenant
+    tenant = await find_tenant(db, tenant_id)
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    assistant_id = tenant.get("vapi_assistant_id")
+    if not assistant_id:
+        raise HTTPException(status_code=400, detail="Tenant has no assistant")
+
+    vapi = VapiService()
+    try:
+        numbers = await vapi.list_phone_numbers()
+        # Find a number assigned to this assistant
+        match = next((n for n in numbers if n.get("assistantId") == assistant_id), None)
+
+        if not match:
+            # No number found; mark inactive
+            await db.tenants.update_one(
+                {"_id": tenant["_id"]},
+                {"$set": {"phone_config.is_active": False, "updated_at": datetime.utcnow()}}
+            )
+            return {"success": True, "synced": False, "message": "No phone linked in Vapi"}
+
+        phone_number = match.get("number") or match.get("customer", {}).get("number")
+        phone_config_data = {
+            "vapi_phone_number_id": match.get("id"),
+            "phone_number": phone_number,
+            "phone_provider": PhoneProvider.TWILIO.value,
+            "is_active": True,
+            "created_at": tenant.get("phone_config", {}).get("created_at") or datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+
+        await db.tenants.update_one(
+            {"_id": tenant["_id"]},
+            {"$set": {"phone_config": phone_config_data, "updated_at": datetime.utcnow()}}
+        )
+
+        return {
+            "success": True,
+            "synced": True,
+            "phone_number": phone_number,
+            "vapi_phone_id": match.get("id")
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to sync phone number: {e}")
+        raise HTTPException(status_code=500, detail=f"Sync failed: {str(e)}")

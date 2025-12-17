@@ -75,6 +75,22 @@ class AssistantService:
                 "ai_config.first_message": config.first_message
             })
             
+            # Default-enable built-in tools if none configured
+            try:
+                enabled_tools = tenant.get("enabled_tools") or []
+                if not enabled_tools:
+                    built_ins = vapi_service.get_built_in_tools()
+                    # Enable core receptionist tools
+                    core_ids = {"get_available_services", "check_availability", "book_appointment"}
+                    for tool in built_ins:
+                        if tool["id"] in core_ids:
+                            enabled_tools.append(tool["config"])
+                    await self.tenant_repo.update(tenant_id, {"enabled_tools": enabled_tools})
+                    # Sync to Vapi with server webhook URL
+                    await self._sync_tools_to_vapi(tenant_id, enabled_tools)
+            except Exception as e:
+                logger.warning(f"Failed to default-enable tools: {e}")
+            
             return result
         except Exception as e:
             logger.error(f"Error creating assistant: {e}")
