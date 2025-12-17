@@ -164,6 +164,9 @@ export const adminApi = {
         const response = await api.put<TenantResponse>(`/admin/tenants/${id}`, data);
         return response;
     },
+    deleteTenant: async (id: string): Promise<void> => {
+        await api.delete(`/admin/tenants/${id}`);
+    },
 
     // Analytics
     getGlobalAnalytics: async (): Promise<GlobalAnalytics> => {

@@ -69,6 +69,15 @@ async def update_tenant(
     return TenantResponse(**updated)
 
 
+@router.delete("/tenants/{tenant_id}", status_code=204)
+async def delete_tenant(
+    tenant_id: str,
+    service: AdminService = Depends(get_admin_service)
+):
+    """Delete a tenant and all associated data"""
+    await service.delete_tenant(tenant_id)
+
+
 # ==================== USER MANAGEMENT ====================
 
 @router.get("/users", response_model=List[UserResponse])

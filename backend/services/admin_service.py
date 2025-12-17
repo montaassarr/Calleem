@@ -103,6 +103,32 @@ class AdminService:
         updated["_id"] = str(updated["_id"])
         return updated
 
+    async def delete_tenant(self, tenant_id: str) -> None:
+        """Delete a tenant and all associated data"""
+        if not ObjectId.is_valid(tenant_id):
+            raise HTTPException(status_code=400, detail="Invalid tenant ID")
+            
+        # Check if tenant exists
+        tenant = await self.db.tenants.find_one({"_id": ObjectId(tenant_id)})
+        if not tenant:
+            raise HTTPException(status_code=404, detail="Tenant not found")
+        
+        try:
+            # Delete all associated data
+            await self.db.users.delete_many({"tenant_id": tenant_id})
+            await self.db.appointments.delete_many({"tenant_id": tenant_id})
+            await self.db.services.delete_many({"tenant_id": tenant_id})
+            await self.db.conversations.delete_many({"tenant_id": tenant_id})
+            await self.db.business_config.delete_many({"tenant_id": tenant_id})
+            
+            # Delete the tenant itself
+            await self.db.tenants.delete_one({"_id": ObjectId(tenant_id)})
+            
+            logger.info(f"Deleted tenant {tenant_id} and all associated data")
+        except Exception as e:
+            logger.error(f"Error deleting tenant {tenant_id}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to delete tenant: {str(e)}")
+
     # --- User Management (Global) ---
     async def list_all_users(self, skip: int, limit: int, tenant_id: Optional[str]) -> List[Dict[str, Any]]:
         query = {}

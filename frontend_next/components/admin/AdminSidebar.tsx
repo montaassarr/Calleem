@@ -11,6 +11,7 @@ import {
     Calendar,
     MessageSquare,
     Scissors,
+    Building2,
 } from "lucide-react";
 import { NavLink } from "../dashboard/NavLink";
 import { usePathname } from "next/navigation";
@@ -20,6 +21,7 @@ const menuItems = [
     {
         label: "Business Data",
         items: [
+            { icon: Building2, label: "Tenants", path: "/admin/tenants" },
             { icon: Users, label: "Users (Business Owners)", path: "/admin/users" },
             { icon: Calendar, label: "Appointments", path: "/admin/appointments" },
             { icon: Scissors, label: "Services", path: "/admin/services" },
