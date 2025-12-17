@@ -353,7 +353,9 @@ When customers say 'tomorrow', they mean {tomorrow_str}.
     # Can't use update_assistant because it wraps instructions with a template
     # Need to use the Vapi API directly
     import httpx
-    vapi_api_key = os.getenv("VAPI_API_KEY") or os.getenv("VAPI_PRIVATE_KEY")
+    from utils.config import settings
+    
+    vapi_api_key = settings.VAPI_API_KEY or settings.VAPI_PRIVATE_API_KEY
     if not vapi_api_key:
         return {"error": "Vapi API key not configured"}
     
