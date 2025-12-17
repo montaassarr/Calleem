@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import { useVapi } from "@/components/vapi/VapiProvider";
 
 // Dynamically import components that use Vapi hooks to prevent SSR
 const CallButton = dynamic(
@@ -9,15 +10,10 @@ const CallButton = dynamic(
   { ssr: false }
 );
 
-// Import useVapi conditionally
-const VapiStatus = dynamic(
-  () => import("./VapiStatus"),
-  { ssr: false }
-);
-
 export default function VapiTestPage() {
   const [assistantId, setAssistantId] = useState<string>("");
   const [mounted, setMounted] = useState(false);
+  const { status } = useVapi();
 
   useEffect(() => {
     setMounted(true);
@@ -52,7 +48,10 @@ export default function VapiTestPage() {
         <CallButton assistantId={assistantId} />
       </div>
 
-      <VapiStatus />
+      <div className="mt-8 p-4 rounded border bg-secondary/20">
+        <div className="font-medium">Connection Status</div>
+        <div className="mt-2 text-sm">{status}</div>
+      </div>
     </div>
   );
 }
