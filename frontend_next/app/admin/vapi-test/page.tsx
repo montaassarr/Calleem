@@ -3,6 +3,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { CallButton } from "@/components/vapi/CallButton";
 import { useVapi } from "@/components/vapi/VapiProvider";
+import dynamic from "next/dynamic";
+
+// Prevent SSR to avoid VapiProvider issues during build
+export const dynamic = 'force-dynamic';
 
 export default function VapiTestPage() {
   const { status } = useVapi();
