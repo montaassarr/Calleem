@@ -282,3 +282,87 @@ async def get_global_analytics(
     """Get global system stats"""
     return await service.get_global_analytics()
 
+
+# ==================== ASSISTANT MANAGEMENT ====================
+
+@router.post("/assistants/{tenant_id}/refresh-date")
+async def refresh_assistant_date(tenant_id: str):
+    """Refresh assistant system prompt with current date - fixes hardcoded dates"""
+    from services.vapi_service import vapi_service
+    from utils.datetime_utils import DateTimeUtils
+    import re
+    
+    db = get_database()
+    
+    # Get tenant
+    tenant = await db.tenants.find_one({"_id": ObjectId(tenant_id)})
+    if not tenant:
+        return {"error": "Tenant not found"}
+    
+    assistant_id = tenant.get("vapi_assistant_id")
+    if not assistant_id:
+        return {"error": "No assistant configured"}
+    
+    # Get current assistant config
+    assistant = await vapi_service.get_assistant(assistant_id)
+    if not assistant:
+        return {"error": "Could not fetch assistant"}
+    
+    # Extract system prompt
+    model_config = assistant.get("model", {})
+    messages = model_config.get("messages", [])
+    system_prompt = ""
+    for msg in messages:
+        if msg.get("role") == "system":
+            system_prompt = msg.get("content", "")
+            break
+    
+    if not system_prompt:
+        return {"error": "No system prompt found"}
+    
+    # Generate new date header
+    now = DateTimeUtils.now()
+    current_date_str = now.strftime("%B %d, %Y")
+    tomorrow = now + timedelta(days=1)
+    tomorrow_str = tomorrow.strftime("%B %d, %Y")
+    
+    date_header = f"""**CURRENT DATE: {current_date_str} - Use this for all date calculations**
+When customers say 'tomorrow', they mean {tomorrow_str}.
+
+"""
+    
+    # Remove old date header if present
+    updated_prompt = re.sub(
+        r'\*\*CURRENT DATE:.*?\*\*\n.*?tomorrow.*?\n\n?',
+        '',
+        system_prompt,
+        flags=re.DOTALL
+    )
+    
+    # Inject new date header
+    lines = updated_prompt.split('\n')
+    if lines and lines[0].strip().startswith('You are'):
+        # Insert after the "You are..." line
+        updated_prompt = lines[0] + '\n\n' + date_header + '\n'.join(lines[1:])
+    else:
+        # Insert at the very beginning
+        updated_prompt = date_header + updated_prompt
+    
+    # Update assistant
+    result = await vapi_service.update_assistant(
+        assistant_id=assistant_id,
+        instructions=updated_prompt
+    )
+    
+    if result.get("success"):
+        return {
+            "success": True,
+            "message": f"Assistant date updated to {current_date_str}",
+            "current_date": current_date_str,
+            "tomorrow": tomorrow_str,
+            "assistant_id": assistant_id
+        }
+    else:
+        return {"error": "Failed to update assistant", "details": result}
+
+

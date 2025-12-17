@@ -6,6 +6,7 @@ Ensures every new user gets a "Bella-like" fully functional AI out of the box.
 import logging
 import os
 from typing import Dict, Any, Optional
+from datetime import datetime, timedelta
 
 from services.vapi_service import vapi_service
 from database.mongo_config import get_database
@@ -14,6 +15,20 @@ from bson import ObjectId
 logger = logging.getLogger(__name__)
 
 class VapiProvisioningService:
+    @staticmethod
+    def _get_date_header() -> str:
+        """Generate current date header for system prompts"""
+        from utils.datetime_utils import DateTimeUtils
+        now = DateTimeUtils.now()
+        current_date_str = now.strftime("%B %d, %Y")
+        tomorrow = now + timedelta(days=1)
+        tomorrow_str = tomorrow.strftime("%B %d, %Y")
+        
+        return f"""**CURRENT DATE: {current_date_str} - Use this for all date calculations**
+When customers say 'tomorrow', they mean {tomorrow_str}.
+
+"""
+    
     @staticmethod
     async def provision_tenant_assistant(tenant_id: str, business_name: str) -> Dict[str, Any]:
         """
@@ -26,7 +41,28 @@ class VapiProvisioningService:
         """
         logger.info(f"🤖 Starting Vapi provisioning for tenant {tenant_id} ({business_name})")
         
+        # Get current date header
+        date_header = VapiProvisioningService._get_date_header()
+        
         # Default Configuration (Bella-style)
+        default_instructions = f"""{date_header}You are the AI Receptionist for {business_name}.
+Your role is to answer calls professionally, check availability, and book appointments.
+
+Services:
+- General Consultation
+- Service Inquiry
+
+Business Hours: Monday-Friday, 9:00 AM - 5:00 PM Eastern Time
+
+When handling appointments:
+- CRITICAL: Always use the current year from the CURRENT DATE above
+- Use YYYY-MM-DD format (e.g., 2024-12-17 for December 17th)
+- Use 24-hour HH:MM format for times (e.g., 14:00 for 2 PM)
+- Confirm date and time before booking
+- Collect: name, phone, preferred service
+
+Always be polite, concise, and helpful."""
+        
         default_config = {
             "name": f"{business_name} AI Receptionist",
             "voice": {
@@ -42,16 +78,7 @@ class VapiProvisioningService:
                 "messages": [
                     {
                         "role": "system",
-                        "content": f"""You are the AI Receptionist for {business_name}.
-Your role is to answer calls professionally, check availability, and book appointments.
-
-Services:
-- General Consultation
-- Service Inquiry
-
-Hours: Mon-Fri 9AM-5PM
-
-Always be polite, concise, and helpful. Ask for name and phone number before booking."""
+                        "content": default_instructions
                     }
                 ]
             },

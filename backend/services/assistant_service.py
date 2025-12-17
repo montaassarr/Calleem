@@ -1,6 +1,7 @@
 
 import logging
 from typing import Dict, Any, Optional, List
+from datetime import timedelta
 from fastapi import HTTPException
 from bson import ObjectId
 
@@ -211,6 +212,33 @@ class AssistantService:
             "max_tokens": 525
         }
 
+    def _inject_current_date(self, system_prompt: str) -> str:
+        """Inject or update current date in system prompt"""
+        from datetime import datetime
+        import re
+        
+        # Get current date in the configured timezone
+        from utils.datetime_utils import DateTimeUtils
+        now = DateTimeUtils.now()
+        current_date_str = now.strftime("%B %d, %Y")  # e.g., "December 17, 2024"
+        tomorrow = now + timedelta(days=1)
+        tomorrow_str = tomorrow.strftime("%B %d, %Y")
+        
+        # Build the date header
+        date_header = f"**CURRENT DATE: {current_date_str} - Use this for all date calculations**\nWhen customers say 'tomorrow', they mean {tomorrow_str}.\n\n"
+        
+        # Remove any existing CURRENT DATE lines
+        prompt = re.sub(r'\*\*CURRENT DATE:.*?\*\*\n.*?tomorrow.*?\n\n?', '', system_prompt, flags=re.DOTALL)
+        
+        # Inject at the beginning (after the main greeting line if present)
+        lines = prompt.split('\n')
+        if lines and lines[0].strip().startswith('You are'):
+            # Insert after the "You are..." line
+            return lines[0] + '\n\n' + date_header + '\n'.join(lines[1:])
+        else:
+            # Insert at the very beginning
+            return date_header + prompt
+    
     async def update_personality_settings(self, tenant_id: str, personality: Any) -> Dict[str, Any]:
         tenant = await self._get_tenant(tenant_id)
         
@@ -229,14 +257,18 @@ class AssistantService:
 
         company_name = tenant.get("business_name", "Valued Business")
         
+        # Inject current date into system prompt
+        enhanced_prompt = self._inject_current_date(personality.system_prompt)
+        
         await vapi_service.update_assistant(
             assistant_id=tenant.get("vapi_assistant_id"),
             company_name=company_name,
-            instructions=personality.system_prompt,
+            instructions=enhanced_prompt,
             first_message=personality.first_message,
             temperature=personality.temperature
         )
         
+        # Store the original prompt (without date injection) in DB
         await self.tenant_repo.update(tenant_id, {
             "ai_config.system_prompt": personality.system_prompt,
             "ai_config.first_message": personality.first_message
