@@ -169,6 +169,16 @@ Important guidelines:
         # Add tools if provided
         if tools:
             assistant_config["tools"] = tools
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/assistant",
+                    headers=self.headers,
+                    json=assistant_config
+                )
+                response.raise_for_status()
+                result = response.json()
                 
                 logger.info(f"Created Vapi assistant {result.get('id')} for tenant {tenant_id}")
                 
