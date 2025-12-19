@@ -7,6 +7,7 @@ from fastapi import HTTPException
 
 from database.mongo_config import get_database
 from models.tenant import TenantStatus
+from models.appointment import AppointmentStatus
 from utils.encryption import encrypt_value, decrypt_value
 from services.user_service import UserService
 
@@ -15,6 +16,56 @@ logger = logging.getLogger(__name__)
 class AdminService:
     def __init__(self, db=None):
         self.db = db or get_database()
+
+    def _normalize_appointment_record(self, appt: Dict[str, Any]) -> Dict[str, Any]:
+        """Ensure appointments have API-friendly fields"""
+        if not appt:
+            return appt
+
+        normalized = dict(appt)
+        normalized["id"] = str(normalized.get("_id", normalized.get("id", "")))
+        normalized.pop("_id", None)
+
+        normalized["client_name"] = (
+            normalized.get("client_name")
+            or normalized.get("customer_name")
+            or "Unknown"
+        )
+        normalized["client_phone"] = (
+            normalized.get("client_phone")
+            or normalized.get("customer_phone")
+            or ""
+        )
+        normalized["service"] = (
+            normalized.get("service")
+            or normalized.get("service_name")
+            or "General Consultation"
+        )
+
+        normalized["datetime"] = (
+            normalized.get("datetime")
+            or normalized.get("start_time")
+            or datetime.utcnow()
+        )
+        normalized["duration_minutes"] = (
+            normalized.get("duration_minutes")
+            or normalized.get("duration")
+            or 30
+        )
+
+        status_value = normalized.get("status") or AppointmentStatus.CONFIRMED
+        if isinstance(status_value, str):
+            try:
+                normalized["status"] = AppointmentStatus(status_value)
+            except ValueError:
+                normalized["status"] = AppointmentStatus.CONFIRMED
+        else:
+            normalized["status"] = status_value
+
+        normalized["created_at"] = normalized.get("created_at") or datetime.utcnow()
+        normalized["updated_at"] = normalized.get("updated_at") or normalized["created_at"]
+
+        return normalized
 
     # --- Tenant Management ---
     async def list_tenants(self, skip: int, limit: int, search: Optional[str]) -> List[Dict[str, Any]]:
@@ -310,8 +361,7 @@ class AdminService:
         if status: query["status"] = status
         cursor = self.db.appointments.find(query).sort("datetime", -1).skip(skip).limit(limit)
         appts = await cursor.to_list(length=limit)
-        for a in appts: a["_id"] = str(a["_id"])
-        return appts
+        return [self._normalize_appointment_record(a) for a in appts]
 
     async def create_appointment(self, appt_data: Any, tenant_id: str) -> Dict[str, Any]:
         appt_dict = appt_data.dict()
@@ -323,8 +373,7 @@ class AdminService:
         
         result = await self.db.appointments.insert_one(appt_dict)
         created = await self.db.appointments.find_one({"_id": result.inserted_id})
-        created["_id"] = str(created["_id"])
-        return created
+        return self._normalize_appointment_record(created)
 
     async def update_appointment(self, appt_id: str, update_data: Any) -> Dict[str, Any]:
         if not ObjectId.is_valid(appt_id): raise HTTPException(400, "Invalid ID")
@@ -336,8 +385,7 @@ class AdminService:
         if result.matched_count == 0: raise HTTPException(404, "Not found")
         
         updated = await self.db.appointments.find_one({"_id": ObjectId(appt_id)})
-        updated["_id"] = str(updated["_id"])
-        return updated
+        return self._normalize_appointment_record(updated)
 
     async def delete_appointment(self, appt_id: str) -> bool:
         if not ObjectId.is_valid(appt_id): raise HTTPException(400, "Invalid ID")
