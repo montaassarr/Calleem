@@ -19,6 +19,47 @@ class VapiService:
     Comprehensive Vapi AI integration service.
     Handles assistant management, voice config, knowledge base, tools, and analytics.
     """
+    ALLOWED_SERVER_MESSAGES = {
+        "assistant.started",
+        "conversation-update",
+        "end-of-call-report",
+        "function-call",
+        "hang",
+        "language-changed",
+        "language-change-detected",
+        "model-output",
+        "phone-call-control",
+        "speech-update",
+        "status-update",
+        "tool-calls",
+        "transcript",
+        'transcript[transcriptType="final"]',
+        "transfer-destination-request",
+        "handoff-destination-request",
+        "transfer-update",
+        "user-interrupted",
+        "voice-input",
+        "chat.created",
+        "chat.deleted",
+        "session.created",
+        "session.updated",
+        "session.deleted",
+        "call.deleted",
+        "call.delete.failed"
+    }
+
+    DEFAULT_SERVER_MESSAGES = [
+        "assistant.started",
+        "conversation-update",
+        "function-call",
+        "tool-calls",
+        "status-update",
+        "transcript",
+        'transcript[transcriptType="final"]',
+        "end-of-call-report",
+        "user-interrupted",
+        "voice-input"
+    ]
     
     def __init__(self):
         self.api_key = os.getenv("VAPI_PRIVATE_API_KEY") or os.getenv("VAPI_API_KEY")
@@ -84,6 +125,15 @@ Important guidelines:
 - Keep responses concise for voice conversation
 """
         
+        requested_server_messages = kwargs.pop("server_messages", self.DEFAULT_SERVER_MESSAGES)
+        valid_server_messages = [
+            msg for msg in requested_server_messages
+            if msg in self.ALLOWED_SERVER_MESSAGES
+        ]
+        if not valid_server_messages:
+            logger.warning("No valid serverMessages provided; falling back to defaults")
+            valid_server_messages = self.DEFAULT_SERVER_MESSAGES
+
         assistant_config = {
             "name": f"AI Receptionist - {company_name}"[:40],
             "firstMessage": first_message or "Hello! How can I help you today?",
@@ -127,15 +177,8 @@ Important guidelines:
         if tools:
             assistant_config["tools"] = tools
         
-        try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    f"{self.base_url}/assistant",
-                    headers=self.headers,
-                    json=assistant_config
-                )
-                response.raise_for_status()
-                result = response.json()
+            },
+            "serverMessages": valid_server_messages,
                 
                 logger.info(f"Created Vapi assistant {result.get('id')} for tenant {tenant_id}")
                 
