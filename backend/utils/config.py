@@ -57,8 +57,16 @@ class Settings(BaseSettings):
     
     # CORS - Can be overridden via environment variable
     # Format: comma-separated list of origins
-    # Example: "https://aireceptionist-lake.vercel.app,http://localhost:3000"
-    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,https://aireceptionist-lake.vercel.app"
+    # Example: "https://calleem.tech,https://www.calleem.tech,https://aireceptionist-lake.vercel.app"
+    CORS_ORIGINS: str = (
+        "http://localhost:3000,"
+        "http://127.0.0.1:3000,"
+        "http://localhost:5173,"
+        "http://127.0.0.1:5173,"
+        "https://calleem.tech,"
+        "https://www.calleem.tech,"
+        "https://aireceptionist-lake.vercel.app"
+    )
     
     @property
     def cors_origins_list(self) -> List[str]:

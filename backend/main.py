@@ -67,9 +67,14 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # CORS Configuration - MUST be added FIRST (processed LAST in middleware stack)
 cors_origins = settings.cors_origins_list
 
-# Always include production frontend
+# Always include production frontends (explicit list, no wildcard)
 production_origins = [
+    # New custom domains
+    "https://calleem.tech",
+    "https://www.calleem.tech",
+    # Existing Vercel deployment (kept for safety)
     "https://aireceptionist-lake.vercel.app",
+    # Historical alias retained (if still used)
     "https://www.aireceptionist-lake.vercel.app",
 ]
 cors_origins.extend(production_origins)
@@ -78,17 +83,30 @@ cors_origins.extend(production_origins)
 if os.getenv("ENVIRONMENT") != "production":
     cors_origins.extend(["http://localhost:3000", "http://localhost:5173"])
 
+# De-duplicate
 cors_origins = list(set(cors_origins))
 logger.info(f"🌐 CORS allowed origins: {cors_origins}")
+
+# Use explicit methods/headers for credentialed requests and proper preflight handling
+ALLOWED_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+ALLOWED_HEADERS = [
+    "Authorization",
+    "Content-Type",
+    "Accept",
+    "Origin",
+    "X-Requested-With",
+    "X-CSRF-Token",
+    "Cache-Control",
+    "Pragma",
+]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=ALLOWED_METHODS,
+    allow_headers=ALLOWED_HEADERS,
     max_age=3600,
-    expose_headers=["*"],
 )
 
 # Error handling middleware - added after CORS so CORS wraps it
