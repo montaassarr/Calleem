@@ -98,6 +98,14 @@ ALLOWED_HEADERS = [
     "X-CSRF-Token",
     "Cache-Control",
     "Pragma",
+    "X-Tenant-ID",  # Custom header for multi-tenant isolation
+]
+
+# Headers exposed to browser JavaScript in responses
+EXPOSED_HEADERS = [
+    "Content-Length",
+    "Content-Type",
+    "X-Request-ID",
 ]
 
 app.add_middleware(
@@ -106,6 +114,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=ALLOWED_METHODS,
     allow_headers=ALLOWED_HEADERS,
+    expose_headers=EXPOSED_HEADERS,
     max_age=3600,
 )
 
