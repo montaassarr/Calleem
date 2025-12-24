@@ -3,25 +3,25 @@ import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 // Get API URL from environment variable
 // In production (Vercel), this MUST be set to the Railway backend URL
 // Example: https://your-app-name.up.railway.app
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
-  (typeof window !== 'undefined' && window.location.hostname === 'localhost' 
-    ? 'http://localhost:8000' 
-    : '');
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ||
+    (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+        ? 'http://localhost:8000'
+        : '');
 
 // Validate API URL in production
 if (typeof window !== 'undefined' && !BASE_URL && window.location.hostname !== 'localhost') {
-  console.error(
-    '❌ NEXT_PUBLIC_API_URL is not set! ' +
-    'Please set it in Vercel environment variables to your Railway backend URL.'
-  );
+    console.error(
+        '❌ NEXT_PUBLIC_API_URL is not set! ' +
+        'Please set it in Vercel environment variables to your Railway backend URL.'
+    );
 }
 
 // Check for placeholder URLs
 if (BASE_URL && BASE_URL.includes('your-railway-url')) {
-  console.error(
-    '❌ NEXT_PUBLIC_API_URL contains placeholder value! ' +
-    'Please update it in Vercel environment variables to your actual Railway backend URL.'
-  );
+    console.error(
+        '❌ NEXT_PUBLIC_API_URL contains placeholder value! ' +
+        'Please update it in Vercel environment variables to your actual Railway backend URL.'
+    );
 }
 
 const API_BASE_URL = BASE_URL ? `${BASE_URL}/api/v1` : '/api/v1';
@@ -35,6 +35,8 @@ class ApiClient {
             headers: {
                 'Content-Type': 'application/json',
             },
+            // Required for cross-origin requests with credentials (cookies, auth headers)
+            withCredentials: true,
         });
 
         // Request interceptor to add auth token and tenant ID
@@ -160,9 +162,9 @@ class ApiClient {
 
     private handleError(error: any) {
         // Extract meaningful error message
-        const message = error.response?.data?.detail 
-            || error.response?.data?.message 
-            || error.message 
+        const message = error.response?.data?.detail
+            || error.response?.data?.message
+            || error.message
             || 'An unexpected error occurred';
 
         return {
