@@ -132,7 +132,7 @@ export const Sidebar = () => {
                 </NavLink>
 
                 {hasSubItems && expanded && (
-                    <div className="ml-4 mt-1 space-y-1 border-l-2 border-white/20 pl-2">
+                    <div className="ml-4 mt-1 space-y-1 border-l-2 border-slate-200 pl-2">
                         {item.subItems.map((subItem: any) => (
                             <NavLink
                                 key={subItem.path}
@@ -151,7 +151,7 @@ export const Sidebar = () => {
     };
 
     return (
-        <aside className="fixed left-0 top-0 h-screen w-64 glass-strong flex flex-col z-50 overflow-y-auto border-r border-white/20">
+        <aside className="fixed left-0 top-0 h-screen w-64 bg-white flex flex-col z-50 overflow-y-auto border-r border-slate-200">
             <div className="p-6">
                 <div className="flex items-center gap-2">
                     {config?.logo_url ? (

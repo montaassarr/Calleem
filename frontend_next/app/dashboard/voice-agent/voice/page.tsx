@@ -133,12 +133,12 @@ export default function VoiceConfigPage() {
 
             <div className="grid gap-6 lg:grid-cols-2">
                 {/* Voice Provider Selection */}
-                <Card>
+                <Card className="bg-white border-slate-200 shadow-sm">
                     <CardHeader>
                         <CardTitle>Voice Provider</CardTitle>
                         <CardDescription>Choose your text-to-speech provider</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="bg-white border-slate-200 shadow-sm space-y-4">
                         <div className="grid grid-cols-1 gap-3">
                             {providers.map((provider) => (
                                 <div
@@ -171,12 +171,12 @@ export default function VoiceConfigPage() {
                 </Card>
 
                 {/* Voice Selection */}
-                <Card>
+                <Card className="bg-white border-slate-200 shadow-sm">
                     <CardHeader>
                         <CardTitle>Select Voice</CardTitle>
                         <CardDescription>Choose a voice for your assistant</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="bg-white border-slate-200 shadow-sm space-y-4">
                         <div className="grid grid-cols-2 gap-3 max-h-80 overflow-y-auto">
                             {currentProviderVoices.map((voice) => (
                                 <div
@@ -212,7 +212,7 @@ export default function VoiceConfigPage() {
                 </Card>
 
                 {/* Voice Settings */}
-                <Card className="lg:col-span-2">
+                <Card className="bg-white border-slate-200 shadow-sm lg:col-span-2">
                     <CardHeader>
                         <CardTitle>Voice Settings</CardTitle>
                         <CardDescription>Fine-tune voice parameters</CardDescription>

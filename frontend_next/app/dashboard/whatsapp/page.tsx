@@ -45,7 +45,7 @@ export default function WhatsAppPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Status Card */}
-                <div className="glass rounded-2xl p-6">
+                <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
                             <Smartphone className="w-6 h-6 text-white" />
@@ -57,7 +57,7 @@ export default function WhatsAppPage() {
                     </div>
 
                     <div className="space-y-4">
-                        <div className="flex items-center justify-between p-4 glass-strong rounded-lg">
+                        <div className="flex items-center justify-between p-4 bg-white border border-slate-200 shadow-sm rounded-lg">
                             <span className="font-medium">Overall Status</span>
                             {isLoading ? (
                                 <span className="text-sm text-muted-foreground">Checking...</span>
@@ -74,7 +74,7 @@ export default function WhatsAppPage() {
                             )}
                         </div>
 
-                        <div className="p-4 glass-strong rounded-lg">
+                        <div className="p-4 bg-white border border-slate-200 shadow-sm rounded-lg">
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-sm font-medium">SMS Webhook</span>
                                 <CheckCircle2 className="w-4 h-4 text-green-500" />
@@ -82,7 +82,7 @@ export default function WhatsAppPage() {
                             <p className="text-xs text-muted-foreground">Configured</p>
                         </div>
 
-                        <div className="p-4 glass-strong rounded-lg">
+                        <div className="p-4 bg-white border border-slate-200 shadow-sm rounded-lg">
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-sm font-medium">Voice Webhook</span>
                                 <CheckCircle2 className="w-4 h-4 text-green-500" />
@@ -93,7 +93,7 @@ export default function WhatsAppPage() {
                 </div>
 
                 {/* Configuration */}
-                <div className="glass rounded-2xl p-6">
+                <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
                     <h3 className="font-semibold text-lg mb-4">Twilio Configuration</h3>
 
                     <div className="space-y-4">
@@ -103,7 +103,7 @@ export default function WhatsAppPage() {
                                 <Input
                                     value={getWebhookUrl('/webhook/sms')}
                                     readOnly
-                                    className="glass-strong font-mono text-xs"
+                                    className="bg-white border border-slate-200 shadow-sm font-mono text-xs"
                                 />
                                 <Button
                                     variant="outline"
@@ -124,7 +124,7 @@ export default function WhatsAppPage() {
                                 <Input
                                     value={getWebhookUrl('/webhook/voice')}
                                     readOnly
-                                    className="glass-strong font-mono text-xs"
+                                    className="bg-white border border-slate-200 shadow-sm font-mono text-xs"
                                 />
                                 <Button
                                     variant="outline"
@@ -139,7 +139,7 @@ export default function WhatsAppPage() {
                             </p>
                         </div>
 
-                        <div className="pt-4 border-t border-white/10">
+                        <div className="pt-4 border-t border-slate-200">
                             <Button className="w-full gap-2" variant="outline" asChild>
                                 <a href="https://console.twilio.com" target="_blank" rel="noopener noreferrer">
                                     <ExternalLink className="w-4 h-4" />
@@ -151,7 +151,7 @@ export default function WhatsAppPage() {
                 </div>
 
                 {/* Setup Instructions */}
-                <div className="lg:col-span-2 glass rounded-2xl p-6">
+                <div className="lg:col-span-2 bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
                     <h3 className="font-semibold text-lg mb-4">Setup Instructions</h3>
 
                     <div className="space-y-4">

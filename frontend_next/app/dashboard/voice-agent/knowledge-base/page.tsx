@@ -165,9 +165,9 @@ export default function KnowledgeBasePage() {
 
             <div className="grid gap-6 lg:grid-cols-2">
                 {/* Documents */}
-                <Card>
+                <Card className="bg-white border-slate-200 shadow-sm">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
+                        <CardTitle className="bg-white border-slate-200 shadow-sm flex items-center gap-2">
                             <FileText className="h-5 w-5" />
                             Documents
                         </CardTitle>
@@ -175,7 +175,7 @@ export default function KnowledgeBasePage() {
                             Upload PDFs, text files, or documents to train your assistant
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="bg-white border-slate-200 shadow-sm space-y-4">
                         {/* Upload Button */}
                         <div className="border-2 border-dashed rounded-lg p-6 text-center">
                             <input
@@ -215,7 +215,7 @@ export default function KnowledgeBasePage() {
                                 {documents.map((doc) => (
                                     <div
                                         key={doc.id}
-                                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                                        className="flex items-center justify-between p-3 bg-slate-100/50 rounded-lg"
                                     >
                                         <div className="flex items-center gap-3">
                                             <FileText className="h-4 w-4 text-muted-foreground" />
@@ -241,9 +241,9 @@ export default function KnowledgeBasePage() {
                 </Card>
 
                 {/* FAQs */}
-                <Card>
+                <Card className="bg-white border-slate-200 shadow-sm">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
+                        <CardTitle className="bg-white border-slate-200 shadow-sm flex items-center gap-2">
                             <HelpCircle className="h-5 w-5" />
                             Frequently Asked Questions
                         </CardTitle>
@@ -251,7 +251,7 @@ export default function KnowledgeBasePage() {
                             Add common Q&A pairs for your assistant to reference
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="bg-white border-slate-200 shadow-sm space-y-4">
                         {faqs.map((faq, index) => (
                             <div key={index} className="space-y-2 p-3 border rounded-lg">
                                 <div className="flex items-center gap-2">

@@ -23,7 +23,7 @@ export default function BillingPage() {
             ],
             current: false,
             popular: false,
-            color: "border-white/10",
+            color: "border-slate-200",
             buttonVariant: "outline" as const
         },
         {
@@ -84,7 +84,7 @@ export default function BillingPage() {
             </div>
 
             {/* Current Plan Status */}
-            <div className="glass rounded-2xl p-6 mb-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 mb-10 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
                         <CreditCard className="w-6 h-6 text-green-500" />
@@ -149,7 +149,7 @@ export default function BillingPage() {
             </div>
 
             {/* Enterprise Banner */}
-            <div className="mt-10 glass-strong rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 border border-white/10">
+            <div className="mt-10 bg-white border border-slate-200 shadow-sm rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 border border-slate-200">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
                         <Shield className="w-6 h-6 text-blue-500" />

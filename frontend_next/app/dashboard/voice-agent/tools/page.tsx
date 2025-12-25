@@ -133,8 +133,8 @@ export default function ToolsPage() {
 
             {/* Stats */}
             <div className="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardContent className="pt-6">
+                <Card className="bg-white border-slate-200 shadow-sm">
+                    <CardContent className="bg-white border-slate-200 shadow-sm pt-6">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-muted-foreground">Total Tools</p>
@@ -144,8 +144,8 @@ export default function ToolsPage() {
                         </div>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardContent className="pt-6">
+                <Card className="bg-white border-slate-200 shadow-sm">
+                    <CardContent className="bg-white border-slate-200 shadow-sm pt-6">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-muted-foreground">Enabled</p>
@@ -155,8 +155,8 @@ export default function ToolsPage() {
                         </div>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardContent className="pt-6">
+                <Card className="bg-white border-slate-200 shadow-sm">
+                    <CardContent className="bg-white border-slate-200 shadow-sm pt-6">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-muted-foreground">Categories</p>
@@ -174,7 +174,7 @@ export default function ToolsPage() {
                 return (
                     <Card key={category}>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2 capitalize">
+                            <CardTitle className="bg-white border-slate-200 shadow-sm flex items-center gap-2 capitalize">
                                 <Icon className="h-5 w-5" />
                                 {category.replace("_", " ")}
                             </CardTitle>

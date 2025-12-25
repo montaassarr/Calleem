@@ -250,7 +250,7 @@ export default function APIKeysPage() {
             </Alert>
 
             {/* API Keys List */}
-            <Card>
+            <Card className="bg-white border-slate-200 shadow-sm">
                 <CardHeader>
                     <CardTitle>Your API Keys</CardTitle>
                     <CardDescription>
@@ -352,9 +352,9 @@ export default function APIKeysPage() {
             {/* Provider Info Cards */}
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Object.entries(PROVIDERS).map(([key, provider]) => (
-                    <Card key={key} className="hover:shadow-md transition-shadow">
+                    <Card key={key} className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                         <CardHeader>
-                            <CardTitle className="text-lg flex items-center justify-between">
+                            <CardTitle className="bg-white border-slate-200 shadow-sm text-lg flex items-center justify-between">
                                 {provider.name}
                                 <a
                                     href={provider.url}

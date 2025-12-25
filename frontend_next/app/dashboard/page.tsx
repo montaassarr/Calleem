@@ -61,23 +61,26 @@ export default function DashboardPage() {
                     value={isLoading ? "..." : metrics.totalAppointments.toString()}
                     icon={Calendar}
                     trend={{ value: "All time bookings", isPositive: true }}
+                    variant="primary"
                 />
                 <StatCard
                     title="Upcoming"
                     value={isLoading ? "..." : metrics.upcomingAppointments.toString()}
                     icon={CheckCircle2}
                     trend={{ value: "Scheduled ahead", isPositive: true }}
+                    variant="primary"
                 />
                 <StatCard
                     title="Conversations"
                     value={isLoading ? "..." : (conversations.length || 0).toString()}
                     icon={MessageSquare}
                     trend={{ value: `${metrics.completedToday} completed today`, isPositive: true }}
+                    variant="primary"
                 />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                <div className="lg:col-span-2 glass rounded-2xl p-6">
+                <div className="lg:col-span-2 bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
                     <h3 className="text-lg font-semibold mb-4">Recent Appointments</h3>
                     {isLoading ? (
                         <p className="text-muted-foreground">Loading...</p>
@@ -86,7 +89,7 @@ export default function DashboardPage() {
                     ) : (
                         <div className="space-y-3">
                             {appointments.slice(0, 5).map((apt: any) => (
-                                <div key={apt.id} className="flex items-center justify-between p-3 glass-strong rounded-lg">
+                                <div key={apt.id} className="flex items-center justify-between p-3 bg-white border border-slate-200 shadow-sm rounded-lg">
                                     <div>
                                         <p className="font-medium">{apt.client_name}</p>
                                         <p className="text-sm text-muted-foreground">{apt.service}</p>
@@ -110,7 +113,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="glass rounded-2xl p-6">
+                <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
                     <h3 className="text-lg font-semibold mb-4">AI Receptionist Status</h3>
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">

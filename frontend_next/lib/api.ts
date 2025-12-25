@@ -4,8 +4,10 @@ import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 // In production (Vercel), this MUST be set to the Railway backend URL
 // Example: https://your-app-name.up.railway.app
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ||
-    (typeof window !== 'undefined' && window.location.hostname === 'localhost'
-        ? 'http://localhost:8000'
+    (typeof window !== 'undefined'
+        ? window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:8000'
+            : `http://${window.location.hostname}:8000` // Fallback for LAN IPs
         : '');
 
 // Validate API URL in production
@@ -82,10 +84,12 @@ class ApiClient {
                 // Log error details for debugging
                 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
                     console.error('API Error:', {
+                        message: error.message,
                         url: error.config?.url,
                         method: error.config?.method,
                         status: error.response?.status,
                         data: error.response?.data,
+                        raw: error
                     });
                 }
 

@@ -67,7 +67,7 @@ export default function SettingsPage() {
                     <div
                         key={section.path}
                         onClick={() => router.push(section.path)}
-                        className="glass rounded-2xl p-6 hover:shadow-lg transition-all cursor-pointer group"
+                        className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 hover:shadow-lg transition-all cursor-pointer group"
                     >
                         <div className="flex items-start gap-4">
                             <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${section.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
@@ -86,7 +86,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Quick Info */}
-            <div className="mt-6 glass rounded-2xl p-6">
+            <div className="mt-6 bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
                 <h3 className="text-lg font-semibold mb-4">System Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>

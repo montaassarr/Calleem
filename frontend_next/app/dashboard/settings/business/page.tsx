@@ -91,7 +91,7 @@ export default function BusinessSettingsPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Form */}
-                <div className="glass rounded-2xl p-6">
+                <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
                     {isLoading ? (
                         <div className="space-y-6">
                             <Skeleton className="h-20 w-full" />
@@ -107,7 +107,7 @@ export default function BusinessSettingsPage() {
                                     id="business_name"
                                     value={formData.business_name}
                                     onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
-                                    className="glass-strong mt-2"
+                                    className="bg-white border border-slate-200 shadow-sm mt-2"
                                     placeholder="Enter your business name"
                                 />
                             </div>
@@ -119,7 +119,7 @@ export default function BusinessSettingsPage() {
                                         id="business_phone"
                                         value={formData.business_phone}
                                         onChange={(e) => setFormData({ ...formData, business_phone: e.target.value })}
-                                        className="glass-strong mt-2"
+                                        className="bg-white border border-slate-200 shadow-sm mt-2"
                                         placeholder="+1 (555) 123-4567"
                                     />
                                 </div>
@@ -130,7 +130,7 @@ export default function BusinessSettingsPage() {
                                         type="email"
                                         value={formData.business_email}
                                         onChange={(e) => setFormData({ ...formData, business_email: e.target.value })}
-                                        className="glass-strong mt-2"
+                                        className="bg-white border border-slate-200 shadow-sm mt-2"
                                         placeholder="contact@business.com"
                                     />
                                 </div>
@@ -142,7 +142,7 @@ export default function BusinessSettingsPage() {
                                     id="business_address"
                                     value={formData.business_address}
                                     onChange={(e) => setFormData({ ...formData, business_address: e.target.value })}
-                                    className="glass-strong mt-2"
+                                    className="bg-white border border-slate-200 shadow-sm mt-2"
                                     rows={3}
                                     placeholder="123 Main St, City, State 12345"
                                 />
@@ -154,7 +154,7 @@ export default function BusinessSettingsPage() {
                                     id="timezone"
                                     value={formData.timezone}
                                     onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-                                    className="glass-strong mt-2"
+                                    className="bg-white border border-slate-200 shadow-sm mt-2"
                                     placeholder="America/New_York"
                                 />
                                 <p className="text-xs text-muted-foreground mt-1">
@@ -194,13 +194,13 @@ export default function BusinessSettingsPage() {
 
                 {/* Preview */}
                 <div className="space-y-6">
-                    <div className="glass rounded-2xl p-6">
+                    <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
                         <h3 className="text-lg font-semibold mb-4">Live Preview</h3>
                         <div className="space-y-6">
                             {/* Sidebar Preview */}
                             <div className="space-y-2">
                                 <Label>Sidebar Branding</Label>
-                                <div className="p-4 rounded-lg glass-strong border border-white/10 bg-black/20">
+                                <div className="p-4 rounded-lg bg-white border border-slate-200 shadow-sm">
                                     <div className="flex items-center gap-2">
                                         <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
                                             <span className="text-white text-xs">Logo</span>
@@ -215,7 +215,7 @@ export default function BusinessSettingsPage() {
                             {/* Dashboard Header Preview */}
                             <div className="space-y-2">
                                 <Label>Dashboard Header</Label>
-                                <div className="p-4 rounded-lg glass-strong border border-white/10">
+                                <div className="p-4 rounded-lg bg-white border border-slate-200 shadow-sm border-slate-200">
                                     <h1 className="text-2xl font-bold mb-1">
                                         {formData.business_name || 'Business Name'} Dashboard
                                     </h1>

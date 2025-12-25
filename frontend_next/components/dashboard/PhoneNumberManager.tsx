@@ -122,11 +122,11 @@ export function PhoneNumberManager() {
             }
 
             const result = await phoneApi.syncFromVapi(tenantId);
-            
+
             if (result.success) {
                 toast({
                     title: "✅ Sync Successful",
-                    description: result.synced 
+                    description: result.synced
                         ? `Synced phone: ${result.phone_number}`
                         : "No phone numbers found in Vapi dashboard",
                 });
@@ -191,7 +191,7 @@ export function PhoneNumberManager() {
     }
 
     return (
-        <Card className="w-full">
+        <Card className="w-full bg-white border-slate-200 shadow-sm text-slate-900">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Phone className="h-5 w-5" />
@@ -218,7 +218,7 @@ export function PhoneNumberManager() {
                                 variant="outline"
                                 onClick={handleSync}
                                 disabled={loading}
-                                className="gap-2"
+                                className="gap-2 bg-white text-slate-900 hover:bg-slate-50 border-slate-200"
                             >
                                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                                 Sync from Vapi
@@ -227,7 +227,7 @@ export function PhoneNumberManager() {
                                 variant="destructive"
                                 onClick={handleRemove}
                                 disabled={loading}
-                                className="gap-2"
+                                className="gap-2 bg-red-600 hover:bg-red-700 text-white"
                             >
                                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                                 Disconnect Number
@@ -252,7 +252,7 @@ export function PhoneNumberManager() {
                                 variant="outline"
                                 onClick={handleSync}
                                 disabled={loading}
-                                className="gap-2"
+                                className="gap-2 bg-white text-slate-900 hover:bg-slate-50 border-slate-200"
                             >
                                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                                 Sync from Vapi Dashboard
@@ -268,7 +268,7 @@ export function PhoneNumberManager() {
                                     placeholder="AC..."
                                     value={accountSid}
                                     onChange={(e) => setAccountSid(e.target.value)}
-                                    className="pl-9"
+                                    className="pl-9 bg-white border-slate-200 text-slate-900"
                                     required
                                 />
                             </div>
@@ -284,7 +284,7 @@ export function PhoneNumberManager() {
                                     placeholder="Your auth token"
                                     value={authToken}
                                     onChange={(e) => setAuthToken(e.target.value)}
-                                    className="pl-9"
+                                    className="pl-9 bg-white border-slate-200 text-slate-900"
                                     required
                                 />
                             </div>
@@ -299,7 +299,7 @@ export function PhoneNumberManager() {
                                     placeholder="+1234567890"
                                     value={phoneNumber}
                                     onChange={(e) => setPhoneNumber(e.target.value)}
-                                    className="pl-9"
+                                    className="pl-9 bg-white border-slate-200 text-slate-900"
                                     required
                                 />
                             </div>

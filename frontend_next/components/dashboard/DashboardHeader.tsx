@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export const DashboardHeader = () => {
     return (
-        <header className="sticky top-0 z-40 glass border-b border-white/60 bg-background/80 backdrop-blur-md">
+        <header className="sticky top-0 z-40 bg-white border-b border-slate-200">
             <div className="flex items-center justify-between p-6">
                 <div className="flex-1 max-w-md">
                     <div className="relative">

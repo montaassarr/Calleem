@@ -102,8 +102,8 @@ export default function VoiceAgentControlCenter() {
       {/* Quick Nav Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Link href="/dashboard/voice-agent/voice" className="block">
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
-            <CardContent className="pt-6">
+          <Card className="bg-white border-slate-200 shadow-sm hover:border-primary/50 transition-colors cursor-pointer h-full">
+            <CardContent className="bg-white border-slate-200 shadow-sm pt-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-100 rounded-lg">
                   <Volume2 className="h-5 w-5 text-blue-600" />
@@ -118,8 +118,8 @@ export default function VoiceAgentControlCenter() {
         </Link>
 
         <Link href="/dashboard/voice-agent/knowledge-base" className="block">
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
-            <CardContent className="pt-6">
+          <Card className="bg-white border-slate-200 shadow-sm hover:border-primary/50 transition-colors cursor-pointer h-full">
+            <CardContent className="bg-white border-slate-200 shadow-sm pt-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-100 rounded-lg">
                   <FileText className="h-5 w-5 text-green-600" />
@@ -134,8 +134,8 @@ export default function VoiceAgentControlCenter() {
         </Link>
 
         <Link href="/dashboard/voice-agent/tools" className="block">
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
-            <CardContent className="pt-6">
+          <Card className="bg-white border-slate-200 shadow-sm hover:border-primary/50 transition-colors cursor-pointer h-full">
+            <CardContent className="bg-white border-slate-200 shadow-sm pt-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-purple-100 rounded-lg">
                   <Wrench className="h-5 w-5 text-purple-600" />
@@ -150,8 +150,8 @@ export default function VoiceAgentControlCenter() {
         </Link>
 
         <Link href="/dashboard/voice-agent/analytics" className="block">
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
-            <CardContent className="pt-6">
+          <Card className="bg-white border-slate-200 shadow-sm hover:border-primary/50 transition-colors cursor-pointer h-full">
+            <CardContent className="bg-white border-slate-200 shadow-sm pt-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-yellow-100 rounded-lg">
                   <BarChart3 className="h-5 w-5 text-yellow-600" />
@@ -181,19 +181,19 @@ export default function VoiceAgentControlCenter() {
         <TabsContent value="overview" className="mt-6">
           <div className="grid gap-6 md:grid-cols-2">
             {/* Assistant Status */}
-            <Card>
+            <Card className="bg-white border-slate-200 shadow-sm">
               <CardHeader>
                 <CardTitle>Assistant Status</CardTitle>
                 <CardDescription>Current configuration</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="bg-white border-slate-200 shadow-sm space-y-4">
                 {loading ? (
                   <div className="flex justify-center py-4">
                     <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
                 ) : (
                   <>
-                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                    <div className="flex justify-between items-center p-3 bg-slate-100 rounded-lg">
                       <span className="font-medium">Status</span>
                       {assistant?.configured ? (
                         <Badge className="bg-green-600">
@@ -208,21 +208,21 @@ export default function VoiceAgentControlCenter() {
                       )}
                     </div>
 
-                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                    <div className="flex justify-between items-center p-3 bg-slate-100 rounded-lg">
                       <span className="font-medium">Assistant ID</span>
                       <code className="text-xs bg-background px-2 py-1 rounded">
                         {assistant?.assistant_id?.slice(0, 12) || 'N/A'}...
                       </code>
                     </div>
 
-                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                    <div className="flex justify-between items-center p-3 bg-slate-100 rounded-lg">
                       <span className="font-medium">Voice</span>
                       <span className="text-sm">
                         {assistant?.voice?.voiceId?.slice(0, 10) || 'Default'}...
                       </span>
                     </div>
 
-                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                    <div className="flex justify-between items-center p-3 bg-slate-100 rounded-lg">
                       <span className="font-medium">Model</span>
                       <Badge variant="outline">
                         {assistant?.model?.model || 'gpt-4o-mini'}
@@ -239,7 +239,7 @@ export default function VoiceAgentControlCenter() {
         </TabsContent>
 
         <TabsContent value="personality" className="mt-6">
-          <Card>
+          <Card className="bg-white border-slate-200 shadow-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -256,7 +256,7 @@ export default function VoiceAgentControlCenter() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="bg-white border-slate-200 shadow-sm space-y-6">
               <div className="space-y-2">
                 <Label>First Message (Greeting)</Label>
                 <Input

@@ -223,16 +223,16 @@ export default function ChatTestPage() {
             </div>
 
             {/* Chat Container */}
-            <Card className="flex-1 flex flex-col min-h-0">
-                <CardHeader className="pb-3 border-b">
+            <Card className="bg-white border-slate-200 shadow-sm flex-1 flex flex-col min-h-0">
+                <CardHeader className="bg-white border-slate-200 shadow-sm pb-3 border-b">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center">
                                 <Sparkles className="h-5 w-5 text-white" />
                             </div>
                             <div>
-                                <CardTitle className="text-base">AI Receptionist</CardTitle>
-                                <CardDescription className="text-xs">
+                                <CardTitle className="bg-white border-slate-200 shadow-sm text-base">AI Receptionist</CardTitle>
+                                <CardDescription className="bg-white border-slate-200 shadow-sm text-xs">
                                     {assistantId ? (
                                         <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
                                             <span className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></span>
@@ -247,7 +247,7 @@ export default function ChatTestPage() {
                     </div>
                 </CardHeader>
 
-                <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+                <CardContent className="bg-white border-slate-200 shadow-sm flex-1 overflow-y-auto p-4 space-y-4">
                     {messages.map((msg, idx) => (
                         <div
                             key={idx}
@@ -261,7 +261,7 @@ export default function ChatTestPage() {
                             <div
                                 className={`max-w-[75%] p-3 rounded-2xl ${msg.role === 'user'
                                         ? 'bg-primary text-primary-foreground rounded-br-md'
-                                        : 'bg-muted rounded-bl-md'
+                                        : 'bg-slate-100 rounded-bl-md'
                                     }`}
                             >
                                 <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
@@ -286,7 +286,7 @@ export default function ChatTestPage() {
                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-purple-200 flex items-center justify-center">
                                 <Bot className="h-4 w-4 text-primary" />
                             </div>
-                            <div className="bg-muted p-3 rounded-2xl rounded-bl-md">
+                            <div className="bg-slate-100 p-3 rounded-2xl rounded-bl-md">
                                 <div className="flex gap-1">
                                     <div className="w-2 h-2 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                                     <div className="w-2 h-2 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -299,7 +299,7 @@ export default function ChatTestPage() {
                 </CardContent>
 
                 {/* Input Area */}
-                <div className="p-4 border-t bg-muted/30">
+                <div className="p-4 border-t bg-slate-100/30">
                     <div className="flex gap-2">
                         <Input
                             id="chat-input"

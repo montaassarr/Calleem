@@ -60,12 +60,12 @@ export default function ConversationsPage() {
             </div>
 
             {/* Search */}
-            <div className="glass rounded-2xl p-4 mb-6">
+            <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 mb-6">
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                         placeholder="Search by phone number..."
-                        className="pl-10 glass-strong"
+                        className="pl-10 bg-white border border-slate-200 shadow-sm"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -75,11 +75,11 @@ export default function ConversationsPage() {
             {/* Conversations List */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {isLoading ? (
-                    <div className="col-span-2 glass rounded-2xl p-8 text-center">
+                    <div className="col-span-2 bg-white border border-slate-200 shadow-sm rounded-2xl p-8 text-center">
                         <p className="text-muted-foreground">Loading conversations...</p>
                     </div>
                 ) : conversations.length === 0 ? (
-                    <div className="col-span-2 glass rounded-2xl p-8 text-center">
+                    <div className="col-span-2 bg-white border border-slate-200 shadow-sm rounded-2xl p-8 text-center">
                         <MessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                         <p className="text-muted-foreground">No conversations yet</p>
                         <p className="text-sm text-muted-foreground mt-2">
@@ -95,7 +95,7 @@ export default function ConversationsPage() {
                         return (
                             <div
                                 key={conversation.id}
-                                className="glass rounded-2xl p-4 hover:shadow-lg transition-all cursor-pointer"
+                                className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 hover:shadow-lg transition-all cursor-pointer"
                                 onClick={() => router.push(`/dashboard/conversations/${conversation.id}`)}
                             >
                                 {/* Header */}
@@ -120,7 +120,7 @@ export default function ConversationsPage() {
                                 </div>
 
                                 {/* Last Message */}
-                                <div className="glass-strong rounded-lg p-3 mb-3">
+                                <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-3 mb-3">
                                     <p className="text-sm text-muted-foreground mb-1">
                                         {lastMessage?.role === 'client' ? 'Customer:' : 'AI:'}
                                     </p>
@@ -140,7 +140,7 @@ export default function ConversationsPage() {
 
                                 {/* Collected Info */}
                                 {conversation.state.collected_info && Object.keys(conversation.state.collected_info).length > 0 && (
-                                    <div className="mt-3 pt-3 border-t border-white/10">
+                                    <div className="mt-3 pt-3 border-t border-slate-200">
                                         <p className="text-xs text-muted-foreground mb-2">Collected Info:</p>
                                         <div className="flex flex-wrap gap-2">
                                             {Object.entries(conversation.state.collected_info).map(([key, value]) => (

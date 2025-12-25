@@ -171,13 +171,13 @@ export default function AppointmentsPage() {
             </div>
 
             {/* Filters */}
-            <div className="glass rounded-2xl p-4 mb-6">
+            <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 mb-6">
                 <div className="flex gap-4">
                     <div className="flex-1 relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
                             placeholder="Search by client name or phone..."
-                            className="pl-10 glass-strong"
+                            className="pl-10 bg-white border border-slate-200 shadow-sm"
                         />
                     </div>
                     <Button variant="outline" className="gap-2">
@@ -192,7 +192,7 @@ export default function AppointmentsPage() {
             </div>
 
             {/* Appointments List */}
-            <div className="glass rounded-2xl overflow-hidden">
+            <div className="bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden">
                 {isLoading ? (
                     <div className="p-8 text-center">
                         <p className="text-muted-foreground">Loading appointments...</p>
@@ -208,7 +208,7 @@ export default function AppointmentsPage() {
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full">
-                            <thead className="bg-white/5 border-b border-white/10">
+                            <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
                                     <th className="text-left p-4 font-semibold">Client</th>
                                     <th className="text-left p-4 font-semibold">Service</th>
@@ -223,7 +223,7 @@ export default function AppointmentsPage() {
                                 {appointments.map((appointment: AppointmentResponse) => {
                                     const { date, time } = formatDateTime(appointment.datetime);
                                     return (
-                                        <tr key={appointment.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                        <tr key={appointment.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
                                             <td className="p-4">
                                                 <div>
                                                     <p className="font-medium">{appointment.client_name}</p>
