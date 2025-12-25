@@ -42,7 +42,7 @@ export function HeroBackground({
             <div className="absolute inset-0 w-full h-full">
                 {children || (
                     // Simple blue/black gradient - high performance
-                    <div className="w-full h-full bg-gradient-to-br from-blue-950 via-slate-900 to-black" />
+                    <div className="w-full h-full bg-[#648768]" />
                 )}
             </div>
 
