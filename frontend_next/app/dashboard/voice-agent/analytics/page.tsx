@@ -120,8 +120,8 @@ export default function AnalyticsPage() {
                 </div>
             ) : (
                 <div className="grid gap-4 md:grid-cols-4">
-                    <Card>
-                        <CardContent className="pt-6">
+                    <Card className="bg-white border-slate-200 shadow-sm">
+                        <CardContent className="bg-white border-slate-200 shadow-sm pt-6">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground">Total Calls</p>
@@ -134,8 +134,8 @@ export default function AnalyticsPage() {
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardContent className="pt-6">
+                    <Card className="bg-white border-slate-200 shadow-sm">
+                        <CardContent className="bg-white border-slate-200 shadow-sm pt-6">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground">Total Duration</p>
@@ -151,8 +151,8 @@ export default function AnalyticsPage() {
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardContent className="pt-6">
+                    <Card className="bg-white border-slate-200 shadow-sm">
+                        <CardContent className="bg-white border-slate-200 shadow-sm pt-6">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground">Avg Duration</p>
@@ -168,8 +168,8 @@ export default function AnalyticsPage() {
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardContent className="pt-6">
+                    <Card className="bg-white border-slate-200 shadow-sm">
+                        <CardContent className="bg-white border-slate-200 shadow-sm pt-6">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground">Total Cost</p>
@@ -188,9 +188,9 @@ export default function AnalyticsPage() {
 
             {/* Calls by Status */}
             {analytics && Object.keys(analytics.calls_by_status || {}).length > 0 && (
-                <Card>
+                <Card className="bg-white border-slate-200 shadow-sm">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
+                        <CardTitle className="bg-white border-slate-200 shadow-sm flex items-center gap-2">
                             <BarChart3 className="h-5 w-5" />
                             Calls by Status
                         </CardTitle>
@@ -198,7 +198,7 @@ export default function AnalyticsPage() {
                     <CardContent>
                         <div className="flex flex-wrap gap-3">
                             {Object.entries(analytics.calls_by_status).map(([status, count]) => (
-                                <div key={status} className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                                <div key={status} className="flex items-center gap-2 p-3 bg-slate-100 rounded-lg">
                                     <Badge variant={status === "ended" ? "default" : "secondary"}>
                                         {status}
                                     </Badge>
@@ -211,9 +211,9 @@ export default function AnalyticsPage() {
             )}
 
             {/* Recent Conversations */}
-            <Card>
+            <Card className="bg-white border-slate-200 shadow-sm">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="bg-white border-slate-200 shadow-sm flex items-center gap-2">
                         <MessageSquare className="h-5 w-5" />
                         Recent Conversations
                     </CardTitle>
@@ -237,10 +237,10 @@ export default function AnalyticsPage() {
                             {conversations.map((conv) => (
                                 <div
                                     key={conv.id}
-                                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-100/50 transition-colors"
                                 >
                                     <div className="flex items-center gap-4">
-                                        <div className="p-2 bg-muted rounded-full">
+                                        <div className="p-2 bg-slate-100 rounded-full">
                                             <Phone className="h-4 w-4" />
                                         </div>
                                         <div>

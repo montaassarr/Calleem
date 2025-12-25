@@ -31,7 +31,7 @@ export default function DashboardLayout({
 
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-black">
+            <div className="min-h-screen flex items-center justify-center bg-white">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         )
@@ -41,11 +41,11 @@ export default function DashboardLayout({
         <ErrorBoundary>
             <ConfigProvider>
                 <TooltipProvider>
-                    <div className="min-h-screen bg-background text-foreground">
+                    <div className="dashboard-theme min-h-screen bg-white text-slate-900">
                         <div
                             className="absolute inset-0 z-0 pointer-events-none"
                             style={{
-                                background: "radial-gradient(ellipse 50% 35% at 50% 0%, rgba(226, 232, 240, 0.05), transparent 60%), #000000",
+                                background: "radial-gradient(ellipse 50% 35% at 50% 0%, rgba(0, 0, 0, 0.02), transparent)",
                             }}
                         />
                         <Sidebar />

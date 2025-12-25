@@ -101,7 +101,7 @@ export default function TeamSettingsPage() {
             </div>
 
             {/* Users List */}
-            <div className="glass rounded-2xl overflow-hidden">
+            <div className="bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden">
                 {isUsersLoading ? (
                     <div className="p-8 text-center">
                         <p className="text-muted-foreground">Loading users...</p>
@@ -117,7 +117,7 @@ export default function TeamSettingsPage() {
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full">
-                            <thead className="bg-white/5 border-b border-white/10">
+                            <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
                                     <th className="text-left p-4 font-semibold">Name</th>
                                     <th className="text-left p-4 font-semibold">Email</th>
@@ -130,7 +130,7 @@ export default function TeamSettingsPage() {
                             </thead>
                             <tbody>
                                 {users.map((user: UserResponse) => (
-                                    <tr key={user.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                    <tr key={user.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
                                         <td className="p-4 font-medium">{user.full_name}</td>
                                         <td className="p-4">{user.email}</td>
                                         <td className="p-4">{user.username}</td>
@@ -177,7 +177,7 @@ export default function TeamSettingsPage() {
 
             {/* Create User Dialog */}
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogContent className="glass">
+                <DialogContent className="bg-white border border-slate-200 shadow-sm">
                     <DialogHeader>
                         <DialogTitle>Add New User</DialogTitle>
                         <DialogDescription>
@@ -191,7 +191,7 @@ export default function TeamSettingsPage() {
                                 id="full_name"
                                 value={newUser.full_name}
                                 onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })}
-                                className="glass-strong mt-2"
+                                className="bg-white border border-slate-200 shadow-sm mt-2"
                             />
                         </div>
                         <div>
@@ -200,7 +200,7 @@ export default function TeamSettingsPage() {
                                 id="username"
                                 value={newUser.username}
                                 onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                                className="glass-strong mt-2"
+                                className="bg-white border border-slate-200 shadow-sm mt-2"
                             />
                         </div>
                         <div>
@@ -210,7 +210,7 @@ export default function TeamSettingsPage() {
                                 type="email"
                                 value={newUser.email}
                                 onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                                className="glass-strong mt-2"
+                                className="bg-white border border-slate-200 shadow-sm mt-2"
                             />
                         </div>
                         <div>
@@ -220,13 +220,13 @@ export default function TeamSettingsPage() {
                                 type="password"
                                 value={newUser.password}
                                 onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                                className="glass-strong mt-2"
+                                className="bg-white border border-slate-200 shadow-sm mt-2"
                             />
                         </div>
                         <div>
                             <Label htmlFor="role">Role</Label>
                             <Select value={newUser.role} onValueChange={(value: "admin" | "staff") => setNewUser({ ...newUser, role: value })}>
-                                <SelectTrigger className="glass-strong mt-2">
+                                <SelectTrigger className="bg-white border border-slate-200 shadow-sm mt-2">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>

@@ -21,7 +21,7 @@ export const StatCard = ({ title, value, icon: Icon, trend, variant = "primary",
             className={cn(
                 "relative overflow-hidden rounded-2xl p-6 transition-all hover:shadow-2xl hover:-translate-y-2 shine",
                 isPrimaryVariant
-                    ? "bg-gradient-to-br from-primary to-accent text-white shadow-xl shadow-primary/20"
+                    ? "bg-primary text-primary-foreground shadow-xl shadow-primary/20"
                     : "glass-card"
             )}
         >

@@ -16,17 +16,19 @@ import type {
 
 // API Base URL for direct fetch calls
 // In production (Vercel), this MUST be set to the Railway backend URL
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
-  (typeof window !== 'undefined' && window.location.hostname === 'localhost' 
-    ? 'http://localhost:8000' 
-    : '');
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ||
+    (typeof window !== 'undefined'
+        ? window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:8000'
+            : `http://${window.location.hostname}:8000`
+        : '');
 
 // Check for placeholder URLs
 if (typeof window !== 'undefined' && BASE_URL && BASE_URL.includes('your-railway-url')) {
-  console.error(
-    '❌ NEXT_PUBLIC_API_URL contains placeholder value! ' +
-    'Please update it in Vercel environment variables to your actual Railway backend URL.'
-  );
+    console.error(
+        '❌ NEXT_PUBLIC_API_URL contains placeholder value! ' +
+        'Please update it in Vercel environment variables to your actual Railway backend URL.'
+    );
 }
 
 const API_BASE_URL = BASE_URL ? `${BASE_URL}/api/v1` : '/api/v1';

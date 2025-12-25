@@ -14,11 +14,11 @@ export default function BuyPhoneNumberPage() {
         </Button>
       </div>
 
-      <Card>
+      <Card className="bg-white border-slate-200 shadow-sm text-slate-900">
         <CardHeader>
           <CardTitle>Phone Number Provisioning</CardTitle>
         </CardHeader>
-        <CardContent className="text-center py-12">
+        <CardContent className="bg-white border-slate-200 shadow-sm text-center py-12">
           <Phone className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <h2 className="text-xl font-semibold mb-2">Coming Soon</h2>
           <p className="text-muted-foreground mb-6">

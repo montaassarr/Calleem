@@ -18,7 +18,7 @@ export default function LiveMonitorPage() {
       </div>
 
       <div className="grid gap-6">
-        <Card>
+        <Card className="bg-white border-slate-200 shadow-sm">
           <CardHeader>
             <CardTitle>📡 Real-Time Call Activity</CardTitle>
             <CardDescription>
@@ -31,11 +31,11 @@ export default function LiveMonitorPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white border-slate-200 shadow-sm">
           <CardHeader>
             <CardTitle>ℹ️ How It Works</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm">
+          <CardContent className="bg-white border-slate-200 shadow-sm space-y-3 text-sm">
             <div>
               <strong className="text-primary">Real-Time Transcripts:</strong>
               <p className="text-muted-foreground">

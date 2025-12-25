@@ -153,10 +153,10 @@ export default function HoursSettingsPage() {
                 ) : (
                     <>
                         {hours.map((dayHours, index) => (
-                            <Card key={dayHours.day_of_week} className="glass">
-                                <CardHeader className="pb-3">
+                            <Card key={dayHours.day_of_week} className="bg-white border border-slate-200 shadow-sm">
+                                <CardHeader className="bg-white border-slate-200 shadow-sm pb-3">
                                     <div className="flex items-center justify-between">
-                                        <CardTitle className="text-lg flex items-center gap-2">
+                                        <CardTitle className="bg-white border-slate-200 shadow-sm text-lg flex items-center gap-2">
                                             <Clock className="w-5 h-5" />
                                             {DAY_LABELS[DAYS[index]]}
                                         </CardTitle>
@@ -192,7 +192,7 @@ export default function HoursSettingsPage() {
                                                     type="time"
                                                     value={dayHours.open_time}
                                                     onChange={(e) => updateDay(dayHours.day_of_week, 'open_time', e.target.value)}
-                                                    className="glass-strong mt-1"
+                                                    className="bg-white border border-slate-200 shadow-sm mt-1"
                                                     disabled={isUpdating}
                                                 />
                                             </div>
@@ -202,7 +202,7 @@ export default function HoursSettingsPage() {
                                                     type="time"
                                                     value={dayHours.close_time}
                                                     onChange={(e) => updateDay(dayHours.day_of_week, 'close_time', e.target.value)}
-                                                    className="glass-strong mt-1"
+                                                    className="bg-white border border-slate-200 shadow-sm mt-1"
                                                     disabled={isUpdating}
                                                 />
                                             </div>
@@ -221,11 +221,11 @@ export default function HoursSettingsPage() {
             </div>
 
             {/* Quick Actions */}
-            <Card className="glass max-w-4xl mb-6">
+            <Card className="bg-white border border-slate-200 shadow-sm max-w-4xl mb-6">
                 <CardHeader>
-                    <CardTitle className="text-base">Quick Actions</CardTitle>
+                    <CardTitle className="bg-white border-slate-200 shadow-sm text-base">Quick Actions</CardTitle>
                 </CardHeader>
-                <CardContent className="flex gap-2 flex-wrap">
+                <CardContent className="bg-white border-slate-200 shadow-sm flex gap-2 flex-wrap">
                     <Button
                         variant="outline"
                         size="sm"
@@ -303,7 +303,7 @@ export default function HoursSettingsPage() {
             </div>
 
             {/* Info */}
-            <div className="glass rounded-lg p-4 max-w-4xl mt-6 border border-blue-500/20">
+            <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-4 max-w-4xl mt-6 border border-blue-500/20">
                 <p className="text-sm text-blue-600 dark:text-blue-400">
                     💡 <strong>Tip:</strong> The AI receptionist will use these hours to inform customers about availability and prevent bookings outside business hours. Use &quot;Copy to All&quot; to quickly apply one day&apos;s schedule to the entire week.
                 </p>

@@ -104,7 +104,7 @@ export default function ServicesPage() {
             </div>
 
             {/* Services Grid */}
-            <div className="glass-panel p-6">
+            <div className="bg-white border border-slate-200 shadow-sm p-6">
                 {isLoading ? (
                     <div className="flex items-center justify-center py-12">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -119,7 +119,7 @@ export default function ServicesPage() {
                         {services.map((service: ServiceResponse) => (
                             <div
                                 key={service.id}
-                                className="glass-panel p-6 hover:shadow-lg transition-shadow"
+                                className="bg-white border border-slate-200 shadow-sm p-6 hover:shadow-lg transition-shadow"
                             >
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="flex-1">
@@ -144,7 +144,7 @@ export default function ServicesPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                                <div className="flex items-center justify-between pt-4 border-t border-slate-200">
                                     <div className="flex items-center gap-2">
                                         <Switch
                                             checked={service.active}

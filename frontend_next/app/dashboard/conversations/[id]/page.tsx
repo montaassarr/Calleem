@@ -106,7 +106,7 @@ export default function ConversationDetailPage() {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto space-y-4 p-4 rounded-xl border bg-muted/10">
+            <div className="flex-1 overflow-y-auto space-y-4 p-4 rounded-xl border bg-slate-100/10">
                 {conversation.messages.map((msg, index) => (
                     <div
                         key={index}
@@ -114,7 +114,7 @@ export default function ConversationDetailPage() {
                     >
                         <div
                             className={`max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === "client"
-                                    ? "bg-muted text-foreground rounded-tl-none"
+                                    ? "bg-slate-100 text-foreground rounded-tl-none"
                                     : "bg-primary text-primary-foreground rounded-tr-none"
                                 }`}
                         >

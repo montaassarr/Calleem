@@ -68,19 +68,19 @@ export default function VoiceAgentTestPage() {
 
         {/* Left Column: Call Controls */}
         <div className="flex-1 flex items-center justify-center">
-          <Card className="w-full max-w-md shadow-lg border-primary/20">
-            <CardHeader className="text-center pb-2">
+          <Card className="bg-white border-slate-200 shadow-sm w-full max-w-md shadow-lg border-primary/20">
+            <CardHeader className="bg-white border-slate-200 shadow-sm text-center pb-2">
               <div className="mx-auto bg-primary/10 p-4 rounded-full mb-4 w-20 h-20 flex items-center justify-center">
                 <Mic className="h-10 w-10 text-primary" />
               </div>
-              <CardTitle className="text-2xl">Test Your AI Receptionist</CardTitle>
+              <CardTitle className="bg-white border-slate-200 shadow-sm text-2xl">Test Your AI Receptionist</CardTitle>
               <CardDescription>
                 {assistantId
                   ? "Microphone access is required. Speak normally."
                   : "No assistant configured yet."}
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col items-center gap-6 pt-6">
+            <CardContent className="bg-white border-slate-200 shadow-sm flex flex-col items-center gap-6 pt-6">
               {error ? (
                 <div className="text-center space-y-4">
                   <p className="text-destructive font-medium">{error}</p>
