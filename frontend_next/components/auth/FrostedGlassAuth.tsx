@@ -75,10 +75,10 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
         const passedRequirements = passwordRequirements.filter((req) => req.test(password)).length
         if (passedRequirements === 0) return { strength: 0, label: "", color: "" }
         // Using shades of Cyan for all strength levels to match theme
-        if (passedRequirements <= 2) return { strength: 25, label: "Weak", color: "bg-cyan-900" }
-        if (passedRequirements <= 3) return { strength: 50, label: "Fair", color: "bg-cyan-700" }
-        if (passedRequirements <= 4) return { strength: 75, label: "Good", color: "bg-cyan-500" }
-        return { strength: 100, label: "Strong", color: "bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,0.5)]" }
+        if (passedRequirements <= 2) return { strength: 25, label: "Weak", color: "bg-red-500" }
+        if (passedRequirements <= 3) return { strength: 50, label: "Fair", color: "bg-yellow-500" }
+        if (passedRequirements <= 4) return { strength: 75, label: "Good", color: "bg-[#4ade80]" }
+        return { strength: 100, label: "Strong", color: "bg-[#2C7A44] shadow-[0_0_10px_rgba(44,122,68,0.5)]" }
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -123,14 +123,14 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
             } else if (error.message) {
                 errorMessage = error.message;
             }
-            
+
             // Show specific errors for common issues
             if (errorMessage.includes("already registered") || errorMessage.includes("already taken")) {
                 errorMessage = "This email or username is already registered. Please try logging in instead.";
             } else if (errorMessage.includes("Incorrect username") || errorMessage.includes("Incorrect password")) {
                 errorMessage = "Invalid email or password. Please check your credentials.";
             }
-            
+
             alert(errorMessage);
         } finally {
             setIsLoading(false)
@@ -192,9 +192,9 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
         <div className={`w-[450px] max-w-full transition-all duration-700 ease-out ${getCardHeight()}`}>
             <div className="relative h-full">
                 {/* Glass morphism card - Darker Background for Contrast */}
-                <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl">
+                <div className="absolute inset-0 bg-[#05100a]/80 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl">
                     {/* Subtle gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-transparent rounded-3xl" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#2C7A44]/20 via-transparent to-transparent rounded-3xl" />
                 </div>
 
                 {/* Content */}
@@ -218,7 +218,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                             type="email"
                                             value={formData.email}
                                             onChange={(e) => handleInputChange("email", e.target.value)}
-                                            className="pl-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:ring-cyan-500/20"
+                                            className="pl-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-[#2C7A44]/50 focus:ring-[#2C7A44]/20"
                                             placeholder="Enter your email"
                                             required
                                         />
@@ -236,7 +236,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                             type={showPassword ? "text" : "password"}
                                             value={formData.password}
                                             onChange={(e) => handleInputChange("password", e.target.value)}
-                                            className="pl-10 pr-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:ring-cyan-500/20"
+                                            className="pl-10 pr-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-[#2C7A44]/50 focus:ring-[#2C7A44]/20"
                                             placeholder="Enter your password"
                                             required
                                         />
@@ -254,7 +254,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                     <button
                                         type="button"
                                         onClick={goToForgotPassword}
-                                        className="text-cyan-400 hover:text-cyan-300 text-sm transition-colors"
+                                        className="text-[#4ade80] hover:text-[#2C7A44] text-sm transition-colors"
                                     >
                                         Forgot password?
                                     </button>
@@ -263,7 +263,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                 <Button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full bg-cyan-600 hover:bg-cyan-500 text-white border border-cyan-500/30 h-11 rounded-xl font-medium transition-all duration-200 shadow-[0_0_15px_rgba(8,145,178,0.3)] hover:shadow-[0_0_20px_rgba(6,182,212,0.5)]"
+                                    className="w-full bg-[#2C7A44] hover:bg-[#246337] text-white border border-[#2C7A44]/30 h-11 rounded-xl font-medium transition-all duration-200 shadow-[0_0_15px_rgba(44,122,68,0.3)] hover:shadow-[0_0_20px_rgba(44,122,68,0.5)]"
                                 >
                                     {isLoading ? "Signing in..." : "Sign In"}
                                 </Button>
@@ -274,7 +274,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                     onClick={() => switchMode("signup")}
                                     className="text-slate-300 hover:text-white text-sm transition-colors"
                                 >
-                                    {"Don't have an account? "} <span className="text-cyan-400 hover:text-cyan-300">Sign up</span>
+                                    {"Don't have an account? "} <span className="text-[#4ade80] hover:text-[#2C7A44]">Sign up</span>
                                 </button>
                             </div>
                         </div>
@@ -299,7 +299,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                             type="text"
                                             value={formData.name}
                                             onChange={(e) => handleInputChange("name", e.target.value)}
-                                            className="pl-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:ring-cyan-500/20"
+                                            className="pl-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-[#2C7A44]/50 focus:ring-[#2C7A44]/20"
                                             placeholder="Enter your full name"
                                             required
                                         />
@@ -317,7 +317,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                             type="text"
                                             value={formData.business_name}
                                             onChange={(e) => handleInputChange("business_name", e.target.value)}
-                                            className="pl-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:ring-cyan-500/20"
+                                            className="pl-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-[#2C7A44]/50 focus:ring-[#2C7A44]/20"
                                             placeholder="Enter your business name"
                                             required
                                         />
@@ -335,7 +335,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                             type="tel"
                                             value={formData.phone}
                                             onChange={(e) => handleInputChange("phone", e.target.value)}
-                                            className="pl-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:ring-cyan-500/20"
+                                            className="pl-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-[#2C7A44]/50 focus:ring-[#2C7A44]/20"
                                             placeholder="+1234567890"
                                             required
                                         />
@@ -353,7 +353,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                             type="email"
                                             value={formData.email}
                                             onChange={(e) => handleInputChange("email", e.target.value)}
-                                            className="pl-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:ring-cyan-500/20"
+                                            className="pl-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-[#2C7A44]/50 focus:ring-[#2C7A44]/20"
                                             placeholder="Enter your email"
                                             required
                                         />
@@ -371,7 +371,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                             type={showPassword ? "text" : "password"}
                                             value={formData.password}
                                             onChange={(e) => handleInputChange("password", e.target.value)}
-                                            className="pl-10 pr-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:ring-cyan-500/20"
+                                            className="pl-10 pr-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-[#2C7A44]/50 focus:ring-[#2C7A44]/20"
                                             placeholder="Create a password"
                                             required
                                         />
@@ -390,12 +390,12 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                                 <span className="text-xs text-slate-400">Password strength</span>
                                                 <span
                                                     className={`text-xs font-medium ${passwordStrength.strength === 100
-                                                        ? "text-cyan-300"
+                                                        ? "text-[#4ade80]"
                                                         : passwordStrength.strength >= 75
-                                                            ? "text-cyan-400"
+                                                            ? "text-[#2C7A44]"
                                                             : passwordStrength.strength >= 50
-                                                                ? "text-cyan-600"
-                                                                : "text-slate-500"
+                                                                ? "text-yellow-500"
+                                                                : "text-red-500"
                                                         }`}
                                                 >
                                                     {passwordStrength.label}
@@ -411,7 +411,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                                 {passwordRequirements.map((req, index) => (
                                                     <div key={index} className="flex items-center space-x-2">
                                                         <div
-                                                            className={`w-1.5 h-1.5 rounded-full ${req.test(formData.password) ? "bg-cyan-400" : "bg-white/10"
+                                                            className={`w-1.5 h-1.5 rounded-full ${req.test(formData.password) ? "bg-[#2C7A44]" : "bg-white/10"
                                                                 }`}
                                                         />
                                                         <span
@@ -437,7 +437,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                             type={showConfirmPassword ? "text" : "password"}
                                             value={formData.confirmPassword}
                                             onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                                            className="pl-10 pr-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:ring-cyan-500/20"
+                                            className="pl-10 pr-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-[#2C7A44]/50 focus:ring-[#2C7A44]/20"
                                             placeholder="Confirm your password"
                                             required
                                         />
@@ -457,7 +457,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                 <Button
                                     type="submit"
                                     disabled={isLoading || !isSignupValid}
-                                    className="w-full bg-cyan-600 hover:bg-cyan-500 text-white border border-cyan-500/30 h-11 rounded-xl font-medium transition-all duration-200 shadow-[0_0_15px_rgba(8,145,178,0.3)] hover:shadow-[0_0_20px_rgba(6,182,212,0.5)] disabled:opacity-50 disabled:shadow-none"
+                                    className="w-full bg-[#2C7A44] hover:bg-[#246337] text-white border border-[#2C7A44]/30 h-11 rounded-xl font-medium transition-all duration-200 shadow-[0_0_15px_rgba(44,122,68,0.3)] hover:shadow-[0_0_20px_rgba(44,122,68,0.5)] disabled:opacity-50 disabled:shadow-none"
                                 >
                                     {isLoading ? "Creating account..." : "Sign Up"}
                                 </Button>
@@ -468,7 +468,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                     onClick={() => switchMode("login")}
                                     className="text-slate-300 hover:text-white text-sm transition-colors"
                                 >
-                                    Already have an account? <span className="text-cyan-400 hover:text-cyan-300">Sign in</span>
+                                    Already have an account? <span className="text-[#4ade80] hover:text-[#2C7A44]">Sign in</span>
                                 </button>
                             </div>
                         </div>
@@ -500,7 +500,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                             type="email"
                                             value={formData.email}
                                             onChange={(e) => handleInputChange("email", e.target.value)}
-                                            className="pl-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:ring-cyan-500/20"
+                                            className="pl-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-[#2C7A44]/50 focus:ring-[#2C7A44]/20"
                                             placeholder="Enter your email"
                                             required
                                         />
@@ -510,7 +510,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                 <Button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full bg-cyan-600 hover:bg-cyan-500 text-white border border-cyan-500/30 h-11 rounded-xl font-medium transition-all duration-200 shadow-[0_0_15px_rgba(8,145,178,0.3)] hover:shadow-[0_0_20px_rgba(6,182,212,0.5)]"
+                                    className="w-full bg-[#2C7A44] hover:bg-[#246337] text-white border border-[#2C7A44]/30 h-11 rounded-xl font-medium transition-all duration-200 shadow-[0_0_15px_rgba(44,122,68,0.3)] hover:shadow-[0_0_20px_rgba(44,122,68,0.5)]"
                                 >
                                     {isLoading ? "Sending..." : "Send Reset Link"}
                                 </Button>
@@ -528,8 +528,8 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                             </button>
 
                             <div className="text-center space-y-2">
-                                <div className="w-12 h-12 bg-cyan-500/10 backdrop-blur-sm border border-cyan-500/20 rounded-full flex items-center justify-center mx-auto">
-                                    <Shield className="w-6 h-6 text-cyan-400" />
+                                <div className="w-12 h-12 bg-[#2C7A44]/10 backdrop-blur-sm border border-[#2C7A44]/20 rounded-full flex items-center justify-center mx-auto">
+                                    <Shield className="w-6 h-6 text-[#4ade80]" />
                                 </div>
                                 <h1 className="text-2xl font-semibold text-white">Create New Password</h1>
                                 <p className="text-slate-300">Enter your new password below</p>
@@ -547,7 +547,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                             type={showPassword ? "text" : "password"}
                                             value={formData.password}
                                             onChange={(e) => handleInputChange("password", e.target.value)}
-                                            className="pl-10 pr-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:ring-cyan-500/20"
+                                            className="pl-10 pr-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-[#2C7A44]/50 focus:ring-[#2C7A44]/20"
                                             placeholder="Enter new password"
                                             required
                                         />
@@ -572,7 +572,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                             type={showConfirmPassword ? "text" : "password"}
                                             value={formData.confirmPassword}
                                             onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                                            className="pl-10 pr-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:ring-cyan-500/20"
+                                            className="pl-10 pr-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-[#2C7A44]/50 focus:ring-[#2C7A44]/20"
                                             placeholder="Confirm new password"
                                             required
                                         />
@@ -592,7 +592,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                 <Button
                                     type="submit"
                                     disabled={isLoading || !formData.password || formData.password !== formData.confirmPassword}
-                                    className="w-full bg-cyan-600 hover:bg-cyan-500 text-white border border-cyan-500/30 h-11 rounded-xl font-medium transition-all duration-200 shadow-[0_0_15px_rgba(8,145,178,0.3)] hover:shadow-[0_0_20px_rgba(6,182,212,0.5)] disabled:opacity-50"
+                                    className="w-full bg-[#2C7A44] hover:bg-[#246337] text-white border border-[#2C7A44]/30 h-11 rounded-xl font-medium transition-all duration-200 shadow-[0_0_15px_rgba(44,122,68,0.3)] hover:shadow-[0_0_20px_rgba(44,122,68,0.5)] disabled:opacity-50"
                                 >
                                     {isLoading ? "Updating..." : "Update Password"}
                                 </Button>
@@ -624,7 +624,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                             type="text"
                                             value={digit}
                                             onChange={(e) => handleOtpChange(index, e.target.value)}
-                                            className="w-12 h-12 text-center text-lg font-semibold bg-black/40 border-white/10 text-white focus:border-cyan-500/50 focus:ring-cyan-500/20 rounded-xl"
+                                            className="w-12 h-12 text-center text-lg font-semibold bg-black/40 border-white/10 text-white focus:border-[#2C7A44]/50 focus:ring-[#2C7A44]/20 rounded-xl"
                                             maxLength={1}
                                         />
                                     ))}
@@ -633,7 +633,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                 <Button
                                     type="submit"
                                     disabled={isLoading || formData.otp.some((digit) => !digit)}
-                                    className="w-full bg-cyan-600 hover:bg-cyan-500 text-white border border-cyan-500/30 h-11 rounded-xl font-medium transition-all duration-200 shadow-[0_0_15px_rgba(8,145,178,0.3)] hover:shadow-[0_0_20px_rgba(6,182,212,0.5)]"
+                                    className="w-full bg-[#2C7A44] hover:bg-[#246337] text-white border border-[#2C7A44]/30 h-11 rounded-xl font-medium transition-all duration-200 shadow-[0_0_15px_rgba(44,122,68,0.3)] hover:shadow-[0_0_20px_rgba(44,122,68,0.5)]"
                                 >
                                     {isLoading ? "Verifying..." : "Verify Code"}
                                 </Button>
@@ -654,8 +654,8 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                                 <X className="w-5 h-5" />
                             </button>
 
-                            <div className="w-16 h-16 bg-cyan-500/10 backdrop-blur-sm border border-cyan-500/20 rounded-full flex items-center justify-center">
-                                <Check className="w-8 h-8 text-cyan-400" />
+                            <div className="w-16 h-16 bg-[#2C7A44]/10 backdrop-blur-sm border border-[#2C7A44]/20 rounded-full flex items-center justify-center">
+                                <Check className="w-8 h-8 text-[#4ade80]" />
                             </div>
 
                             <div className="text-center space-y-2">
@@ -671,7 +671,7 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
 
                             <Button
                                 onClick={() => router.push("/dashboard")}
-                                className="w-full bg-cyan-600 hover:bg-cyan-500 text-white border border-cyan-500/30 h-11 rounded-xl font-medium transition-all duration-200 shadow-[0_0_15px_rgba(8,145,178,0.3)] hover:shadow-[0_0_20px_rgba(6,182,212,0.5)]"
+                                className="w-full bg-[#2C7A44] hover:bg-[#246337] text-white border border-[#2C7A44]/30 h-11 rounded-xl font-medium transition-all duration-200 shadow-[0_0_15px_rgba(44,122,68,0.3)] hover:shadow-[0_0_20px_rgba(44,122,68,0.5)]"
                             >
                                 Go to Dashboard
                             </Button>
