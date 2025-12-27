@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   generator: "v0.app",
 }
 
-import { GlobalBackground } from "@/components/landing/GlobalBackground"
+
 import Providers from "@/components/providers"
 
 // ... imports ...
@@ -40,7 +40,7 @@ html {
       </head>
       <body className="dark" suppressHydrationWarning>
         <Providers>
-          <GlobalBackground />
+
           {children}
         </Providers>
       </body>

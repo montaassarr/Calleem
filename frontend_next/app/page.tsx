@@ -1,53 +1,32 @@
-"use client"
+import React from 'react';
+import Navbar from '@/components/landing/Navbar';
+import Hero from '@/components/landing/Hero';
+import HowItWorks from '@/components/landing/HowItWorks';
+import BentoGrid from '@/components/landing/BentoGrid';
+import Comparison from '@/components/landing/Comparison';
+import Pricing from '@/components/landing/Pricing';
+import FAQ from '@/components/landing/FAQ';
+import PreFooterCTA from '@/components/landing/PreFooterCTA';
+import Footer from '@/components/landing/Footer';
+import ChatWidget from '@/components/landing/ChatWidget';
 
-import { useEffect } from "react"
-import { Header } from "@/components/landing/header"
-import Hero from "@/components/landing/hero"
-import Features from "@/components/landing/features"
-import { TestimonialsSection } from "@/components/landing/testimonials"
-import { NewReleasePromo } from "@/components/landing/new-release-promo"
-import { FAQSection } from "@/components/landing/faq-section"
-import { PricingSection } from "@/components/landing/pricing-section"
-import { StickyFooter } from "@/components/landing/sticky-footer"
 
 export default function Home() {
-  useEffect(() => {
-    const root = window.document.documentElement
-    root.classList.remove("light", "system")
-    root.classList.add("dark")
-  }, [])
-
   return (
-    <div className="min-h-screen w-full relative bg-black">
-      <Header />
+    <div className="flex flex-col w-full min-h-screen bg-[#648768] text-white selection:bg-lime selection:text-forest relative">
+      <Navbar />
+      <main className="flex-grow">
+        <Hero />
+        <HowItWorks />
+        <BentoGrid />
+        <Comparison />
+        <Pricing />
+        <FAQ />
+        <PreFooterCTA />
 
-      {/* Hero Section */}
-      <Hero />
-
-      {/* Features Section */}
-      <div id="features">
-        <Features />
-      </div>
-
-      {/* Pricing Section */}
-      <div id="pricing">
-        <PricingSection />
-      </div>
-
-      {/* Testimonials Section */}
-      <div id="testimonials">
-        <TestimonialsSection />
-      </div>
-
-      <NewReleasePromo />
-
-      {/* FAQ Section */}
-      <div id="faq">
-        <FAQSection />
-      </div>
-
-      {/* Sticky Footer */}
-      <StickyFooter />
+      </main>
+      <Footer />
+      <ChatWidget />
     </div>
-  )
+  );
 }
