@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const login = async (credentials: LoginCredentials) => {
         setIsLoading(true);
         logUserAction('login_attempt', { email: credentials.email });
-        
+
         try {
             const token = await authApi.login(credentials);
             localStorage.setItem('access_token', token.access_token);
@@ -77,10 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 localStorage.setItem('tenant_id', userData.tenant_id);
             }
 
-            logUserAction('login_success', { 
+            logUserAction('login_success', {
                 user_id: userData.id,
                 tenant_id: userData.tenant_id,
-                role: userData.role 
+                role: userData.role
             }, {
                 userId: userData.id,
                 tenantId: userData.tenant_id,
@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             // Redirect based on role
             if (userData.role === 'super_admin') {
-                window.location.href = '/admin/dashboard';
+                window.location.href = '/admin';
             } else {
                 window.location.href = '/dashboard';
             }
@@ -111,12 +111,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const register = async (data: UserCreate) => {
         setIsLoading(true);
-        logUserAction('registration_attempt', { 
+        logUserAction('registration_attempt', {
             email: data.email,
             username: data.username,
-            business_name: data.business_name 
+            business_name: data.business_name
         });
-        
+
         try {
             // Backend returns token on registration
             const token = await authApi.register(data);
@@ -135,10 +135,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 localStorage.setItem('tenant_id', userData.tenant_id);
             }
 
-            logUserAction('registration_success', { 
+            logUserAction('registration_success', {
                 user_id: userData.id,
                 tenant_id: userData.tenant_id,
-                business_name: data.business_name 
+                business_name: data.business_name
             }, {
                 userId: userData.id,
                 tenantId: userData.tenant_id,
@@ -156,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 },
                 stack: error instanceof Error ? error.stack : undefined,
             });
-            logUserAction('registration_failed', { 
+            logUserAction('registration_failed', {
                 email: data.email,
                 error: error instanceof Error ? error.message : 'Unknown error'
             }, {

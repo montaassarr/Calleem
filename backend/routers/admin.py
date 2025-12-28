@@ -1,7 +1,7 @@
 """
 Admin API Router
 Platform owner endpoints for managing tenants, users, system configuration, and analytics.
-Single page admin dashboard - no authentication required.
+Secured: Requires valid Admin/Owner/SuperAdmin authentication.
 """
 
 from fastapi import APIRouter, Depends, Query
@@ -16,13 +16,14 @@ from models.user import UserResponse, Token, UserCreate, UserUpdate
 from models.appointment import AppointmentStatus, AppointmentCreate, AppointmentUpdate, AppointmentResponse
 from models.service import ServiceCreate, ServiceUpdate, ServiceResponse
 from models.conversation import ConversationResponse
-from routers.users import get_current_admin
+from routers.users import get_current_admin, get_super_admin
 from services.admin_service import get_admin_service, AdminService
 from database.mongo_config import get_database
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+# Secure all endpoints in this router
+router = APIRouter(dependencies=[Depends(get_current_admin)])
 
 
 # ==================== TENANT MANAGEMENT ====================
