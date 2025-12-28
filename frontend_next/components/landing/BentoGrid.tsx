@@ -94,7 +94,7 @@ const BentoGrid: React.FC = () => {
             className="md:max-w-[320px]"
           >
             <p className="text-white/60 font-manrope text-lg leading-relaxed">
-              Kalleem shows your appointments, calls, and AI performance in simple visuals you can act on – right away.
+              Calleem shows your appointments, calls, and AI performance in simple visuals you can act on – right away.
             </p>
           </motion.div>
         </div>

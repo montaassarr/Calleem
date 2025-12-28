@@ -12,8 +12,8 @@ const _geistMono = V0_Font_Geist_Mono({ subsets: ['latin'], weight: ["100", "200
 const _sourceSerif_4 = V0_Font_Source_Serif_4({ subsets: ['latin'], weight: ["200", "300", "400", "500", "600", "700", "800", "900"] })
 
 export const metadata: Metadata = {
-  title: "AIM² - AI Receptionist Agency",
-  description: "Automate your business with AIM² AI Receptionist",
+  title: "Calleem",
+  description: "Automate your business with Calleem AI Receptionist",
   generator: "v0.app",
 }
 

@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     )
     
     # Application
-    APP_NAME: str = "AI Receptionist"
+    APP_NAME: str = "Calleem"
     DEBUG: bool = True
     ENVIRONMENT: str = "development"
     API_V1_PREFIX: str = "/api/v1"
