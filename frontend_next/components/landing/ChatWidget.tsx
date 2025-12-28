@@ -10,18 +10,54 @@ type Message = {
   timestamp: Date;
 };
 
+// API base URL - adjust based on environment
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 const ChatWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Simulate connection process
+  // Initialize chat session when widget opens
   useEffect(() => {
     if (isOpen && !isConnected) {
-      const timer = setTimeout(() => {
+      initializeSession();
+    }
+  }, [isOpen, isConnected]);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isTyping, isOpen]);
+
+  const initializeSession = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/chat/init`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSessionId(data.session_id);
+        setIsConnected(true);
+        setMessages([
+          {
+            id: '1',
+            text: data.welcome_message,
+            sender: 'agent',
+            timestamp: new Date(),
+          },
+        ]);
+      } else {
+        // Fallback to simulated mode if API fails
+        console.error('Failed to initialize chat session');
         setIsConnected(true);
         setMessages([
           {
@@ -31,27 +67,34 @@ const ChatWidget: React.FC = () => {
             timestamp: new Date(),
           },
         ]);
-      }, 1500);
-      return () => clearTimeout(timer);
+      }
+    } catch (error) {
+      console.error('Error initializing chat:', error);
+      // Fallback to simulated mode
+      setIsConnected(true);
+      setMessages([
+        {
+          id: '1',
+          text: 'Hello! How can I help you with Calleem today?',
+          sender: 'agent',
+          timestamp: new Date(),
+        },
+      ]);
     }
-  }, [isOpen, isConnected]);
-
-  // Auto-scroll to bottom
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isTyping, isOpen]);
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim() || !isConnected) return;
 
+    const userMessage = inputValue.trim();
     const newUserMessage: Message = {
       id: Date.now().toString(),
-      text: inputValue,
+      text: userMessage,
       sender: 'user',
       timestamp: new Date(),
     };
@@ -60,17 +103,47 @@ const ChatWidget: React.FC = () => {
     setInputValue('');
     setIsTyping(true);
 
-    // Simulate agent response
-    setTimeout(() => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/chat/message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userMessage,
+          session_id: sessionId,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const agentResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          text: data.response,
+          sender: 'agent',
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, agentResponse]);
+        // Update session ID if returned
+        if (data.session_id) {
+          setSessionId(data.session_id);
+        }
+      } else {
+        throw new Error('Failed to get response');
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Fallback response
       const agentResponse: Message = {
         id: (Date.now() + 1).toString(),
-        text: "Thanks for reaching out! Our AI agents are currently handling other requests, but a human will be with you shortly to discuss our pricing and features.",
+        text: "I'm sorry, I'm having trouble connecting right now. Please try again or contact our support team directly.",
         sender: 'agent',
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, agentResponse]);
+    } finally {
       setIsTyping(false);
-    }, 2000);
+    }
   };
 
   return (
@@ -96,7 +169,7 @@ const ChatWidget: React.FC = () => {
                   <p className="text-xs text-white/50">{isConnected ? 'Online' : 'Connecting...'}</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setIsOpen(false)}
                 className="text-white/60 hover:text-white transition-colors"
                 aria-label="Close chat"
@@ -110,7 +183,7 @@ const ChatWidget: React.FC = () => {
               {!isConnected && (
                 <div className="flex flex-col items-center justify-center h-full text-white/40 gap-2">
                   <Loader2 size={24} className="animate-spin" />
-                  <span className="text-xs">Connecting to secure server...</span>
+                  <span className="text-xs">Connecting to AI assistant...</span>
                 </div>
               )}
               {messages.map((msg) => (
@@ -119,11 +192,10 @@ const ChatWidget: React.FC = () => {
                   className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[80%] p-3 rounded-2xl text-sm leading-relaxed ${
-                      msg.sender === 'user'
+                    className={`max-w-[80%] p-3 rounded-2xl text-sm leading-relaxed ${msg.sender === 'user'
                         ? 'bg-leaf text-white rounded-tr-sm'
                         : 'bg-[#1d331a] border border-white/10 text-white/90 rounded-tl-sm'
-                    }`}
+                      }`}
                   >
                     {msg.text}
                   </div>
@@ -169,11 +241,10 @@ const ChatWidget: React.FC = () => {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className={`p-4 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ${
-          isOpen 
-            ? 'bg-[#153629] text-white border border-white/10' 
+        className={`p-4 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ${isOpen
+            ? 'bg-[#153629] text-white border border-white/10'
             : 'bg-[#2C7A44] text-white shadow-[0_0_20px_rgba(44,122,68,0.3)]'
-        }`}
+          }`}
         aria-label="Toggle chat"
       >
         {isOpen ? <X size={24} /> : <MessageCircle size={24} className="fill-current" />}

@@ -138,6 +138,7 @@ from routers import (
     admin,
     monitoring,
     contacts,
+    chat,
 )
 
 # Auth & Users
@@ -177,6 +178,9 @@ app.include_router(monitoring.router, prefix=f"{settings.API_V1_PREFIX}", tags=[
 
 # Contacts (public + admin)
 app.include_router(contacts.router, prefix=f"{settings.API_V1_PREFIX}/contacts", tags=["Contacts"])
+
+# Chat Widget (public, uses Gemini AI)
+app.include_router(chat.router, prefix=f"{settings.API_V1_PREFIX}/chat", tags=["Chat"])
 
 
 # ============== ROOT ENDPOINTS ==============
