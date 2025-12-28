@@ -20,38 +20,66 @@ DB_NAME = os.getenv("DATABASE_NAME", "ai_barber_receptionist")
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 async def create_super_admin():
-    print(f"Connecting to {MONGO_URL}...")
-    client = AsyncIOMotorClient(MONGO_URL)
-    db = client[DB_NAME]
+    print("\n=== CREATE SUPER ADMIN ===")
+    print("This script helps you create or update a Super Admin user.")
+    print("To run against PRODUCTION, provide your production MongoDB URI.")
+    print("To run LOCALLY, just press Enter.")
     
-    print("\n--- Create Super Admin User ---")
-    # Non-interactive mode for agent execution
-    email = "admin@calleem.com"
-    username = "superadmin"
-    password = "CalleemMaster2025!"
+    env_mongo_url = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+    custom_mongo_url = input(f"\nEnter MongoDB URI [Default: {env_mongo_url}]: ").strip()
     
-    print(f"Using email: {email}")
-    print(f"Using username: {username}")
+    mongo_url = custom_mongo_url if custom_mongo_url else env_mongo_url
     
-    if not email or not username or not password:
-        print("Error: All fields are required.")
+    # Simple check to warn user
+    if "localhost" not in mongo_url and "127.0.0.1" not in mongo_url:
+        print(f"\n⚠️  WARNING: You are about to connect to a REMOTE database: {mongo_url}")
+        confirm = input("Type 'yes' to proceed: ").strip().lower()
+        if confirm != "yes":
+            print("Operation cancelled.")
+            return
+
+    print(f"\nConnecting to database...")
+    try:
+        client = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=5000)
+        # Verify connection
+        await client.server_info()
+    except Exception as e:
+        print(f"❌ Connection failed: {e}")
         return
 
+    # Use the DB name from env, or prompt if using custom URI? 
+    # Usually easier to stick to valid env config or default.
+    # For Railway, the URI often includes the DB name, but motor client treats it as connection string.
+    # We will stick to the configured DB name for now unless user wants to override.
+    db_name = os.getenv("DATABASE_NAME", "ai_barber_receptionist")
+    print(f"Target Database: {db_name}")
+    db = client[db_name]
+    
+    print("\n--- User Details ---")
+    email = input("Enter email [admin@calleem.com]: ").strip() or "admin@calleem.com"
+    username = input("Enter username [superadmin]: ").strip() or "superadmin"
+    password = input("Enter password: ").strip()
+    
+    if not password:
+        print("Error: Password is required.")
+        return
+
+    print(f"\nCreating/Updating user: {username} ({email})")
+    
     # Check existing
     existing = await db.users.find_one({"$or": [{"email": email}, {"username": username}]})
     if existing:
-        print(f"\nUser already exists (ID: {existing['_id']}). Updating to SUPER_ADMIN...")
+        print(f"Found existing user ID: {existing['_id']}")
         await db.users.update_one(
             {"_id": existing["_id"]},
             {"$set": {
                 "role": "super_admin",
-                "hashed_password": pwd_context.hash(password) # Update password just in case
+                "hashed_password": pwd_context.hash(password)
             }}
         )
-        print("User updated successfully.")
+        print("✅ User updated to SUPER_ADMIN successfully.")
     else:
         # Create new
-        print("\nCreating new user...")
         user_doc = {
             "email": email,
             "username": username,
@@ -62,13 +90,17 @@ async def create_super_admin():
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
             "last_login": None,
-            # Super admin might not need a tenant, but good to have one for consistency
             "tenant_id": "system", 
             "business_id": "system"
         }
         
         result = await db.users.insert_one(user_doc)
-        print(f"Super Admin created successfully (ID: {result.inserted_id})")
+        print(f"✅ Super Admin created successfully (ID: {result.inserted_id})")
 
 if __name__ == "__main__":
-    asyncio.run(create_super_admin())
+    try:
+        asyncio.run(create_super_admin())
+    except KeyboardInterrupt:
+        print("\nOperation cancelled.")
+    except Exception as e:
+        print(f"\n❌ Unexpected error: {e}")
