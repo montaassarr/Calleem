@@ -61,7 +61,7 @@ const Hero: React.FC = () => {
           className="w-full max-w-[1000px] mt-10 perspective-1000"
           style={{ perspective: '1000px' }}
         >
-          <div className="relative w-full aspect-[1.6] md:aspect-[1.5] lg:aspect-[1.66]">
+          <div className="relative w-full aspect-[1.625]">
             {/* Glow Effect */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60%] h-[100px] bg-[#fcfafa] opacity-20 blur-[80px] rounded-full z-0"></div>
 
@@ -70,9 +70,9 @@ const Hero: React.FC = () => {
               <div className="relative w-full h-full rounded-[12px] overflow-hidden bg-black">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/Screenshot from 2025-12-25 11-50-38.png"
+                  src="/hero-dashboard.png"
                   alt="Calleem Dashboard"
-                  className="w-full h-full object-cover object-top"
+                  className="w-full h-full object-cover"
                 />
                 {/* Green Line Gradient */}
                 <div className="absolute top-0 left-[30%] w-[40%] h-[1px] bg-gradient-to-r from-transparent via-[#2C7A44] to-transparent z-20"></div>
