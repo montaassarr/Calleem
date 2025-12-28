@@ -19,7 +19,7 @@ const PreFooterCTA: React.FC = () => {
                     </div>
 
                     <a
-                        href="#contact"
+                        href="/contact"
                         className="group flex items-center gap-2 bg-[#2c7a44] hover:bg-[#368f51] text-white px-6 py-4 rounded-[20px] font-semibold text-[15px] transition-all duration-300 shadow-[0_1px_16px_2px_rgba(5,5,5,0.18)]"
                     >
                         <span>Request Access</span>

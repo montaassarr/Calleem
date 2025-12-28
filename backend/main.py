@@ -137,6 +137,7 @@ from routers import (
     websocket,
     admin,
     monitoring,
+    contacts,
 )
 
 # Auth & Users
@@ -173,6 +174,9 @@ app.include_router(admin.router, prefix=f"{settings.API_V1_PREFIX}/admin", tags=
 
 # Monitoring
 app.include_router(monitoring.router, prefix=f"{settings.API_V1_PREFIX}", tags=["Monitoring"])
+
+# Contacts (public + admin)
+app.include_router(contacts.router, prefix=f"{settings.API_V1_PREFIX}/contacts", tags=["Contacts"])
 
 
 # ============== ROOT ENDPOINTS ==============

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Menu, X, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -31,12 +32,12 @@ const Navbar: React.FC = () => {
       <div className="max-w-[1200px] mx-auto px-5 md:px-10">
         <div
           className={`flex items-center justify-between px-6 py-4 rounded-full transition-all duration-300 ${isScrolled
-              ? 'bg-forest/80 backdrop-blur-md border border-white/10 shadow-lg'
-              : 'bg-transparent'
+            ? 'bg-forest/80 backdrop-blur-md border border-white/10 shadow-lg'
+            : 'bg-transparent'
             }`}
         >
           {/* Logo */}
-          <a href="#" className="flex items-center gap-2 group">
+          <Link href="/" className="flex items-center gap-2 group">
             <svg
               className="w-8 h-6 text-white"
               viewBox="0 0 41 24"
@@ -49,7 +50,7 @@ const Navbar: React.FC = () => {
               </g>
             </svg>
             <span className="text-2xl font-host font-bold tracking-tight text-white">Calleem</span>
-          </a>
+          </Link>
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center gap-8">
@@ -57,12 +58,12 @@ const Navbar: React.FC = () => {
             <button onClick={() => scrollToSection('features')} className="text-sm font-medium hover:text-white/80 transition-colors">Features</button>
             <button onClick={() => scrollToSection('pricing')} className="text-sm font-medium hover:text-white/80 transition-colors">Pricing</button>
             <button onClick={() => scrollToSection('faq')} className="text-sm font-medium hover:text-white/80 transition-colors">FAQ</button>
+            <a href="/contact" className="text-sm font-medium hover:text-white/80 transition-colors">Contact</a>
           </div>
 
-          {/* CTA Button */}
           <div className="hidden md:block">
             <a
-              href="#contact"
+              href="/contact"
               className="bg-[#2C7A44] hover:bg-[#2C7A44]/90 text-white px-6 py-2.5 rounded-full text-sm font-bold transition-all shadow-[0_0_15px_rgba(44,122,68,0.3)] hover:shadow-[0_0_25px_rgba(44,122,68,0.5)] flex items-center gap-2 group"
             >
               Request Access
@@ -95,8 +96,9 @@ const Navbar: React.FC = () => {
               <button onClick={() => scrollToSection('features')} className="text-lg font-medium text-left text-white/90 hover:text-white transition-colors">Features</button>
               <button onClick={() => scrollToSection('pricing')} className="text-lg font-medium text-left text-white/90 hover:text-white transition-colors">Pricing</button>
               <button onClick={() => scrollToSection('faq')} className="text-lg font-medium text-left text-white/90 hover:text-white transition-colors">FAQ</button>
+              <a href="/contact" className="text-lg font-medium text-left text-white/90 hover:text-white transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Contact</a>
               <a
-                href="#contact"
+                href="/contact"
                 className="bg-[#2C7A44] text-center text-white px-5 py-3 rounded-xl text-lg font-bold shadow-[0_0_20px_rgba(44,122,68,0.2)] hover:bg-[#2C7A44]/90 transition-colors"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
