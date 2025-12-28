@@ -30,7 +30,7 @@ const Footer: React.FC = () => {
                         </p>
                     </div>
                     <div className="text-xs text-white/40 flex items-center gap-1">
-                        Designed by <span className="text-[#1c3824] font-bold">Kadirov</span> © 2025
+                        Designed by <span className="text-[#1c3824] font-bold">Calleem</span> © 2025
                     </div>
                 </div>
 

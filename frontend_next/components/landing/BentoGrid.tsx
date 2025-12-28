@@ -177,7 +177,7 @@ const BentoGrid: React.FC = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="md:col-span-1 bg-forest rounded-[30px] p-2 flex flex-col gap-6 overflow-hidden group"
+            className="hidden md:col-span-1 bg-forest rounded-[30px] p-2 flex flex-col gap-6 overflow-hidden group"
           >
             <div className="relative h-[250px] w-full rounded-[25px] overflow-hidden bg-[#0d1f16] flex items-center justify-center">
               {/* Animation Overlay */}
@@ -230,7 +230,7 @@ const BentoGrid: React.FC = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="md:col-span-2 bg-[#0e2e22] rounded-[30px] p-8 flex flex-col md:flex-row gap-8 items-start justify-between relative overflow-hidden"
+            className="hidden md:col-span-2 bg-[#0e2e22] rounded-[30px] p-8 flex flex-col md:flex-row gap-8 items-start justify-between relative overflow-hidden"
           >
             {/* Social Proof Side */}
             <div className="flex flex-col justify-between z-10 w-full md:w-1/2 h-full gap-8">
