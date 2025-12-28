@@ -5,7 +5,7 @@ const PreFooterCTA: React.FC = () => {
     return (
         <section className="w-full bg-[#648768] py-24 px-6 md:px-10 flex justify-center">
             <div
-                className="relative w-full max-w-[1000px] bg-[#0e2e22] rounded-[30px] shadow-[0_140px_120px_-80px_rgba(99,106,125,0.04)] overflow-hidden flex flex-col md:flex-row items-center md:items-stretch"
+                className="relative w-full max-w-[1000px] bg-[#0e2e22] rounded-[30px] shadow-[0_140px_120px_-80px_rgba(99,106,125,0.04)] flex flex-col md:flex-row items-center md:items-stretch"
             >
                 {/* Text Content */}
                 <div className="flex-1 p-8 md:p-14 flex flex-col items-start gap-8 z-10 w-full md:w-auto">
@@ -32,8 +32,8 @@ const PreFooterCTA: React.FC = () => {
                 </div>
 
                 {/* Image Section */}
-                <div className="relative w-full md:w-[420px] h-[300px] md:h-auto overflow-hidden shrink-0 mt-8 md:mt-0">
-                    <div className="absolute inset-0 w-full h-full">
+                <div className="relative w-full md:w-[420px] h-[350px] md:h-auto shrink-0 mb-8 md:mb-0 z-20">
+                    <div className="absolute bottom-0 w-full h-full md:h-[130%]">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             src="https://framerusercontent.com/images/AsfW6nRtd8870rS0nxiZalBmjno.webp?width=1368&height=1920"
