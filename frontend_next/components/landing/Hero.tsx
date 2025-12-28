@@ -70,7 +70,7 @@ const Hero: React.FC = () => {
               <div className="relative w-full h-full rounded-[12px] overflow-hidden bg-black">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="https://framerusercontent.com/images/HwM2nyrNOi66Ril4DdnD1t4jag.png?width=1329&height=866"
+                  src="/Screenshot from 2025-12-25 11-50-38.png"
                   alt="Calleem Dashboard"
                   className="w-full h-full object-cover object-top"
                 />
