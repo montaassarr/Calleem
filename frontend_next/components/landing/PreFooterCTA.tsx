@@ -1,49 +1,43 @@
 import React from 'react';
+import { ArrowRight } from 'lucide-react';
 
-
-const PreFooterCTA: React.FC = () => {
+const CTA: React.FC = () => {
     return (
-        <section className="w-full bg-[#648768] py-24 px-6 md:px-10 flex justify-center">
-            <div
-                className="relative w-full max-w-[1000px] bg-[#0e2e22] rounded-[30px] shadow-[0_140px_120px_-80px_rgba(99,106,125,0.04)] flex flex-col md:flex-row items-center md:items-stretch"
-            >
-                {/* Text Content */}
-                <div className="flex-1 p-8 md:p-14 flex flex-col items-start gap-8 z-10 w-full md:w-auto">
-                    <div className="flex flex-col gap-4">
-                        <h2 className="font-manrope font-bold text-[36px] md:text-[48px] leading-[1.2] text-white text-left">
-                            Ready to automate your appointments with AI?
-                        </h2>
-                        <p className="text-[16px] text-white/55 leading-[1.5] max-w-[400px] text-left">
-                            Join the waitlist to be among the first to experience Calleem —and get early adopter pricing when we launch.
-                        </p>
-                    </div>
+        <section className="py-24 px-5 bg-sage flex justify-center">
+            <div className="w-full max-w-[1000px] bg-forest rounded-[30px] shadow-[0px_140px_120px_-80px_rgba(99,106,125,0.04)] overflow-hidden flex flex-col-reverse md:flex-row relative border border-white/5">
 
-                    <a
-                        href="/contact"
-                        className="group flex items-center gap-2 bg-[#2c7a44] hover:bg-[#368f51] text-white px-6 py-4 rounded-[20px] font-semibold text-[15px] transition-all duration-300 shadow-[0_1px_16px_2px_rgba(5,5,5,0.18)]"
-                    >
-                        <span>Request Access</span>
-                        <div className="-rotate-45 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
-                                <path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"></path>
-                            </svg>
-                        </div>
-                    </a>
+                {/* Text Content */}
+                <div className="w-full md:w-1/2 p-10 md:p-14 flex flex-col justify-center items-start gap-6 z-10 relative bg-forest md:bg-transparent">
+                    <h2 className="text-3xl md:text-5xl font-bold font-manrope leading-tight text-white">
+                        Ready to automate your appointments with AI?
+                    </h2>
+                    <p className="text-white/60 text-lg leading-relaxed max-w-md">
+                        Join the waitlist to be among the first to experience Calleem —and get early adopter pricing when we launch.
+                    </p>
+                    <div className="pt-2">
+                        <a
+                            href="#contact"
+                            className="bg-[#2C7A44] hover:bg-[#2C7A44]/90 text-white px-8 py-4 rounded-full text-base font-bold transition-all shadow-[0_0_20px_rgba(44,122,68,0.3)] hover:shadow-[0_0_30px_rgba(44,122,68,0.5)] inline-flex items-center gap-3 group hover:-translate-y-1"
+                        >
+                            Request Access
+                            <ArrowRight size={20} className="-rotate-45 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                        </a>
+                    </div>
                 </div>
 
-                {/* Image Section */}
-                <div className="relative w-full md:w-[420px] h-[350px] md:h-auto shrink-0 mb-8 md:mb-0 z-20">
-                    <div className="absolute bottom-0 w-full h-full md:h-[130%]">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                {/* Image */}
+                <div className="w-full md:w-1/2 h-[500px] md:h-auto relative">
+                    <div className="absolute inset-0">
                         <img
                             src="https://framerusercontent.com/images/AsfW6nRtd8870rS0nxiZalBmjno.webp?width=1368&height=1920"
-                            alt="Happy woman in a green sweater holding a phone"
-                            className="w-full h-full object-cover object-center"
-                            style={{
-                                maskImage: 'linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, rgb(0, 0, 0) 100%)',
-                                WebkitMaskImage: 'linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, rgb(0, 0, 0) 100%)'
-                            }}
+                            alt="Happy woman using Calleem"
+                            className="w-full h-full object-cover object-top"
                         />
+                        {/* Gradient Overlay for Mobile (Bottom Fade) */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-forest via-forest/10 to-transparent md:hidden"></div>
+
+                        {/* Gradient Overlay for Desktop (Left Fade) */}
+                        <div className="absolute inset-0 hidden md:block bg-gradient-to-r from-forest via-forest/5 to-transparent"></div>
                     </div>
                 </div>
 
@@ -52,4 +46,4 @@ const PreFooterCTA: React.FC = () => {
     );
 };
 
-export default PreFooterCTA;
+export default CTA;
