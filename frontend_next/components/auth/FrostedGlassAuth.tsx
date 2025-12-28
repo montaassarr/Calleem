@@ -209,17 +209,17 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="email" className="text-slate-200">
-                                        Email
+                                        Email or Username
                                     </Label>
                                     <div className="relative">
                                         <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                                         <Input
                                             id="email"
-                                            type="email"
+                                            type="text"
                                             value={formData.email}
                                             onChange={(e) => handleInputChange("email", e.target.value)}
                                             className="pl-10 bg-black/40 border-white/10 text-white placeholder:text-slate-500 focus:border-[#2C7A44]/50 focus:ring-[#2C7A44]/20"
-                                            placeholder="Enter your email"
+                                            placeholder="Enter your email or username"
                                             required
                                         />
                                     </div>

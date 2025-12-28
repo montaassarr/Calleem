@@ -13,9 +13,11 @@ import {
     Scissors,
     Building2,
     Mail,
+    LogOut,
 } from "lucide-react";
 import { NavLink } from "../dashboard/NavLink";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 
 const menuItems = [
     // 1. Business Data
@@ -50,6 +52,7 @@ const menuItems = [
 
 export const AdminSidebar = () => {
     const pathname = usePathname();
+    const { logout } = useAuth();
 
     return (
         <aside className="fixed left-0 top-0 h-screen w-64 glass-strong flex flex-col z-50 overflow-y-auto border-r border-white/20 bg-slate-900 text-white">
@@ -100,11 +103,18 @@ export const AdminSidebar = () => {
 
             <div className="p-4 m-4 bg-slate-800 rounded-2xl text-slate-300 text-xs border border-slate-700">
                 <p className="font-semibold mb-1">System Status</p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mb-3">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                     <span>All Systems Online</span>
                 </div>
-                <p className="text-[10px] text-slate-500 mt-2">Public Demo Mode</p>
+
+                <button
+                    onClick={logout}
+                    className="flex items-center gap-2 w-full px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors mt-2"
+                >
+                    <LogOut className="w-3 h-3" />
+                    <span>Sign Out</span>
+                </button>
             </div>
         </aside>
     );
