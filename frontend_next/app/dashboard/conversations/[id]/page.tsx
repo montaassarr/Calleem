@@ -36,7 +36,7 @@ export default function ConversationDetailPage() {
         }
 
         fetchConversation()
-    }, [params.id])
+    }, [params.id, toast])
 
     const formatDate = (datetime: string) => {
         return new Date(datetime).toLocaleString("en-US", {
@@ -94,10 +94,10 @@ export default function ConversationDetailPage() {
                 <div className="ml-auto">
                     <span
                         className={`px-3 py-1 rounded-full text-sm font-medium ${conversationStatus === "active"
-                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                : conversationStatus === "completed"
-                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                                    : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : conversationStatus === "completed"
+                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
                             }`}
                     >
                         {conversationStatus}
@@ -114,8 +114,8 @@ export default function ConversationDetailPage() {
                     >
                         <div
                             className={`max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === "client"
-                                    ? "bg-slate-100 text-foreground rounded-tl-none"
-                                    : "bg-primary text-primary-foreground rounded-tr-none"
+                                ? "bg-slate-100 text-foreground rounded-tl-none"
+                                : "bg-primary text-primary-foreground rounded-tr-none"
                                 }`}
                         >
                             <p className="text-sm">{msg.text}</p>

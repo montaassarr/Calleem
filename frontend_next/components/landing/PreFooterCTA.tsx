@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowArrowRight } from 'lucide-react'; // Using icon as approximation for the SVG, or will use SVG directly
+
 
 const PreFooterCTA: React.FC = () => {
     return (
@@ -34,6 +34,7 @@ const PreFooterCTA: React.FC = () => {
                 {/* Image Section */}
                 <div className="relative w-full md:w-[420px] h-[300px] md:h-auto overflow-hidden shrink-0 mt-8 md:mt-0">
                     <div className="absolute inset-0 w-full h-full">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             src="https://framerusercontent.com/images/AsfW6nRtd8870rS0nxiZalBmjno.webp?width=1368&height=1920"
                             alt="Happy woman in a green sweater holding a phone"

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,15 +27,7 @@ export default function ChatTestPage() {
     const [conversationHistory, setConversationHistory] = useState<{ role: string, content: string }[]>([]);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        loadAssistant();
-    }, [user]);
-
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
-
-    const loadAssistant = async () => {
+    const loadAssistant = useCallback(async () => {
         if (!user) return;
         try {
             const data = await vapiApi.getMyAssistant();
@@ -61,7 +53,11 @@ export default function ChatTestPage() {
         } catch (err) {
             console.error("Failed to load assistant", err);
         }
-    };
+    }, [user]);
+
+    useEffect(() => {
+        loadAssistant();
+    }, [loadAssistant]);
 
     const sendMessage = async () => {
         if (!input.trim() || loading) return;
@@ -260,8 +256,8 @@ export default function ChatTestPage() {
                             )}
                             <div
                                 className={`max-w-[75%] p-3 rounded-2xl ${msg.role === 'user'
-                                        ? 'bg-primary text-primary-foreground rounded-br-md'
-                                        : 'bg-slate-100 rounded-bl-md'
+                                    ? 'bg-primary text-primary-foreground rounded-br-md'
+                                    : 'bg-slate-100 rounded-bl-md'
                                     }`}
                             >
                                 <p className="text-sm whitespace-pre-wrap">{msg.content}</p>

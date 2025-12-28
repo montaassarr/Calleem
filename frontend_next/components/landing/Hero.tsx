@@ -68,6 +68,7 @@ const Hero: React.FC = () => {
             {/* Image Container */}
             <div className="relative z-10 w-full h-full bg-dark rounded-[20px] md:rounded-[30px] p-1 md:p-2 border border-white/10 shadow-2xl backdrop-blur-sm overflow-hidden">
               <div className="relative w-full h-full rounded-[12px] overflow-hidden bg-black">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="https://framerusercontent.com/images/HwM2nyrNOi66Ril4DdnD1t4jag.png?width=1329&height=866"
                   alt="Clario Dashboard"

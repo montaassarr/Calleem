@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,11 +32,7 @@ export default function ToolsPage() {
     const [enabledTools, setEnabledTools] = useState<string[]>([]);
     const [togglingTool, setTogglingTool] = useState<string | null>(null);
 
-    useEffect(() => {
-        loadTools();
-    }, []);
-
-    const loadTools = async () => {
+    const loadTools = useCallback(async () => {
         try {
             setLoading(true);
             const [builtIn, enabled] = await Promise.all([
@@ -61,7 +57,11 @@ export default function ToolsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [toast]);
+
+    useEffect(() => {
+        loadTools();
+    }, [loadTools]);
 
     const toggleTool = async (toolId: string, toolName: string) => {
         const isEnabled = enabledTools.includes(toolName);

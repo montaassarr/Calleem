@@ -155,7 +155,10 @@ export const Sidebar = () => {
             <div className="p-6">
                 <div className="flex items-center gap-2">
                     {config?.logo_url ? (
-                        <img src={config.logo_url} alt="Logo" className="w-10 h-10 rounded-full object-cover" />
+                        <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={config.logo_url} alt="Logo" className="w-10 h-10 rounded-full object-cover" />
+                        </>
                     ) : (
                         <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
                             <Scissors className="w-5 h-5 text-white" />

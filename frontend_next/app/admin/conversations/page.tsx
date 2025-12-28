@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { DataTable } from '@/components/admin/DataTable';
 import { CrudModal } from '@/components/admin/CrudModal';
 import { DeleteDialog } from '@/components/admin/DeleteDialog';
@@ -28,7 +28,7 @@ export default function ConversationsPage() {
 
     const { toast } = useToast();
 
-    const fetchConversations = async () => {
+    const fetchConversations = useCallback(async () => {
         try {
             setLoading(true);
             const data = await adminApi.getConversations((page - 1) * pageSize, pageSize, phoneFilter);
@@ -49,11 +49,11 @@ export default function ConversationsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, pageSize, phoneFilter, toast]);
 
     useEffect(() => {
         fetchConversations();
-    }, [page, phoneFilter]);
+    }, [fetchConversations]);
 
     // Debounce search
     useEffect(() => {
@@ -61,7 +61,7 @@ export default function ConversationsPage() {
             if (phoneFilter) fetchConversations();
         }, 500);
         return () => clearTimeout(timer);
-    }, [phoneFilter]);
+    }, [phoneFilter, fetchConversations]);
 
     const handleView = (conv: Conversation) => {
         setSelectedConv(conv);
@@ -159,8 +159,8 @@ export default function ConversationsPage() {
                             >
                                 <div
                                     className={`max-w-[80%] rounded-lg p-3 ${msg.role === 'client'
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'bg-muted'
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'bg-muted'
                                         }`}
                                 >
                                     <p className="text-sm">{msg.text}</p>
