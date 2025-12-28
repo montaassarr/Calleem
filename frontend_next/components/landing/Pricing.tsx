@@ -7,6 +7,21 @@ const Pricing: React.FC = () => {
     // Usage State
     const [calls, setCalls] = useState(500);
     const [duration, setDuration] = useState(3);
+    const [isAdmin, setIsAdmin] = useState(false);
+
+    useEffect(() => {
+        // Simple owner-only check via query param
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('admin') === 'true') {
+            setIsAdmin(true);
+        }
+    }, []);
+
+    // Helper component for owner-only UI
+    const AdminView = ({ children }: { children: React.ReactNode }) => {
+        if (!isAdmin) return null;
+        return <>{children}</>;
+    };
 
     // Cost Assumptions State
     const [costPerMinute, setCostPerMinute] = useState(0.082); // Combined var cost
@@ -204,129 +219,131 @@ const Pricing: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Profit Analysis Panel */}
-                    <div className="mt-12 pt-8 border-t border-white/5">
-                        <button
-                            onClick={() => setShowAnalysis(!showAnalysis)}
-                            className="flex items-center gap-2 text-xs uppercase tracking-widest font-bold text-white/40 hover:text-white transition-colors mx-auto group bg-black/20 px-4 py-2 rounded-full hover:bg-black/40"
-                        >
-                            <Settings2 size={14} className="group-hover:rotate-45 transition-transform" />
-                            {showAnalysis ? "Hide Profit Logic" : "Configure Profit Logic"}
-                            {showAnalysis ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                        </button>
+                    {/* Profit Analysis Panel (Owner Only) */}
+                    <AdminView>
+                        <div className="mt-12 pt-8 border-t border-white/5">
+                            <button
+                                onClick={() => setShowAnalysis(!showAnalysis)}
+                                className="flex items-center gap-2 text-xs uppercase tracking-widest font-bold text-white/40 hover:text-white transition-colors mx-auto group bg-black/20 px-4 py-2 rounded-full hover:bg-black/40"
+                            >
+                                <Settings2 size={14} className="group-hover:rotate-45 transition-transform" />
+                                {showAnalysis ? "Hide Profit Logic" : "Configure Profit Logic"}
+                                {showAnalysis ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            </button>
 
-                        <AnimatePresence>
-                            {showAnalysis && (
-                                <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: "auto", opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="overflow-hidden"
-                                >
-                                    <div className="mt-6 bg-black/20 rounded-2xl p-6 border border-white/5 backdrop-blur-sm">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <AnimatePresence>
+                                {showAnalysis && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: "auto", opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden"
+                                    >
+                                        <div className="mt-6 bg-black/20 rounded-2xl p-6 border border-white/5 backdrop-blur-sm">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-                                            {/* Inputs */}
-                                            <div className="space-y-5">
-                                                <h4 className="text-sm font-bold text-white/80 flex items-center gap-2">
-                                                    <Settings2 size={16} /> Cost Parameters
-                                                </h4>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div className="space-y-1.5">
-                                                        <label className="text-[10px] text-white/40 uppercase font-mono tracking-wider">Var. Cost ($/min)</label>
-                                                        <input
-                                                            type="number"
-                                                            step="0.001"
-                                                            value={costPerMinute}
-                                                            onChange={(e) => setCostPerMinute(Number(e.target.value))}
-                                                            className="w-full bg-[#0e2e22] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[#2C7A44]/50 focus:ring-1 focus:ring-[#2C7A44]/50 outline-none transition-all"
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-1.5">
-                                                        <label className="text-[10px] text-white/40 uppercase font-mono tracking-wider">Fixed ($/call)</label>
-                                                        <input
-                                                            type="number"
-                                                            step="0.01"
-                                                            value={costPerCallFixed}
-                                                            onChange={(e) => setCostPerCallFixed(Number(e.target.value))}
-                                                            className="w-full bg-[#0e2e22] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[#2C7A44]/50 focus:ring-1 focus:ring-[#2C7A44]/50 outline-none transition-all"
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-1.5">
-                                                        <label className="text-[10px] text-white/40 uppercase font-mono tracking-wider">Infra Cost ($/mo)</label>
-                                                        <input
-                                                            type="number"
-                                                            step="1"
-                                                            value={fixedInfraCost}
-                                                            onChange={(e) => setFixedInfraCost(Number(e.target.value))}
-                                                            className="w-full bg-[#0e2e22] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[#2C7A44]/50 focus:ring-1 focus:ring-[#2C7A44]/50 outline-none transition-all"
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-1.5">
-                                                        <div className="flex justify-between">
-                                                            <label className="text-[10px] text-[#2C7A44] uppercase font-mono tracking-wider">Target Margin</label>
-                                                            <span className="text-[10px] text-[#2C7A44] font-bold">{targetMargin}%</span>
+                                                {/* Inputs */}
+                                                <div className="space-y-5">
+                                                    <h4 className="text-sm font-bold text-white/80 flex items-center gap-2">
+                                                        <Settings2 size={16} /> Cost Parameters
+                                                    </h4>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-[10px] text-white/40 uppercase font-mono tracking-wider">Var. Cost ($/min)</label>
+                                                            <input
+                                                                type="number"
+                                                                step="0.001"
+                                                                value={costPerMinute}
+                                                                onChange={(e) => setCostPerMinute(Number(e.target.value))}
+                                                                className="w-full bg-[#0e2e22] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[#2C7A44]/50 focus:ring-1 focus:ring-[#2C7A44]/50 outline-none transition-all"
+                                                            />
                                                         </div>
-                                                        <input
-                                                            type="range"
-                                                            min="10"
-                                                            max="90"
-                                                            step="1"
-                                                            value={targetMargin}
-                                                            onChange={(e) => setTargetMargin(Number(e.target.value))}
-                                                            className="w-full accent-[#2C7A44] h-2 bg-[#0e2e22] rounded-full appearance-none cursor-pointer"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Breakdown Visualization */}
-                                            <div className="space-y-5">
-                                                <h4 className="text-sm font-bold text-white/80 flex items-center gap-2">
-                                                    <Info size={16} /> Financial Breakdown
-                                                </h4>
-
-                                                {/* Bar Chart */}
-                                                <div className="space-y-2">
-                                                    <div className="h-8 w-full bg-[#0e2e22] rounded-md overflow-hidden flex text-[10px] font-bold text-white">
-                                                        <motion.div
-                                                            initial={{ width: 0 }}
-                                                            animate={{ width: `${100 - financials.margin}%` }}
-                                                            className="h-full bg-red-400 flex items-center justify-center relative group cursor-help text-forest"
-                                                        >
-                                                            <span className="opacity-0 group-hover:opacity-100 transition-opacity">COST</span>
-                                                        </motion.div>
-                                                        <motion.div
-                                                            initial={{ width: 0 }}
-                                                            animate={{ width: `${financials.margin}%` }}
-                                                            className="h-full bg-[#2C7A44] flex items-center justify-center relative group cursor-help"
-                                                        >
-                                                            <span className="opacity-0 group-hover:opacity-100 transition-opacity">PROFIT</span>
-                                                        </motion.div>
-                                                    </div>
-                                                    <div className="flex justify-between text-[10px] text-white/40 font-mono">
-                                                        <div className="flex items-center gap-1.5">
-                                                            <div className="w-2 h-2 rounded-full bg-red-400"></div>
-                                                            Total Cost: ${financials.totalCost.toFixed(2)}
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-[10px] text-white/40 uppercase font-mono tracking-wider">Fixed ($/call)</label>
+                                                            <input
+                                                                type="number"
+                                                                step="0.01"
+                                                                value={costPerCallFixed}
+                                                                onChange={(e) => setCostPerCallFixed(Number(e.target.value))}
+                                                                className="w-full bg-[#0e2e22] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[#2C7A44]/50 focus:ring-1 focus:ring-[#2C7A44]/50 outline-none transition-all"
+                                                            />
                                                         </div>
-                                                        <div className="flex items-center gap-1.5">
-                                                            <div className="w-2 h-2 rounded-full bg-[#2C7A44]"></div>
-                                                            Net Profit: ${financials.profit.toFixed(2)}
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-[10px] text-white/40 uppercase font-mono tracking-wider">Infra Cost ($/mo)</label>
+                                                            <input
+                                                                type="number"
+                                                                step="1"
+                                                                value={fixedInfraCost}
+                                                                onChange={(e) => setFixedInfraCost(Number(e.target.value))}
+                                                                className="w-full bg-[#0e2e22] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[#2C7A44]/50 focus:ring-1 focus:ring-[#2C7A44]/50 outline-none transition-all"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1.5">
+                                                            <div className="flex justify-between">
+                                                                <label className="text-[10px] text-[#2C7A44] uppercase font-mono tracking-wider">Target Margin</label>
+                                                                <span className="text-[10px] text-[#2C7A44] font-bold">{targetMargin}%</span>
+                                                            </div>
+                                                            <input
+                                                                type="range"
+                                                                min="10"
+                                                                max="90"
+                                                                step="1"
+                                                                value={targetMargin}
+                                                                onChange={(e) => setTargetMargin(Number(e.target.value))}
+                                                                className="w-full accent-[#2C7A44] h-2 bg-[#0e2e22] rounded-full appearance-none cursor-pointer"
+                                                            />
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <p className="text-white/30 text-xs leading-relaxed">
-                                                    Pricing is dynamically calculated to achieve a <strong className="text-white/60">{targetMargin}% margin</strong>.
-                                                    If costs rise (usage increases), the price adjusts automatically to maintain profitability.
-                                                </p>
+                                                {/* Breakdown Visualization */}
+                                                <div className="space-y-5">
+                                                    <h4 className="text-sm font-bold text-white/80 flex items-center gap-2">
+                                                        <Info size={16} /> Financial Breakdown
+                                                    </h4>
+
+                                                    {/* Bar Chart */}
+                                                    <div className="space-y-2">
+                                                        <div className="h-8 w-full bg-[#0e2e22] rounded-md overflow-hidden flex text-[10px] font-bold text-white">
+                                                            <motion.div
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: `${100 - financials.margin}%` }}
+                                                                className="h-full bg-red-400 flex items-center justify-center relative group cursor-help text-forest"
+                                                            >
+                                                                <span className="opacity-0 group-hover:opacity-100 transition-opacity">COST</span>
+                                                            </motion.div>
+                                                            <motion.div
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: `${financials.margin}%` }}
+                                                                className="h-full bg-[#2C7A44] flex items-center justify-center relative group cursor-help"
+                                                            >
+                                                                <span className="opacity-0 group-hover:opacity-100 transition-opacity">PROFIT</span>
+                                                            </motion.div>
+                                                        </div>
+                                                        <div className="flex justify-between text-[10px] text-white/40 font-mono">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className="w-2 h-2 rounded-full bg-red-400"></div>
+                                                                Total Cost: ${financials.totalCost.toFixed(2)}
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className="w-2 h-2 rounded-full bg-[#2C7A44]"></div>
+                                                                Net Profit: ${financials.profit.toFixed(2)}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <p className="text-white/30 text-xs leading-relaxed">
+                                                        Pricing is dynamically calculated to achieve a <strong className="text-white/60">{targetMargin}% margin</strong>.
+                                                        If costs rise (usage increases), the price adjusts automatically to maintain profitability.
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </AdminView>
                 </div>
             </div>
         </section>
