@@ -11,8 +11,25 @@ const FAQ: React.FC = () => {
     setOpenId(openId === id ? '' : id);
   };
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": FAQ_ITEMS.map(item => ({
+      "@type": "Question",
+      "name": item.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": item.answer
+      }
+    }))
+  };
+
   return (
     <section id="faq" className="w-full bg-[#648768] py-24 px-6 md:px-10 flex justify-center">
+      <script
+        type="application/ld-json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
       <div className="w-full max-w-[800px] flex flex-col items-center gap-12">
 
         {/* Headline */}
