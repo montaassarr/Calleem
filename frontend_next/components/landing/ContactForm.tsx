@@ -17,6 +17,10 @@ const ContactForm: React.FC = () => {
         privacyPolicy: false,
     });
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitSuccess, setSubmitSuccess] = useState(false);
+    const [submitError, setSubmitError] = useState('');
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -27,11 +31,78 @@ const ContactForm: React.FC = () => {
         setFormData(prev => ({ ...prev, [name]: checked }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('Form submitted:', formData);
-        alert("Thanks for your interest! We'll be in touch soon.");
+        setIsSubmitting(true);
+        setSubmitError('');
+
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+        try {
+            const response = await fetch(`${API_BASE}/api/v1/contacts`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    full_name: formData.fullName,
+                    email: formData.email,
+                    business_name: formData.businessName,
+                    business_type: formData.businessType,
+                    phone_number: formData.phoneNumber,
+                    monthly_calls: formData.monthlyCalls,
+                    message: formData.message,
+                    newsletter: formData.newsletter,
+                    privacy_policy: formData.privacyPolicy,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to submit form');
+            }
+
+            console.log('Form submitted successfully');
+            setSubmitSuccess(true);
+        } catch (error) {
+            console.error('Form submission error:', error);
+            setSubmitError('Something went wrong. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
+
+    if (submitSuccess) {
+        return (
+            <div className="w-full max-w-[600px] bg-[#0e2e22] rounded-[20px] p-6 md:p-10 shadow-xl text-center">
+                <div className="w-16 h-16 bg-[#2c7a44] rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg className="w-8 h-8 text-white\" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                </div>
+                <h4 className="font-manrope font-bold text-2xl mb-4 text-white">Thank you!</h4>
+                <p className="text-white/70 mb-6">We&apos;ve received your request. Our team will get back to you within 24 hours.</p>
+                <button
+                    onClick={() => {
+                        setSubmitSuccess(false);
+                        setFormData({
+                            fullName: '',
+                            email: '',
+                            businessName: '',
+                            businessType: '',
+                            phoneNumber: '',
+                            monthlyCalls: '300-550 calls/month',
+                            message: '',
+                            newsletter: true,
+                            privacyPolicy: false,
+                        });
+                    }}
+                    className="text-[#2c7a44] font-semibold hover:underline"
+                >
+                    Submit another request
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full max-w-[600px] bg-[#0e2e22] rounded-[20px] p-6 md:p-10 shadow-xl">
@@ -187,13 +258,30 @@ const ContactForm: React.FC = () => {
                     </label>
                 </div>
 
+                {/* Error Message */}
+                {submitError && (
+                    <div className="text-red-400 text-sm text-center bg-red-400/10 rounded-lg p-3">
+                        {submitError}
+                    </div>
+                )}
+
                 {/* Submit Button */}
                 <button
                     type="submit"
-                    disabled={!formData.privacyPolicy}
+                    disabled={!formData.privacyPolicy || isSubmitting}
                     className="mt-2 w-full bg-[#2c7a44] hover:bg-[#368f51] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-[15px] py-4 rounded-[10px] shadow-[0_2px_18px_1px_rgba(5,5,5,0.31)] transition-all flex items-center justify-center gap-2"
                 >
-                    Get in touch
+                    {isSubmitting ? (
+                        <>
+                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Sending...
+                        </>
+                    ) : (
+                        'Get in touch'
+                    )}
                 </button>
 
             </form>

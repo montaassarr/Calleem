@@ -12,6 +12,7 @@ import {
     MessageSquare,
     Scissors,
     Building2,
+    Mail,
 } from "lucide-react";
 import { NavLink } from "../dashboard/NavLink";
 import { usePathname } from "next/navigation";
@@ -26,6 +27,7 @@ const menuItems = [
             { icon: Calendar, label: "Appointments", path: "/admin/appointments" },
             { icon: Scissors, label: "Services", path: "/admin/services" },
             { icon: MessageSquare, label: "Conversations", path: "/admin/conversations" },
+            { icon: Mail, label: "Contact Submissions", path: "/admin/contacts" },
         ]
     },
     // 2. Analytics & Monitoring

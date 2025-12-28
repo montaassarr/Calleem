@@ -85,6 +85,12 @@ async def create_indexes():
         await database.users.create_index("email", unique=True)
         await database.users.create_index("username", unique=True)
         
+        # Contacts indexes
+        await database.contacts.create_index("email")
+        await database.contacts.create_index("status")
+        await database.contacts.create_index("created_at")
+        await database.contacts.create_index([("created_at", -1), ("status", 1)])
+        
         logger.info("✅ Database indexes created successfully")
         
     except Exception as e:

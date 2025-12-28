@@ -263,7 +263,7 @@ const BentoGrid: React.FC = () => {
                 </p>
               </div>
               <div className="pt-4 mt-auto">
-                <a href="#contact" className="inline-flex items-center gap-2 text-white hover:text-white/80 font-bold transition-colors group">
+                <a href="/contact" className="inline-flex items-center gap-2 text-white hover:text-white/80 font-bold transition-colors group">
                   Request Access <ArrowRight size={18} className="-rotate-45 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                 </a>
               </div>
