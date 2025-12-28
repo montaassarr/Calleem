@@ -71,7 +71,7 @@ const Hero: React.FC = () => {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="https://framerusercontent.com/images/HwM2nyrNOi66Ril4DdnD1t4jag.png?width=1329&height=866"
-                  alt="Clario Dashboard"
+                  alt="Calleem Dashboard"
                   className="w-full h-full object-cover object-top"
                 />
                 {/* Green Line Gradient */}
