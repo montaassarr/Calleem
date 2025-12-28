@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { DataTable } from '@/components/admin/DataTable';
 import { CrudModal } from '@/components/admin/CrudModal';
 import { DeleteDialog } from '@/components/admin/DeleteDialog';
@@ -37,7 +37,7 @@ export default function ServicesPage() {
 
     const { toast } = useToast();
 
-    const fetchServices = async () => {
+    const fetchServices = useCallback(async () => {
         try {
             setLoading(true);
             const data = await adminApi.getServices((page - 1) * pageSize, pageSize);
@@ -58,11 +58,11 @@ export default function ServicesPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, pageSize, toast]);
 
     useEffect(() => {
         fetchServices();
-    }, [page]);
+    }, [fetchServices]);
 
     const handleAdd = () => {
         setSelectedService(null);

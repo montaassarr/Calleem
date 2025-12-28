@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Activity } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -32,63 +32,12 @@ export default function LiveCallMonitor() {
         }
     }, [logs]);
 
-    // Initialize WebSocket
-    useEffect(() => {
-        const connectWs = () => {
-            const userStr = localStorage.getItem('user');
-            if (!userStr) return;
-
-            try {
-                const user = JSON.parse(userStr);
-                const tenantId = user.tenant_id;
-                const token = localStorage.getItem('token');
-
-                if (!tenantId || !token) return;
-
-                const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                const wsUrl = `${wsProtocol}//${window.location.hostname}:8000/ws/${tenantId}?token=${token}`;
-
-                const ws = new WebSocket(wsUrl);
-
-                ws.onopen = () => {
-                    setConnected(true);
-                    addLog("Connected to Live Monitor", 'info');
-                };
-
-                ws.onmessage = (event) => {
-                    try {
-                        const data = JSON.parse(event.data);
-                        handleEvent(data);
-                    } catch (e) {
-                        console.error("WS Parse error", e);
-                    }
-                };
-
-                ws.onclose = () => {
-                    setConnected(false);
-                    setStatus('idle');
-                    addLog("Disconnected from Live Monitor", 'info');
-                };
-
-                setSocket(ws);
-            } catch (e) {
-                console.error("Auth parse error", e);
-            }
-        };
-
-        connectWs();
-
-        return () => {
-            if (socket) socket.close();
-        };
-    }, []);
-
-    const addLog = (message: string, type: 'info' | 'transcript' | 'tool', role?: 'assistant' | 'user') => {
+    const addLog = useCallback((message: string, type: 'info' | 'transcript' | 'tool', role?: 'assistant' | 'user') => {
         const time = new Date().toLocaleTimeString();
         setLogs(prev => [...prev.slice(-49), { time, message, type, role }]);
-    };
+    }, []);
 
-    const handleEvent = (event: CallEvent) => {
+    const handleEvent = useCallback((event: CallEvent) => {
         switch (event.type) {
             case 'call_started':
             case 'call-start':
@@ -137,7 +86,57 @@ export default function LiveCallMonitor() {
                 console.log('Unhandled event type:', event.type, event);
                 break;
         }
-    };
+    }, [addLog]);
+
+    // Initialize WebSocket
+    useEffect(() => {
+        let ws: WebSocket | null = null;
+        const userStr = localStorage.getItem('user');
+        if (!userStr) return;
+
+        try {
+            const user = JSON.parse(userStr);
+            const tenantId = user.tenant_id;
+            const token = localStorage.getItem('token');
+
+            if (!tenantId || !token) return;
+
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.hostname}:8000/ws/${tenantId}?token=${token}`;
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                setConnected(true);
+                addLog("Connected to Live Monitor", 'info');
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleEvent(data);
+                } catch (e) {
+                    console.error("WS Parse error", e);
+                }
+            };
+
+            ws.onclose = () => {
+                setConnected(false);
+                setStatus('idle');
+                addLog("Disconnected from Live Monitor", 'info');
+            };
+
+            setSocket(ws);
+        } catch (e) {
+            console.error("Auth parse error", e);
+        }
+
+        return () => {
+            if (ws && (ws.readyState === 1 || ws.readyState === 0)) {
+                ws.close();
+            }
+        };
+    }, [handleEvent, addLog]);
 
     return (
         <Card className="h-[600px] flex flex-col">
@@ -170,11 +169,10 @@ export default function LiveCallMonitor() {
                     ) : (
                         <div className="space-y-4">
                             {logs.map((log, i) => (
-                                <div key={i} className={`flex flex-col gap-1 ${
-                                    log.type === 'transcript' 
-                                        ? (log.role === 'user' ? 'items-end' : 'items-start') 
-                                        : 'items-center'
-                                }`}>
+                                <div key={i} className={`flex flex-col gap-1 ${log.type === 'transcript'
+                                    ? (log.role === 'user' ? 'items-end' : 'items-start')
+                                    : 'items-center'
+                                    }`}>
                                     {log.type === 'info' && (
                                         <div className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-full my-1">
                                             {log.message}
@@ -189,11 +187,10 @@ export default function LiveCallMonitor() {
 
                                     {log.type === 'transcript' && (
                                         <>
-                                            <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-                                                log.role === 'user'
-                                                    ? 'bg-blue-600 text-white rounded-br-none'
-                                                    : 'bg-gray-100 text-gray-800 rounded-bl-none'
-                                            }`}>
+                                            <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${log.role === 'user'
+                                                ? 'bg-blue-600 text-white rounded-br-none'
+                                                : 'bg-gray-100 text-gray-800 rounded-bl-none'
+                                                }`}>
                                                 <p>{log.message}</p>
                                             </div>
                                             <span className="text-[10px] text-gray-300 px-1">

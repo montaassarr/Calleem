@@ -53,7 +53,10 @@ const ScrollingLogos: React.FC<ScrollingLogosProps> = ({ logos, speed = "normal"
                   {logo.svg ? (
                     <div className={cn("fill-current", logo.height)} dangerouslySetInnerHTML={{ __html: logo.svg }} />
                   ) : logo.image ? (
-                    <img src={logo.image || "/placeholder.svg"} alt={logo.name} className={logo.height} />
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={logo.image || "/placeholder.svg"} alt={logo.name} className={logo.height} />
+                    </>
                   ) : null}
                 </div>
               ))}

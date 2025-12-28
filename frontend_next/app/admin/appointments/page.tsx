@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { DataTable } from '@/components/admin/DataTable';
 import { CrudModal } from '@/components/admin/CrudModal';
 import { DeleteDialog } from '@/components/admin/DeleteDialog';
@@ -60,7 +60,7 @@ export default function AppointmentsPage() {
 
     const { toast } = useToast();
 
-    const fetchAppointments = async () => {
+    const fetchAppointments = useCallback(async () => {
         try {
             setLoading(true);
             const filter = statusFilter !== 'all' ? statusFilter : undefined;
@@ -82,11 +82,11 @@ export default function AppointmentsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, pageSize, statusFilter, toast]);
 
     useEffect(() => {
         fetchAppointments();
-    }, [page, statusFilter]);
+    }, [fetchAppointments]);
 
     const handleAdd = () => {
         setSelectedAppt(null);

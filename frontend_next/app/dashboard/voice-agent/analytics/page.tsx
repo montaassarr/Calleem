@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,15 +37,7 @@ export default function AnalyticsPage() {
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [loadingConversations, setLoadingConversations] = useState(false);
 
-    useEffect(() => {
-        loadAnalytics();
-    }, [period]);
-
-    useEffect(() => {
-        loadConversations();
-    }, []);
-
-    const loadAnalytics = async () => {
+    const loadAnalytics = useCallback(async () => {
         try {
             setLoading(true);
             const data = await assistantApi.getCallAnalytics(parseInt(period));
@@ -55,9 +47,9 @@ export default function AnalyticsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [period]);
 
-    const loadConversations = async () => {
+    const loadConversations = useCallback(async () => {
         try {
             setLoadingConversations(true);
             const data = await assistantApi.getConversations(10);
@@ -67,7 +59,15 @@ export default function AnalyticsPage() {
         } finally {
             setLoadingConversations(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        loadAnalytics();
+    }, [loadAnalytics]);
+
+    useEffect(() => {
+        loadConversations();
+    }, [loadConversations]);
 
     const formatDuration = (seconds?: number) => {
         if (!seconds) return "0:00";

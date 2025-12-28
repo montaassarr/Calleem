@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,13 +32,7 @@ export function PhoneNumberManager() {
     const [authToken, setAuthToken] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
 
-    useEffect(() => {
-        if (user?.email) {
-            fetchStatus();
-        }
-    }, [user]);
-
-    const fetchStatus = async () => {
+    const fetchStatus = useCallback(async () => {
         try {
             setStatusLoading(true);
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/phone-numbers/status/${user?.email}`, {
@@ -55,7 +49,13 @@ export function PhoneNumberManager() {
         } finally {
             setStatusLoading(false);
         }
-    };
+    }, [user, token]);
+
+    useEffect(() => {
+        if (user?.email) {
+            fetchStatus();
+        }
+    }, [user, fetchStatus]);
 
     const handleProvision = async (e: React.FormEvent) => {
         e.preventDefault();

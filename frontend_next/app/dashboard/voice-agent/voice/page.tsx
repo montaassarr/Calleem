@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -39,11 +39,7 @@ export default function VoiceConfigPage() {
     const [voiceSpeed, setVoiceSpeed] = useState([1.0]);
     const [previewText, setPreviewText] = useState("Hello! Thank you for calling. How can I help you today?");
 
-    useEffect(() => {
-        loadData();
-    }, []);
-
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         try {
             setLoading(true);
             const [providersData, voiceData] = await Promise.all([
@@ -69,7 +65,11 @@ export default function VoiceConfigPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [toast]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
 
     const handleSave = async () => {
         try {
@@ -148,8 +148,8 @@ export default function VoiceConfigPage() {
                                         setSelectedVoice("");
                                     }}
                                     className={`p-4 border rounded-lg cursor-pointer transition-all ${selectedProvider === provider.id
-                                            ? "border-primary bg-primary/5 ring-2 ring-primary"
-                                            : "hover:border-primary/50"
+                                        ? "border-primary bg-primary/5 ring-2 ring-primary"
+                                        : "hover:border-primary/50"
                                         }`}
                                 >
                                     <div className="flex items-center justify-between">
@@ -183,8 +183,8 @@ export default function VoiceConfigPage() {
                                     key={voice.id}
                                     onClick={() => setSelectedVoice(voice.id)}
                                     className={`p-3 border rounded-lg cursor-pointer transition-all ${selectedVoice === voice.id
-                                            ? "border-primary bg-primary/5 ring-2 ring-primary"
-                                            : "hover:border-primary/50"
+                                        ? "border-primary bg-primary/5 ring-2 ring-primary"
+                                        : "hover:border-primary/50"
                                         }`}
                                 >
                                     <div className="flex items-center gap-2">
