@@ -47,12 +47,20 @@ async def create_super_admin():
         print(f"❌ Connection failed: {e}")
         return
 
-    # Use the DB name from env, or prompt if using custom URI? 
-    # Usually easier to stick to valid env config or default.
-    # For Railway, the URI often includes the DB name, but motor client treats it as connection string.
-    # We will stick to the configured DB name for now unless user wants to override.
-    db_name = os.getenv("DATABASE_NAME", "ai_barber_receptionist")
-    print(f"Target Database: {db_name}")
+    # Try to parse DB name from URI
+    default_db = "ai_receptionist"
+    if "/" in mongo_url and not mongo_url.endswith("/"):
+        try:
+            # tailored for mongodb+srv://.../dbname?params
+            potential_name = mongo_url.rsplit("/", 1)[1].split("?")[0]
+            if potential_name:
+                default_db = potential_name
+        except:
+            pass
+
+    print(f"\nTarget Database Name (Check your Railway MONGO_DB_NAME if unsure)")
+    db_name = input(f"Enter Database Name [Default: {default_db}]: ").strip() or default_db
+    print(f"Using Database: {db_name}")
     db = client[db_name]
     
     print("\n--- User Details ---")
