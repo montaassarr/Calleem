@@ -26,8 +26,9 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Search, Users as UsersIcon, TrendingUp, Activity, Mail, Phone, Calendar, Building2, Trash, ShieldAlert } from "lucide-react";
+import { Search, Users as UsersIcon, TrendingUp, Activity, Mail, Phone, Calendar, Building2, Trash, ShieldAlert, Clock, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { adminApi } from "@/lib/api/admin";
 
 interface User {
     id: string;
@@ -40,6 +41,7 @@ interface User {
     created_at: string;
     last_login?: string;
     active: boolean;
+    approval_status?: 'pending' | 'approved' | 'rejected';
     phone?: string;
 }
 
@@ -70,6 +72,7 @@ export default function UsersAdminPage() {
     const totalUsers = users.length;
     const activeUsers = users.filter((u) => u.active).length;
     const businessOwners = users.filter((u) => u.role === "owner").length;
+    const pendingUsers = users.filter((u) => u.approval_status === "pending").length;
 
     return (
         <div className="space-y-6">
@@ -118,12 +121,12 @@ export default function UsersAdminPage() {
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Growth</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-purple-600" />
+                        <CardTitle className="text-sm font-medium">Pending Approval</CardTitle>
+                        <Clock className="h-4 w-4 text-orange-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-purple-600">+12%</div>
-                        <p className="text-xs text-muted-foreground">This month</p>
+                        <div className="text-2xl font-bold text-orange-600">{pendingUsers}</div>
+                        <p className="text-xs text-muted-foreground">Awaiting review</p>
                     </CardContent>
                 </Card>
             </div>
@@ -167,6 +170,7 @@ export default function UsersAdminPage() {
                                     <TableHead>Contact</TableHead>
                                     <TableHead>Role</TableHead>
                                     <TableHead>Status</TableHead>
+                                    <TableHead>Approval</TableHead>
                                     <TableHead>Joined</TableHead>
                                     <TableHead>Last Login</TableHead>
                                     <TableHead>Actions</TableHead>
@@ -221,6 +225,24 @@ export default function UsersAdminPage() {
                                                 )}
                                             </TableCell>
                                             <TableCell>
+                                                {user.approval_status === "pending" ? (
+                                                    <Badge variant="outline" className="border-orange-500 text-orange-600">
+                                                        <Clock className="h-3 w-3 mr-1" />
+                                                        Pending
+                                                    </Badge>
+                                                ) : user.approval_status === "rejected" ? (
+                                                    <Badge variant="destructive">
+                                                        <XCircle className="h-3 w-3 mr-1" />
+                                                        Rejected
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge variant="default" className="bg-green-600">
+                                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                                        Approved
+                                                    </Badge>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
                                                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                                     <Calendar className="h-3 w-3" />
                                                     {new Date(user.created_at).toLocaleDateString()}
@@ -234,48 +256,88 @@ export default function UsersAdminPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                            disabled={user.role === 'super_admin'}
-                                                        >
-                                                            <Trash className="h-4 w-4" />
-                                                        </Button>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent>
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-                                                                <ShieldAlert className="h-5 w-5" />
-                                                                Delete User & Tenant Data?
-                                                            </AlertDialogTitle>
-                                                            <AlertDialogDescription>
-                                                                This action cannot be undone. This will permanently delete
-                                                                <strong> {user.email}</strong> and completely wipe their tenant data
-                                                                (appointments, logs, settings).
-                                                            </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                            <AlertDialogAction
-                                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                <div className="flex items-center gap-2">
+                                                    {user.approval_status === "pending" && (
+                                                        <>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
                                                                 onClick={async () => {
                                                                     try {
-                                                                        await api.delete(`/admin/users/${user.id}`);
-                                                                        toast.success("User deleted successfully");
+                                                                        await adminApi.approveUser(user.id);
+                                                                        toast.success("User approved successfully");
                                                                         refetch();
                                                                     } catch (error: any) {
-                                                                        toast.error(error?.message || "Failed to delete user");
+                                                                        toast.error(error?.message || "Failed to approve user");
                                                                     }
                                                                 }}
                                                             >
-                                                                Delete Permanently
-                                                            </AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
+                                                                <CheckCircle className="h-4 w-4 mr-1" />
+                                                                Approve
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        await adminApi.rejectUser(user.id);
+                                                                        toast.success("User rejected");
+                                                                        refetch();
+                                                                    } catch (error: any) {
+                                                                        toast.error(error?.message || "Failed to reject user");
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <XCircle className="h-4 w-4 mr-1" />
+                                                                Reject
+                                                            </Button>
+                                                        </>
+                                                    )}
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                                disabled={user.role === 'super_admin'}
+                                                            >
+                                                                <Trash className="h-4 w-4" />
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                                                                    <ShieldAlert className="h-5 w-5" />
+                                                                    Delete User & Tenant Data?
+                                                                </AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    This action cannot be undone. This will permanently delete
+                                                                    <strong> {user.email}</strong> and completely wipe their tenant data
+                                                                    (appointments, logs, settings).
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                <AlertDialogAction
+                                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                                    onClick={async () => {
+                                                                        try {
+                                                                            await api.delete(`/admin/users/${user.id}`);
+                                                                            toast.success("User deleted successfully");
+                                                                            refetch();
+                                                                        } catch (error: any) {
+                                                                            toast.error(error?.message || "Failed to delete user");
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    Delete Permanently
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     ))

@@ -9,7 +9,7 @@ import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Check, Shield, X } from "luci
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 
-type AuthStep = "login" | "signup" | "forgot-password" | "reset-password" | "otp" | "success"
+type AuthStep = "login" | "signup" | "forgot-password" | "reset-password" | "otp" | "success" | "pending"
 type AuthMode = "login" | "signup"
 
 interface PasswordRequirement {
@@ -93,18 +93,27 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                 });
                 // Redirect is handled in AuthContext
             } else if (step === "signup") {
-                // Register returns a token and auto-logs in
-                await register({
-                    email: formData.email,
-                    username: formData.email,
-                    password: formData.password,
-                    full_name: formData.name,
-                    business_name: formData.business_name,
-                    phone: formData.phone,
-                    role: "owner"
-                });
-                // Redirect is handled in AuthContext after successful registration
-                // No need to show success screen
+                // Register returns a pending response
+                try {
+                    await register({
+                        email: formData.email,
+                        username: formData.email,
+                        password: formData.password,
+                        full_name: formData.name,
+                        business_name: formData.business_name,
+                        phone: formData.phone,
+                        role: "owner"
+                    });
+                } catch (error: any) {
+                    // Check if it's a pending approval error
+                    if (error.message && error.message.startsWith('PENDING_APPROVAL:')) {
+                        // Show pending screen
+                        setStep("pending");
+                        return; // Don't throw, just show pending screen
+                    }
+                    // Re-throw other errors
+                    throw error;
+                }
             } else if (step === "forgot-password") {
                 // TODO: Implement forgot password API
                 setStep("reset-password")
@@ -169,6 +178,8 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                 return "h-[520px]"
             case "otp":
                 return "h-[380px]"
+            case "pending":
+                return "h-[420px]"
             case "success":
                 return "h-[320px]"
             default:
@@ -642,6 +653,33 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
                             <div className="text-center">
                                 <button className="text-slate-400 hover:text-white text-sm transition-colors">Resend code</button>
                             </div>
+                        </div>
+                    )}
+
+                    {step === "pending" && (
+                        <div className="flex-1 flex flex-col justify-center items-center space-y-6">
+                            <div className="w-16 h-16 bg-[#2C7A44]/10 backdrop-blur-sm border border-[#2C7A44]/20 rounded-full flex items-center justify-center">
+                                <Shield className="w-8 h-8 text-[#4ade80]" />
+                            </div>
+
+                            <div className="text-center space-y-2">
+                                <h1 className="text-2xl font-semibold text-white">
+                                    Account Under Review
+                                </h1>
+                                <p className="text-slate-300 max-w-sm">
+                                    Your account is under review. You will be notified once approved.
+                                </p>
+                                <p className="text-slate-400 text-sm mt-4">
+                                    Registered email: <span className="text-white">{formData.email}</span>
+                                </p>
+                            </div>
+
+                            <Button
+                                onClick={resetToLogin}
+                                className="w-full bg-[#2C7A44] hover:bg-[#246337] text-white border border-[#2C7A44]/30 h-11 rounded-xl font-medium transition-all duration-200 shadow-[0_0_15px_rgba(44,122,68,0.3)] hover:shadow-[0_0_20px_rgba(44,122,68,0.5)]"
+                            >
+                                Back to Login
+                            </Button>
                         </div>
                     )}
 

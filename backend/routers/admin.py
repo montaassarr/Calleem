@@ -136,6 +136,45 @@ async def impersonate_user(
     return await service.impersonate_user(user_id, current_admin["username"])
 
 
+@router.get("/users/pending", response_model=List[UserResponse])
+async def list_pending_users(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    service: AdminService = Depends(get_admin_service)
+):
+    """List all pending user registrations awaiting approval"""
+    results = await service.list_pending_users(skip, limit)
+    return [UserResponse(**u) for u in results]
+
+
+@router.post("/users/{user_id}/approve", response_model=UserResponse)
+async def approve_user(
+    user_id: str,
+    current_admin: dict = Depends(get_current_admin),
+    service: AdminService = Depends(get_admin_service)
+):
+    """Approve a pending user registration"""
+    from services.user_service import UserService
+    user_service = UserService()
+    approved = await user_service.approve_user(user_id)
+    logger.info(f"👤 User {user_id} approved by {current_admin.get('username')}")
+    return UserResponse(**approved)
+
+
+@router.post("/users/{user_id}/reject", response_model=UserResponse)
+async def reject_user(
+    user_id: str,
+    current_admin: dict = Depends(get_current_admin),
+    service: AdminService = Depends(get_admin_service)
+):
+    """Reject a pending user registration"""
+    from services.user_service import UserService
+    user_service = UserService()
+    rejected = await user_service.reject_user(user_id)
+    logger.info(f"👤 User {user_id} rejected by {current_admin.get('username')}")
+    return UserResponse(**rejected)
+
+
 # ==================== APPOINTMENTS MANAGEMENT ====================
 
 @router.get("/appointments", response_model=List[AppointmentResponse], response_model_by_alias=False)

@@ -197,6 +197,20 @@ class AdminService:
             results.append(u)
         return results
 
+    async def list_pending_users(self, skip: int, limit: int) -> List[Dict[str, Any]]:
+        """List users with pending approval status"""
+        query = {"approval_status": "pending"}
+        cursor = self.db.users.find(query).sort("created_at", -1).skip(skip).limit(limit)
+        users = await cursor.to_list(length=limit)
+        
+        results = []
+        for u in users:
+            u["id"] = str(u["_id"])
+            if "tenant_id" in u and u["tenant_id"]:
+                u["tenant_id"] = str(u["tenant_id"])
+            results.append(u)
+        return results
+
     async def impersonate_user(self, user_id: str, admin_username: str) -> Dict[str, str]:
         if not ObjectId.is_valid(user_id):
             raise HTTPException(status_code=400, detail="Invalid user ID")

@@ -14,7 +14,8 @@ from models.user import (
     UserResponse, 
     Token, 
     TokenData,
-    UserRole
+    UserRole,
+    RegistrationResponse
 )
 from utils.config import settings
 from utils.error_logger import error_logger
@@ -86,9 +87,9 @@ async def get_super_admin(current_user: dict = Depends(get_current_user)):
     return current_user
 
 
-@router.post("/register", response_model=Token, status_code=201)
+@router.post("/register", response_model=RegistrationResponse, status_code=201)
 async def register_user(user: UserCreate):
-    """Register a new user and return JWT token"""
+    """Register a new user (returns pending status - admin approval required)"""
     return await user_service.register_user(user)
 
 

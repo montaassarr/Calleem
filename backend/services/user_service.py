@@ -8,7 +8,7 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 
 from database.mongo_config import get_database
-from models.user import UserCreate, UserUpdate, Token, TokenData, UserRole
+from models.user import UserCreate, UserUpdate, Token, TokenData, UserRole, ApprovalStatus, RegistrationResponse
 from models.tenant import TenantStatus
 from utils.config import settings
 from utils.error_logger import error_logger, ErrorCategory, ErrorLevel
@@ -89,9 +89,10 @@ class UserService:
             user_dict = user_create.dict(exclude={"password"})
             user_dict["hashed_password"] = self.hash_password(user_create.password)
             user_dict["active"] = True
+            user_dict["approval_status"] = ApprovalStatus.PENDING  # Pending until admin approves
             user_dict["created_at"] = datetime.utcnow()
             user_dict["updated_at"] = datetime.utcnow()
-            user_dict["last_login"] = datetime.utcnow()
+            user_dict["last_login"] = None  # No login until approved
             user_dict["role"] = UserRole.OWNER # First user is owner
 
             res = await self.db.users.insert_one(user_dict)
@@ -140,17 +141,13 @@ class UserService:
             except Exception as e:
                 logger.error(f"⚠️ Auto-provisioning failed: {e}")
 
-            # Return Token
-            access_token = self.create_access_token(
-                data={
-                    "sub": user_id,
-                    "username": user_create.username,
-                    "email": user_create.email,
-                    "role": UserRole.OWNER,
-                    "tenant_id": tenant_id
-                }
+            # Return pending response (no token - user must wait for approval)
+            logger.info(f"✅ User registered (pending approval): {user_create.email}")
+            return RegistrationResponse(
+                message="Your account is under review. You will be notified once approved.",
+                status="pending",
+                email=user_create.email
             )
-            return Token(access_token=access_token, token_type="bearer")
 
         except HTTPException:
             raise
@@ -170,6 +167,19 @@ class UserService:
         
         if not user.get("active", True):
              raise HTTPException(status_code=403, detail="User account is inactive")
+        
+        # Check approval status
+        approval_status = user.get("approval_status", ApprovalStatus.APPROVED)
+        if approval_status == ApprovalStatus.PENDING:
+            raise HTTPException(
+                status_code=403, 
+                detail="Your account is under review. Please wait for admin approval."
+            )
+        if approval_status == ApprovalStatus.REJECTED:
+            raise HTTPException(
+                status_code=403, 
+                detail="Your account registration has been rejected. Please contact support."
+            )
         
         # Update login
         await self.db.users.update_one(
@@ -236,3 +246,38 @@ class UserService:
                 logger.error(f"Error cleaning tenant tokens: {e}")
         
         await self.db.users.delete_one({"_id": ObjectId(user_id)})
+
+    async def approve_user(self, user_id: str) -> Dict[str, Any]:
+        """Approve a pending user account"""
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        if user.get("approval_status") == ApprovalStatus.APPROVED:
+            raise HTTPException(status_code=400, detail="User is already approved")
+        
+        await self.db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {"approval_status": ApprovalStatus.APPROVED, "updated_at": datetime.utcnow()}}
+        )
+        
+        logger.info(f"✅ User approved: {user.get('email')}")
+        return await self.get_user_by_id(user_id)
+
+    async def reject_user(self, user_id: str) -> Dict[str, Any]:
+        """Reject a pending user account"""
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        if user.get("approval_status") == ApprovalStatus.REJECTED:
+            raise HTTPException(status_code=400, detail="User is already rejected")
+        
+        await self.db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {"approval_status": ApprovalStatus.REJECTED, "updated_at": datetime.utcnow()}}
+        )
+        
+        logger.info(f"❌ User rejected: {user.get('email')}")
+        return await self.get_user_by_id(user_id)
+

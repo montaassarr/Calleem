@@ -34,9 +34,16 @@ export interface UserResponse {
     tenant_id?: string;
     permissions: string[];
     active: boolean;
+    approval_status?: 'pending' | 'approved' | 'rejected';
     created_at: string;
     updated_at?: string;
     last_login?: string;
+}
+
+export interface RegistrationResponse {
+    message: string;
+    status: 'pending';
+    email: string;
 }
 
 export interface Token {
@@ -49,3 +56,4 @@ export interface LoginCredentials {
     password: string;
     email?: string; // Optional email field for flexibility
 }
+

@@ -19,6 +19,13 @@ class UserRole(str, Enum):
     SUPER_ADMIN = "super_admin"  # Platform admin (you)
 
 
+class ApprovalStatus(str, Enum):
+    """Account approval status for new registrations"""
+    PENDING = "pending"       # Awaiting admin approval
+    APPROVED = "approved"     # Approved by admin
+    REJECTED = "rejected"     # Rejected by admin
+
+
 class UserCreate(BaseModel):
     """Model for creating a new user (tenant registration)"""
     email: EmailStr
@@ -45,6 +52,7 @@ class UserInDB(BaseModel):
     hashed_password: str
     tenant_id: str  # Links to tenant document
     active: bool = True
+    approval_status: str = ApprovalStatus.PENDING  # Pending until admin approves
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     last_login: Optional[datetime] = None
@@ -61,8 +69,16 @@ class UserResponse(BaseModel):
     tenant_id: str
     role: Optional[str] = "owner"
     active: bool = True  # Default to True for backward compatibility
+    approval_status: str = ApprovalStatus.APPROVED  # Default approved for backward compat
     created_at: Optional[datetime] = None
     last_login: Optional[datetime] = None
+
+
+class RegistrationResponse(BaseModel):
+    """Response model for new user registration (pending approval)"""
+    message: str
+    status: str = "pending"
+    email: str
 
 
 class Token(BaseModel):

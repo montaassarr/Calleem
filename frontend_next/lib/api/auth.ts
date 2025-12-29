@@ -1,5 +1,5 @@
 import api from '@/lib/api';
-import type { LoginCredentials, Token, UserResponse, UserCreate } from '@/lib/types';
+import type { LoginCredentials, Token, UserResponse, UserCreate, RegistrationResponse } from '@/lib/types';
 
 export const authApi = {
     /**
@@ -23,10 +23,10 @@ export const authApi = {
     },
 
     /**
-     * Register a new user
+     * Register a new user (returns pending status - requires admin approval)
      */
-    register: async (userData: UserCreate): Promise<Token> => {
-        const response = await api.post<Token>('/users/register', userData);
+    register: async (userData: UserCreate): Promise<RegistrationResponse> => {
+        const response = await api.post<RegistrationResponse>('/users/register', userData);
         return response; // ApiClient already returns .data
     },
 
