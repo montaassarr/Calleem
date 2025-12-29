@@ -56,7 +56,6 @@ const menuItems = [
         ]
     },
     { icon: MessageCircle, label: "WhatsApp", path: "/dashboard/whatsapp" },
-    { icon: UserCog, label: "Team", path: "/dashboard/settings/team" },
     { icon: Settings, label: "Billing", path: "/dashboard/settings/billing" },
 ];
 
