@@ -79,6 +79,18 @@ export const adminApi = {
         const response = await api.post<Token>(`/admin/users/${id}/impersonate`);
         return response;
     },
+    approveUser: async (id: string): Promise<UserResponse> => {
+        const response = await api.post<UserResponse>(`/admin/users/${id}/approve`);
+        return response;
+    },
+    rejectUser: async (id: string): Promise<UserResponse> => {
+        const response = await api.post<UserResponse>(`/admin/users/${id}/reject`);
+        return response;
+    },
+    getPendingUsers: async (): Promise<UserResponse[]> => {
+        const response = await api.get<UserResponse[]>('/admin/users/pending');
+        return response;
+    },
 
     // Appointments
     getAppointments: async (

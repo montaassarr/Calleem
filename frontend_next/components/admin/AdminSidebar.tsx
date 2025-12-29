@@ -14,6 +14,7 @@ import {
     Building2,
     Mail,
     LogOut,
+    Clock,
 } from "lucide-react";
 import { NavLink } from "../dashboard/NavLink";
 import { usePathname } from "next/navigation";
@@ -26,6 +27,7 @@ const menuItems = [
         items: [
             { icon: Building2, label: "Tenants", path: "/admin/tenants" },
             { icon: Users, label: "Users (Business Owners)", path: "/admin/users" },
+            { icon: Clock, label: "Pending Users", path: "/admin/users?filter=pending" },
             { icon: Calendar, label: "Appointments", path: "/admin/appointments" },
             { icon: Scissors, label: "Services", path: "/admin/services" },
             { icon: MessageSquare, label: "Conversations", path: "/admin/conversations" },

@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
-import { UserResponse, LoginCredentials, UserCreate } from '@/lib/types';
+import { UserResponse, LoginCredentials, UserCreate, RegistrationResponse } from '@/lib/types';
 import { logUserAction, logClientError } from '@/lib/errorLogging';
 
 interface AuthContextType {
@@ -118,34 +118,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
 
         try {
-            // Backend returns token on registration
-            const token = await authApi.register(data);
-            localStorage.setItem('access_token', token.access_token);
+            // Backend returns pending response (no token)
+            const response = await authApi.register(data) as RegistrationResponse;
 
-            logUserAction('registration_token_received');
-
-            // Fetch user profile immediately after registration
-            const userData = await authApi.getCurrentUser();
-            setUser(userData);
-
-            // Store user data in localStorage for components that need it
-            localStorage.setItem('user', JSON.stringify(userData));
-
-            if (userData.tenant_id) {
-                localStorage.setItem('tenant_id', userData.tenant_id);
-            }
-
-            logUserAction('registration_success', {
-                user_id: userData.id,
-                tenant_id: userData.tenant_id,
-                business_name: data.business_name
-            }, {
-                userId: userData.id,
-                tenantId: userData.tenant_id,
+            logUserAction('registration_pending', {
+                email: data.email,
+                status: response.status,
+                message: response.message
             });
 
-            // Redirect to dashboard after successful registration
-            window.location.href = '/dashboard';
+            // Throw error with pending message to trigger auth component to show pending screen
+            throw new Error('PENDING_APPROVAL:' + response.message);
         } catch (error) {
             console.error('Registration failed:', error);
             await logClientError('Registration failed', {
