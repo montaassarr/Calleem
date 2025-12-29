@@ -36,13 +36,6 @@ export default function SettingsPage() {
             color: "from-amber-500 to-yellow-500",
         },
         {
-            title: "Team Members",
-            description: "Add and manage dashboard users",
-            icon: Users,
-            path: "/dashboard/settings/team",
-            color: "from-pink-500 to-rose-500",
-        },
-        {
             title: "Billing & Plans",
             description: "Manage subscription and payment methods",
             icon: CreditCard,
