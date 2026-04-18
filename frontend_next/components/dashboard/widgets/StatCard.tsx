@@ -19,22 +19,22 @@ export const StatCard = ({ title, value, icon: Icon, trend, variant = "primary",
     return (
         <div
             className={cn(
-                "relative overflow-hidden rounded-2xl p-6 transition-all hover:shadow-2xl hover:-translate-y-2 shine",
+                "rounded-2xl border p-6 shadow-sm",
                 isPrimaryVariant
-                    ? "bg-primary text-primary-foreground shadow-xl shadow-primary/20"
-                    : "glass-card"
+                    ? "bg-card text-card-foreground"
+                    : "bg-card text-card-foreground"
             )}
         >
             <div className="flex items-start justify-between mb-4">
                 <div>
-                    <p className={cn("text-sm font-medium mb-2", isPrimaryVariant ? "text-white/80" : "text-muted-foreground")}>
+                    <p className={cn("text-sm font-medium mb-2", isPrimaryVariant ? "text-muted-foreground" : "text-muted-foreground")}>
                         {title}
                     </p>
                     <h3 className="text-4xl font-bold">{value}</h3>
                 </div>
                 <div className={cn(
                     "p-3 rounded-xl",
-                    isPrimaryVariant ? "bg-white/20" : "bg-secondary"
+                    isPrimaryVariant ? "bg-secondary" : "bg-secondary"
                 )}>
                     <Icon className="w-6 h-6" />
                 </div>
@@ -47,14 +47,14 @@ export const StatCard = ({ title, value, icon: Icon, trend, variant = "primary",
                     ) : (
                         <TrendingDown className="w-4 h-4" />
                     )}
-                    <span className={cn("text-sm", isPrimaryVariant ? "text-white/90" : "text-foreground")}>
+                    <span className={cn("text-sm", isPrimaryVariant ? "text-foreground" : "text-foreground")}>
                         {trend.value}
                     </span>
                 </div>
             )}
 
             {status && (
-                <p className={cn("text-sm mt-2", isPrimaryVariant ? "text-white/80" : "text-muted-foreground")}>
+                <p className={cn("text-sm mt-2", isPrimaryVariant ? "text-muted-foreground" : "text-muted-foreground")}>
                     {status}
                 </p>
             )}

@@ -167,7 +167,16 @@ async def vapi_webhook(
         return await handle_tool_calls(data)
     
     elif message_type == "end-of-call-report":
+        logger.info(f"🔔 Received end-of-call-report for call: {call.get('id')}")
         background_tasks.add_task(store_call_log, data)
+        if tenant_id:
+            await socket_manager.broadcast_to_tenant(tenant_id, {
+                "type": "call_ended",
+                "call_id": call.get("id"),
+                "summary": data.get("message", {}).get("summary"),
+                "transcript": data.get("message", {}).get("transcript"),
+                "cost": data.get("message", {}).get("cost")
+            })
     
     return {"success": True}
 
@@ -207,7 +216,20 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
     result_data = {}
     
     try:
-        if name == "checkAvailability":
+        if name == "getCurrentDateTime":
+            from utils.datetime_utils import DateTimeUtils
+            current_time = DateTimeUtils.now()
+            # Format for AI understanding: full datetime and readable date
+            result_data = {
+                "current_datetime": current_time.isoformat(),
+                "date": current_time.strftime("%Y-%m-%d"),
+                "time": current_time.strftime("%H:%M"),
+                "day_of_week": current_time.strftime("%A"),
+                "message": f"Current date and time: {current_time.strftime('%A, %B %d, %Y at %I:%M %p')}"
+            }
+            logger.info(f"✅ Current DateTime: {result_data['message']}")
+        
+        elif name == "checkAvailability":
             date_str = args.get("date") or datetime.now().strftime("%Y-%m-%d")
             time_str = args.get("time", "09:00")
             result = await appointments_service.check_availability(tenant_id, date_str, time_str)
@@ -243,6 +265,36 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
                 }
             
             logger.info(f"Fetched {len(services_list)} services for AI agent")
+
+        elif name == "getBusinessLocation":
+            db = get_database()
+            config = await db.business_config.find_one({"tenant_id": tenant_id}) if tenant_id else None
+            tenant = None
+            if tenant_id:
+                try:
+                    from bson import ObjectId
+                    tenant_query = {"_id": ObjectId(tenant_id)} if ObjectId.is_valid(tenant_id) else {"_id": tenant_id}
+                    tenant = await db.tenants.find_one(tenant_query)
+                except Exception:
+                    tenant = await db.tenants.find_one({"_id": tenant_id})
+
+            location = (
+                (config or {}).get("business_location")
+                or (config or {}).get("business_address")
+                or (tenant or {}).get("location")
+                or (tenant or {}).get("address")
+            )
+
+            if location:
+                result_data = {
+                    "location": location,
+                    "message": f"Our location is: {location}"
+                }
+            else:
+                result_data = {
+                    "location": None,
+                    "message": "Our location is not configured yet. I can ask the team to share directions."
+                }
         
         elif name == "bookAppointment":
             from models.appointment import AppointmentCreate
@@ -251,9 +303,17 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
             from utils.config import settings
             from utils.datetime_utils import DateTimeUtils
             
-            # Sanitize phone number (remove spaces and non-digit chars except +)
-            phone = args.get("phone", "")
-            phone = "".join(c for c in phone if c.isdigit() or c == "+")
+            # Sanitize phone number (keep only digits, then validate 8-digit format)
+            # Try both 'phone' and 'customerPhone' field names
+            phone = args.get("phone") or args.get("customerPhone") or ""
+            phone = "".join(c for c in phone if c.isdigit())
+            
+            # Ensure exactly 8 digits
+            if len(phone) != 8:
+                logger.error(f"Invalid phone format: '{phone}' - must be exactly 8 digits")
+                return {"error": "Phone number must be exactly 8 digits (without country code)"}
+            
+            logger.info(f"✅ Phone sanitized and validated: {phone}")
             
             # Create timezone-aware datetime in business timezone
             date_str = args.get('date')
@@ -271,7 +331,7 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
             logger.info(f"⏰ Parsed datetime: {aware_dt}, Is future? {aware_dt > now}")
             
             appointment = AppointmentCreate(
-                client_name=args.get("name"),
+                client_name=args.get("name") or args.get("customerName"),
                 client_phone=phone,
                 service=args.get("service", "Appointment"),
                 datetime=aware_dt,
@@ -361,11 +421,20 @@ async def store_call_log(data: dict):
     """Store Vapi call report in MongoDB"""
     report = data.get("message", {})
     db = get_database()
+
+    call_data = report.get("call", {})
+    call_id = call_data.get("id")
+    assistant_id = call_data.get("assistantId")
+    tenant_id = call_data.get("metadata", {}).get("tenant_id")
+
+    if not tenant_id and call_data:
+        tenant_id = await resolve_tenant(call_data)
     
-    call_id = report.get("call", {}).get("id")
-    tenant_id = report.get("call", {}).get("metadata", {}).get("tenant_id")
+    logger.info(f"💾 Storing call log: call_id={call_id}, tenant_id={tenant_id}, assistant_id={assistant_id}")
+    logger.debug(f"📋 Call summary: {report.get('summary')}")
+    logger.debug(f"⏱️  Duration: {report.get('durationSeconds')}s, Cost: {report.get('cost')}")
     
-    # Broadcast call end
+    # Broadcast call end (duplicate broadcast to ensure delivery)
     if tenant_id:
         await socket_manager.broadcast_to_tenant(tenant_id, {
             "type": "call_ended",
@@ -378,9 +447,9 @@ async def store_call_log(data: dict):
     # Build call record
     call_record = {
         "vapi_call_id": call_id,
-        "assistant_id": report.get("call", {}).get("assistantId"),
+        "assistant_id": assistant_id,
         "tenant_id": tenant_id,
-        "customer_phone": report.get("call", {}).get("customer", {}).get("number"),
+        "customer_phone": call_data.get("customer", {}).get("number"),
         "transcript": report.get("transcript"),
         "summary": report.get("summary"),
         "cost": report.get("cost"),
@@ -388,9 +457,47 @@ async def store_call_log(data: dict):
         "started_at": report.get("startedAt"),
         "ended_at": report.get("endedAt"),
         "status": report.get("status"),
-        "created_at": datetime.utcnow()
+        "updated_at": datetime.utcnow()
     }
-    
-    if tenant_id:
-        await db.call_logs.insert_one(call_record)
+
+    if tenant_id and call_id:
+        await db.call_logs.update_one(
+            {"vapi_call_id": call_id},
+            {
+                "$set": call_record,
+                "$setOnInsert": {"created_at": datetime.utcnow()}
+            },
+            upsert=True
+        )
+
+        # Idempotent tenant debit (one ledger row per call id)
+        raw_cost = report.get("cost")
+        try:
+            call_cost_usd = float(raw_cost or 0)
+        except (TypeError, ValueError):
+            call_cost_usd = 0.0
+
+        if call_cost_usd > 0:
+            ledger_key = f"call:{call_id}"
+            existing_entry = await db.billing_ledger.find_one({"key": ledger_key})
+            if not existing_entry:
+                await db.billing_ledger.insert_one({
+                    "key": ledger_key,
+                    "type": "call_debit",
+                    "tenant_id": tenant_id,
+                    "assistant_id": assistant_id,
+                    "vapi_call_id": call_id,
+                    "amount_usd": call_cost_usd,
+                    "duration_seconds": report.get("durationSeconds"),
+                    "created_at": datetime.utcnow()
+                })
+
+                await db.tenants.update_one(
+                    {"_id": tenant_id},
+                    {
+                        "$inc": {"credit_balance": -call_cost_usd},
+                        "$set": {"updated_at": datetime.utcnow()}
+                    }
+                )
+
         logger.info(f"Stored call log for tenant {tenant_id}: {call_id}")

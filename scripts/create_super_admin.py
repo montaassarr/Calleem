@@ -14,8 +14,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Load env vars
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backend", ".env"))
 
-MONGO_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
-DB_NAME = os.getenv("DATABASE_NAME", "ai_barber_receptionist")
+MONGO_URL = os.getenv("MONGO_URI") or os.getenv("MONGODB_URL") or "mongodb://localhost:27017/calleem"
+DB_NAME = os.getenv("MONGO_DB_NAME") or os.getenv("DATABASE_NAME") or "calleem"
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
@@ -25,7 +25,7 @@ async def create_super_admin():
     print("To run against PRODUCTION, provide your production MongoDB URI.")
     print("To run LOCALLY, just press Enter.")
     
-    env_mongo_url = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+    env_mongo_url = os.getenv("MONGO_URI") or os.getenv("MONGODB_URL") or "mongodb://localhost:27017/calleem"
     custom_mongo_url = input(f"\nEnter MongoDB URI [Default: {env_mongo_url}]: ").strip()
     
     mongo_url = custom_mongo_url if custom_mongo_url else env_mongo_url
@@ -48,7 +48,7 @@ async def create_super_admin():
         return
 
     # Try to parse DB name from URI
-    default_db = "ai_receptionist"
+    default_db = DB_NAME
     if "/" in mongo_url and not mongo_url.endswith("/"):
         try:
             # tailored for mongodb+srv://.../dbname?params

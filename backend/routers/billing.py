@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from typing import Dict, Any
 from datetime import datetime
 import logging
+from bson import ObjectId
 
 from database.mongo_config import get_database
 from routers.users import get_current_user
@@ -35,6 +36,54 @@ class SubscriptionResponse(BaseModel):
     is_mock: bool
 
 
+def _extract_plan_amount_cents(subscription: Dict[str, Any]) -> int | None:
+    """Extract recurring plan amount in cents from Stripe or mock subscription payload."""
+    if not subscription:
+        return None
+
+    plan = subscription.get("plan") or {}
+    plan_amount = plan.get("amount")
+    if isinstance(plan_amount, (int, float)):
+        return int(plan_amount)
+
+    items = subscription.get("items", {}).get("data", [])
+    if items and isinstance(items, list):
+        first_item = items[0] or {}
+        price = first_item.get("price") or {}
+        unit_amount = price.get("unit_amount")
+        if isinstance(unit_amount, (int, float)):
+            return int(unit_amount)
+
+    return None
+
+
+def _extract_plan_interval(subscription: Dict[str, Any]) -> str:
+    """Extract recurring interval (month/year) with sensible default."""
+    plan = subscription.get("plan") or {}
+    interval = plan.get("interval")
+    if isinstance(interval, str) and interval:
+        return interval
+
+    items = subscription.get("items", {}).get("data", [])
+    if items and isinstance(items, list):
+        first_item = items[0] or {}
+        price = first_item.get("price") or {}
+        recurring = price.get("recurring") or {}
+        recurring_interval = recurring.get("interval")
+        if isinstance(recurring_interval, str) and recurring_interval:
+            return recurring_interval
+
+    return "month"
+
+
+def _format_plan_price(amount_cents: int | None, interval: str = "month") -> str:
+    """Format plan amount to user-facing price string."""
+    if amount_cents is None:
+        return "$0/month"
+    amount_dollars = amount_cents / 100
+    return f"${amount_dollars:.0f}/{interval}"
+
+
 @router.post("/checkout")
 async def create_checkout_session(
     request: Request,
@@ -53,7 +102,8 @@ async def create_checkout_session(
             raise HTTPException(status_code=400, detail="User has no tenant_id")
         
         # Check if tenant already has a subscription
-        tenant = await db.tenants.find_one({"_id": tenant_id})
+        tenant_query = {"_id": ObjectId(tenant_id)} if ObjectId.is_valid(tenant_id) else {"$or": [{"_id": tenant_id}, {"tenant_id": tenant_id}]}
+        tenant = await db.tenants.find_one(tenant_query)
         if tenant and tenant.get("stripe_subscription_id"):
             raise HTTPException(
                 status_code=400,
@@ -75,7 +125,7 @@ async def create_checkout_session(
             
             # Save customer ID to tenant
             await db.tenants.update_one(
-                {"_id": tenant_id},
+                {"_id": ObjectId(tenant_id)} if ObjectId.is_valid(tenant_id) else {"$or": [{"_id": tenant_id}, {"tenant_id": tenant_id}]},
                 {"$set": {"stripe_customer_id": stripe_customer_id}}
             )
         
@@ -175,7 +225,7 @@ async def get_subscription_status(current_user: dict = Depends(get_current_user)
         if not tenant_id:
             raise HTTPException(status_code=400, detail="User has no tenant_id")
         
-        tenant = await db.tenants.find_one({"_id": tenant_id})
+        tenant = await db.tenants.find_one({"_id": ObjectId(tenant_id)} if ObjectId.is_valid(tenant_id) else {"$or": [{"_id": tenant_id}, {"tenant_id": tenant_id}]})
         if not tenant:
             raise HTTPException(status_code=404, detail="Tenant not found")
         
@@ -200,10 +250,14 @@ async def get_subscription_status(current_user: dict = Depends(get_current_user)
         
         current_period_end = datetime.fromtimestamp(subscription["current_period_end"]).isoformat()
         
+        amount_cents = _extract_plan_amount_cents(subscription)
+        interval = _extract_plan_interval(subscription)
+        plan_price = _format_plan_price(amount_cents, interval)
+
         return SubscriptionResponse(
             status=subscription["status"],
             plan_name="AI Receptionist Pro",
-            plan_price="$499/month",
+            plan_price=plan_price,
             trial_end=trial_end,
             current_period_end=current_period_end,
             cancel_at_period_end=subscription.get("cancel_at_period_end", False),
@@ -234,7 +288,7 @@ async def create_portal_session(
         if not tenant_id:
             raise HTTPException(status_code=400, detail="User has no tenant_id")
         
-        tenant = await db.tenants.find_one({"_id": tenant_id})
+        tenant = await db.tenants.find_one({"_id": ObjectId(tenant_id)} if ObjectId.is_valid(tenant_id) else {"$or": [{"_id": tenant_id}, {"tenant_id": tenant_id}]})
         if not tenant:
             raise HTTPException(status_code=404, detail="Tenant not found")
         
@@ -261,6 +315,95 @@ async def create_portal_session(
         
     except Exception as e:
         logger.error(f"Failed to create portal session: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/dashboard-summary")
+async def get_dashboard_billing_summary(current_user: dict = Depends(get_current_user)):
+    """
+    Get compact billing + usage stats for dashboard navbar/sidebar.
+    """
+    db = get_database()
+
+    try:
+        tenant_id = current_user.get("tenant_id")
+        if not tenant_id:
+            raise HTTPException(status_code=400, detail="User has no tenant_id")
+
+        tenant = await db.tenants.find_one({"_id": ObjectId(tenant_id)} if ObjectId.is_valid(tenant_id) else {"$or": [{"_id": tenant_id}, {"tenant_id": tenant_id}]})
+        if not tenant:
+            raise HTTPException(status_code=404, detail="Tenant not found")
+
+        assistant_id = tenant.get("vapi_assistant_id")
+
+        # Subscription details (if available)
+        plan_price = "$0/month"
+        subscription_status = tenant.get("subscription_status") or "inactive"
+        current_period_end = tenant.get("current_period_end")
+
+        subscription_id = tenant.get("stripe_subscription_id")
+        if subscription_id:
+            stripe_service = get_stripe_service()
+            subscription = await stripe_service.get_subscription(subscription_id)
+            if subscription:
+                amount_cents = _extract_plan_amount_cents(subscription)
+                interval = _extract_plan_interval(subscription)
+                plan_price = _format_plan_price(amount_cents, interval)
+                subscription_status = subscription.get("status", subscription_status)
+                if subscription.get("current_period_end"):
+                    current_period_end = datetime.fromtimestamp(subscription["current_period_end"])
+
+        # Usage stats (last 30 days), limited to this tenant and assistant
+        usage_query: Dict[str, Any] = {"tenant_id": tenant_id}
+        if assistant_id:
+            usage_query["assistant_id"] = assistant_id
+
+        call_logs = await db.call_logs.find(usage_query).to_list(length=5000)
+
+        usage_entries = [
+            call for call in call_logs
+            if call.get("duration") is not None or call.get("cost") is not None
+        ]
+
+        total_calls = len(usage_entries)
+        total_duration_seconds = sum((call.get("duration") or 0) for call in usage_entries)
+        total_cost = sum((call.get("cost") or 0) for call in usage_entries)
+
+        total_minutes = round(total_duration_seconds / 60, 2) if total_duration_seconds else 0.0
+        avg_cost_per_minute = round(total_cost / total_minutes, 4) if total_minutes > 0 else 0.0
+
+        # Optional tenant-level credit fields (if present in DB)
+        tenant_credit_balance = (
+            tenant.get("vapi_credit_balance")
+            if tenant.get("vapi_credit_balance") is not None
+            else tenant.get("credit_balance")
+        )
+        if tenant_credit_balance is not None:
+            try:
+                tenant_credit_balance = round(float(tenant_credit_balance), 2)
+            except (TypeError, ValueError):
+                tenant_credit_balance = None
+
+        return {
+            "plan": tenant.get("plan", "free"),
+            "plan_price": plan_price,
+            "subscription_status": subscription_status,
+            "current_period_end": current_period_end.isoformat() if isinstance(current_period_end, datetime) else current_period_end,
+            "assistant_id": assistant_id,
+            "usage": {
+                "total_calls": total_calls,
+                "total_minutes": total_minutes,
+                "total_cost": round(total_cost, 4),
+                "avg_cost_per_minute": avg_cost_per_minute
+            },
+            "tenant_credit_balance": tenant_credit_balance,
+            "is_mock": is_mock_mode()
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get dashboard billing summary: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -326,6 +469,9 @@ async def handle_checkout_completed(session: Dict[str, Any], db):
     if not subscription:
         logger.error(f"Subscription {subscription_id} not found")
         return
+
+    amount_cents = _extract_plan_amount_cents(subscription)
+    plan_amount_usd = round((amount_cents or 0) / 100, 2)
     
     # Update tenant
     await db.tenants.update_one(
@@ -338,6 +484,8 @@ async def handle_checkout_completed(session: Dict[str, Any], db):
                 "trial_end_date": datetime.fromtimestamp(subscription.get("trial_end", 0)) if subscription.get("trial_end") else None,
                 "current_period_end": datetime.fromtimestamp(subscription["current_period_end"]),
                 "plan": "pro",
+                "monthly_subscription_amount_usd": plan_amount_usd,
+                "credit_balance": plan_amount_usd,
                 "updated_at": datetime.utcnow()
             }
         }
@@ -355,14 +503,25 @@ async def handle_invoice_paid(invoice: Dict[str, Any], db):
     # Update tenant's current period
     tenant = await db.tenants.find_one({"stripe_subscription_id": subscription_id})
     if tenant:
+        amount_paid_cents = invoice.get("amount_paid")
+        recharge_amount = None
+        if isinstance(amount_paid_cents, (int, float)):
+            recharge_amount = round(float(amount_paid_cents) / 100, 2)
+        elif tenant.get("monthly_subscription_amount_usd") is not None:
+            recharge_amount = float(tenant.get("monthly_subscription_amount_usd"))
+
+        update_doc: Dict[str, Any] = {
+            "$set": {
+                "subscription_status": "active",
+                "updated_at": datetime.utcnow()
+            }
+        }
+        if recharge_amount and recharge_amount > 0:
+            update_doc["$inc"] = {"credit_balance": recharge_amount}
+
         await db.tenants.update_one(
             {"_id": tenant["_id"]},
-            {
-                "$set": {
-                    "subscription_status": "active",
-                    "updated_at": datetime.utcnow()
-                }
-            }
+            update_doc
         )
         logger.info(f"Invoice paid for subscription {subscription_id}")
 
@@ -373,6 +532,9 @@ async def handle_subscription_updated(subscription: Dict[str, Any], db):
     
     tenant = await db.tenants.find_one({"stripe_subscription_id": subscription_id})
     if tenant:
+        amount_cents = _extract_plan_amount_cents(subscription)
+        plan_amount_usd = round((amount_cents or 0) / 100, 2)
+
         await db.tenants.update_one(
             {"_id": tenant["_id"]},
             {
@@ -380,6 +542,7 @@ async def handle_subscription_updated(subscription: Dict[str, Any], db):
                     "subscription_status": subscription["status"],
                     "current_period_end": datetime.fromtimestamp(subscription["current_period_end"]),
                     "cancel_at_period_end": subscription.get("cancel_at_period_end", False),
+                    "monthly_subscription_amount_usd": plan_amount_usd,
                     "updated_at": datetime.utcnow()
                 }
             }

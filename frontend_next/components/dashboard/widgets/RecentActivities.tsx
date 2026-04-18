@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 
 export const RecentActivities = () => {
     return (
-        <div className="glass-card rounded-2xl p-6 shine">
+        <div className="rounded-2xl border bg-card p-6 shadow-sm">
             <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
 
-            <div className="bg-gradient-to-br from-primary/20 to-accent/20 backdrop-blur-xl rounded-xl p-4 mb-4 border border-primary/30 shadow-lg shine">
+            <div className="rounded-xl p-4 mb-4 border bg-muted/30">
                 <div className="flex items-start justify-between mb-3">
                     <div>
                         <h4 className="font-semibold text-foreground mb-1">Priority Support Call</h4>
@@ -18,7 +18,7 @@ export const RecentActivities = () => {
                     <Clock className="w-4 h-4" />
                     <span>Starting in 15 minutes</span>
                 </div>
-                <Button className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90">
+                <Button className="w-full">
                     Join Call
                 </Button>
             </div>

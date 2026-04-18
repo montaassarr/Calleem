@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     LayoutDashboard,
     Phone,
     PhoneCall,
     Mic,
     Calendar,
-    BarChart3,
     Users,
     Settings,
     HelpCircle,
@@ -28,7 +27,6 @@ import {
     Zap,
     MessageCircle,
     Key,
-    Activity,
 } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { useRouter, usePathname } from "next/navigation";
@@ -38,7 +36,7 @@ const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
     { icon: Calendar, label: "Appointments", path: "/dashboard/appointments" },
     { icon: Scissors, label: "Services", path: "/dashboard/services" },
-    { icon: MessageSquare, label: "Conversations", path: "/dashboard/conversations" },
+    { icon: MessageSquare, label: "Call History", path: "/dashboard/calls" },
     {
         icon: Mic,
         label: "Voice AI",
@@ -46,17 +44,15 @@ const menuItems = [
         subItems: [
             { icon: PhoneCall, label: "Control Center", path: "/dashboard/voice-agent/control-center" },
             { icon: Phone, label: "Phone Numbers", path: "/dashboard/voice-agent/phone-numbers" },
-            { icon: Activity, label: "Live Monitor", path: "/dashboard/voice-agent/live-monitor" },
             { icon: Waves, label: "Voice Config", path: "/dashboard/voice-agent/voice" },
             { icon: Brain, label: "Knowledge Base", path: "/dashboard/voice-agent/knowledge-base" },
             { icon: Plug, label: "Tools", path: "/dashboard/voice-agent/tools" },
-            { icon: BarChart3, label: "Analytics", path: "/dashboard/voice-agent/analytics" },
             { icon: TestTube, label: "Test Call", path: "/dashboard/voice-agent/test" },
             { icon: MessageSquare, label: "Chat Test", path: "/dashboard/voice-agent/chat" },
         ]
     },
     { icon: MessageCircle, label: "WhatsApp", path: "/dashboard/whatsapp" },
-    { icon: Settings, label: "Billing", path: "/dashboard/settings/billing" },
+    { icon: CalendarDays, label: "Schedule", path: "/dashboard/schedule" },
 ];
 
 const generalItems = [
@@ -191,18 +187,6 @@ export const Sidebar = () => {
                     </div>
                 </div>
             </nav>
-
-            <div className="p-4 m-4 bg-primary rounded-2xl text-white shadow-xl shadow-primary/20 shine">
-                <div className="flex items-center gap-2 mb-2">
-                    <Phone className="w-5 h-5" />
-                    <p className="font-semibold text-sm">AI Receptionist</p>
-                </div>
-                <p className="text-xs text-white/90 mb-4">Ava is taking calls 24/7</p>
-                <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse" />
-                    <span className="text-xs">Active</span>
-                </div>
-            </div>
         </aside>
     );
 };

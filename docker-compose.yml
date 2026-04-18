@@ -27,8 +27,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MONGO_URI=mongodb://mongodb:27017/ai_receptionist
-      - MONGO_DB_NAME=ai_receptionist
+      - MONGO_URI=mongodb://mongodb:27017/calleem
+      - MONGO_DB_NAME=calleem
     env_file:
       - ./backend/.env
     depends_on:

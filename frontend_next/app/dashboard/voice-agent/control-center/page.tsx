@@ -10,10 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Phone, Settings, Play, RefreshCw, Mic, Volume2, FileText,
-  Wrench, BarChart3, Save, Loader2, CheckCircle, XCircle
+  Wrench, Save, Loader2, CheckCircle, XCircle
 } from "lucide-react";
-import AssistantConfig from "@/components/dashboard/AssistantConfig";
-import LiveCallMonitor from '@/components/dashboard/LiveCallMonitor';
 import { vapiApi, assistantApi } from "@/lib/api-endpoints";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
@@ -100,7 +98,7 @@ export default function VoiceAgentControlCenter() {
       </div>
 
       {/* Quick Nav Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Link href="/dashboard/voice-agent/voice" className="block">
           <Card className="bg-white border-slate-200 shadow-sm hover:border-primary/50 transition-colors cursor-pointer h-full">
             <CardContent className="bg-white border-slate-200 shadow-sm pt-6">
@@ -149,21 +147,6 @@ export default function VoiceAgentControlCenter() {
           </Card>
         </Link>
 
-        <Link href="/dashboard/voice-agent/analytics" className="block">
-          <Card className="bg-white border-slate-200 shadow-sm hover:border-primary/50 transition-colors cursor-pointer h-full">
-            <CardContent className="bg-white border-slate-200 shadow-sm pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <BarChart3 className="h-5 w-5 text-yellow-600" />
-                </div>
-                <div>
-                  <p className="font-semibold">Analytics</p>
-                  <p className="text-sm text-muted-foreground">View metrics</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -179,7 +162,7 @@ export default function VoiceAgentControlCenter() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6">
             {/* Assistant Status */}
             <Card className="bg-white border-slate-200 shadow-sm">
               <CardHeader>
@@ -232,9 +215,6 @@ export default function VoiceAgentControlCenter() {
                 )}
               </CardContent>
             </Card>
-
-            {/* Live Call Monitor */}
-            <LiveCallMonitor />
           </div>
         </TabsContent>
 

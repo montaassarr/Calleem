@@ -6,7 +6,7 @@ Ensures every new user gets a "Bella-like" fully functional AI out of the box.
 import logging
 import os
 from typing import Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from services.vapi_service import vapi_service
 from database.mongo_config import get_database
@@ -15,20 +15,6 @@ from bson import ObjectId
 logger = logging.getLogger(__name__)
 
 class VapiProvisioningService:
-    @staticmethod
-    def _get_date_header() -> str:
-        """Generate current date header for system prompts"""
-        from utils.datetime_utils import DateTimeUtils
-        now = DateTimeUtils.now()
-        current_date_str = now.strftime("%B %d, %Y")
-        tomorrow = now + timedelta(days=1)
-        tomorrow_str = tomorrow.strftime("%B %d, %Y")
-        
-        return f"""**CURRENT DATE: {current_date_str} - Use this for all date calculations**
-When customers say 'tomorrow', they mean {tomorrow_str}.
-
-"""
-    
     @staticmethod
     async def provision_tenant_assistant(tenant_id: str, business_name: str) -> Dict[str, Any]:
         """
@@ -41,27 +27,60 @@ When customers say 'tomorrow', they mean {tomorrow_str}.
         """
         logger.info(f"🤖 Starting Vapi provisioning for tenant {tenant_id} ({business_name})")
         
-        # Get current date header
-        date_header = VapiProvisioningService._get_date_header()
-        
         # Default Configuration (Bella-style)
-        default_instructions = f"""{date_header}You are the AI Receptionist for {business_name}.
-Your role is to answer calls professionally, check availability, and book appointments.
+        default_instructions = f"""You are an AI receptionist for {business_name}. You are Ahmed, the friendly and professional AI receptionist at {business_name}.
 
-Services:
-- General Consultation
-- Service Inquiry
+Core Rules (always follow):
+- Use short, natural sentences. Keep responses brief and easy to understand.
+- Be polite, patient, enthusiastic, and slightly casual/friendly.
+- Ask only one question at a time.
+- Always confirm details clearly before booking.
+- Match the client's energy and language style.
 
-Business Hours: Monday-Friday, 9:00 AM - 5:00 PM Eastern Time
+Greeting (First message - use this exactly):
+"Hello! Welcome to {business_name}. This is Ahmed speaking, how can I help you today?"
 
-When handling appointments:
-- CRITICAL: Always use the current year from the CURRENT DATE above
-- Use YYYY-MM-DD format (e.g., 2024-12-17 for December 17th)
-- Use 24-hour HH:MM format for times (e.g., 14:00 for 2 PM)
+How to handle calls:
+1. Booking an appointment:
+- Ask for their name.
+- Ask what service they want.
+- Ask for preferred date and time.
+- Resolve relative dates using the current date context that the backend injects.
+- Convert their answer to YYYY-MM-DD format.
+- Check availability with checkAvailability using the correct date.
+- If available, repeat the full details back to them.
+- Ask for confirmation.
+- Book with bookAppointment using the CORRECT future date.
+
+2. Other common requests:
+- Prices or services: Give clear info and then offer to book a slot.
+- Reschedule or cancel: Ask for name and original appointment details first.
+- Same-day / walk-in: Be honest about availability and offer options.
+- General questions: Answer helpfully and gently guide back to booking.
+
+Tone & Style:
+- Warm and welcoming.
+- Positive and solution-oriented.
+- If no slot is available: "We're pretty booked that day, but I can find a good time for you on [alternative]. Does that work?"
+- If the client is in a hurry, keep it quick and efficient.
+
+Tools:
+- getAvailableServices(): Fetch current service offerings when the customer asks about services or pricing.
+- getBusinessLocation(): Fetch the exact business location/address when the customer asks where the business is located.
+- checkAvailability(date): Check available appointment slots for a specific date. Date must be YYYY-MM-DD format.
+- bookAppointment(date, time, name, phone, email, service): Book an appointment. Date must be YYYY-MM-DD format, time in HH:MM format (24-hour).
+
+Guidelines:
+- ALWAYS use the backend-injected current date context to handle relative dates (today, tomorrow, next week, Monday, etc.)
+- ALWAYS call getAvailableServices when customer asks about services or pricing
+- ALWAYS call getBusinessLocation when customer asks about location/address/directions
+- Always use YYYY-MM-DD format for dates (NOT 2024, NOT wrong year)
+- Always use HH:MM format for times in 24-hour time (11:00, 14:30, etc.)
+- NEVER book appointments in the past - always use the backend-injected current date context
 - Confirm date and time before booking
 - Collect: name, phone, preferred service
 
-Always be polite, concise, and helpful."""
+Always be professional, friendly, and helpful."""
         
         default_config = {
             "name": f"{business_name} AI Receptionist",
@@ -82,7 +101,7 @@ Always be polite, concise, and helpful."""
                     }
                 ]
             },
-            "firstMessage": f"Hello! Thanks for calling {business_name}. How can I help you today?",
+            "firstMessage": f"Hello! Welcome to {business_name}. This is Ahmed speaking, how can I help you today?",
             "transcriber": {
                 "provider": "deepgram",
                 "model": "nova-2",
@@ -110,6 +129,21 @@ Always be polite, concise, and helpful."""
                 
             logger.info(f"   ✅ Assistant created: {assistant_id}")
 
+            # Persist the assistant ID immediately so the tenant dashboard can load it
+            db = get_database()
+            await db.tenants.update_one(
+                {"_id": ObjectId(tenant_id)},
+                {"$set": {
+                    "vapi_assistant_id": assistant_id,
+                    "ai_config.voice": default_config["voice"],
+                    "ai_config.voice_provider": "11labs",
+                    "ai_config.system_prompt": default_config["model"]["messages"][0]["content"],
+                    "ai_config.first_message": default_config["firstMessage"],
+                    "is_configured": True
+                }}
+            )
+            logger.info("   ✅ Tenant record updated with assistant ID")
+
             # 2. Enable Core Tools
             # We need to get the "built-in" tools first to know their definitions
             # But simpler: VapiService.create_tool might be needed if they don't exist?
@@ -129,6 +163,19 @@ Always be polite, concise, and helpful."""
             logger.info(f"   Using webhook URL: {webhook_url}")
             
             core_tools = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "getBusinessLocation",
+                        "description": "Get the exact business location/address",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {},
+                            "required": []
+                        }
+                    },
+                    "server": {"url": webhook_url}
+                },
                 {
                     "type": "function",
                     "function": {
@@ -152,10 +199,10 @@ Always be polite, concise, and helpful."""
                         "parameters": {
                             "type": "object",
                             "properties": {
-                                "date": {"type": "string", "description": "Date YYYY-MM-DD"},
-                                "time": {"type": "string", "description": "Time HH:MM"},
-                                "name": {"type": "string", "description": "Customer Full Name"},
-                                "phone": {"type": "string", "description": "Customer Phone Number"}
+                                "date": {"type": "string", "description": "Date in YYYY-MM-DD format"},
+                                "time": {"type": "string", "description": "Time in HH:MM format"},
+                                "name": {"type": "string", "description": "Customer full name"},
+                                "phone": {"type": "string", "description": "Customer phone number - exactly 8 digits without country code, no spaces (e.g., '12345678' not '1234 5678')"}
                             },
                             "required": ["date", "time", "name", "phone"]
                         }
@@ -165,29 +212,26 @@ Always be polite, concise, and helpful."""
             ]
             
             logger.info(f"   Enabling {len(core_tools)} core tools...")
-            
-            logger.info(f"   Enabling {len(core_tools)} core tools...")
-            
-            # Use update_assistant to set tools
-            await vapi_service.update_assistant(
-                assistant_id=assistant_id,
-                tools=core_tools
-            )
-            
-            logger.info("   ✅ Core tools enabled")
 
-            # 3. Update Tenant Record
-            db = get_database()
+            # Try to sync tools, but don't fail tenant provisioning if Vapi rejects the patch.
+            try:
+                await vapi_service.update_assistant(
+                    assistant_id=assistant_id,
+                    tools=core_tools
+                )
+                await db.tenants.update_one(
+                    {"_id": ObjectId(tenant_id)},
+                    {"$set": {"enabled_tools": [{"tool_id": "check_availability", "config": core_tools[0]}, {"tool_id": "book_appointment", "config": core_tools[1]}]}}
+                )
+                logger.info("   ✅ Core tools enabled")
+            except Exception as tool_error:
+                logger.warning(f"   ⚠️ Core tools sync failed, but assistant was created and tenant saved: {tool_error}")
+
+            # 3. Update Tenant Record (legacy compatibility is preserved above too)
             await db.tenants.update_one(
                 {"_id": ObjectId(tenant_id)},
                 {"$set": {
-                    "vapi_assistant_id": assistant_id,
-                    "ai_config.voice": default_config["voice"],
-                    "ai_config.voice_provider": "11labs",
-                    "ai_config.system_prompt": default_config["model"]["messages"][0]["content"],
-                    "ai_config.first_message": default_config["firstMessage"],
-                    "enabled_tools": core_tools, # Persist enabled tools configuration
-                    "is_configured": True
+                    "enabled_tools": [{"tool_id": "check_availability", "config": core_tools[0]}, {"tool_id": "book_appointment", "config": core_tools[1]}]
                 }}
             )
             logger.info("   ✅ Tenant record updated")

@@ -249,6 +249,19 @@ class AdminService:
 
     # --- Business Config ---
     async def get_business_config(self, tenant_id: str) -> Dict[str, Any]:
+        tenant = None
+        owner = None
+
+        if tenant_id:
+            tenant_query = {"_id": ObjectId(tenant_id)} if ObjectId.is_valid(tenant_id) else {"_id": tenant_id}
+            tenant = await self.db.tenants.find_one(tenant_query)
+            if tenant and tenant.get("owner_id"):
+                owner_id = str(tenant.get("owner_id"))
+                owner_query = {"_id": ObjectId(owner_id)} if ObjectId.is_valid(owner_id) else {"_id": owner_id}
+                owner = await self.db.users.find_one(owner_query)
+            if owner is None and tenant_id:
+                owner = await self.db.users.find_one({"tenant_id": tenant_id, "role": "owner"})
+
         query = {}
         if tenant_id:
             query["tenant_id"] = tenant_id
@@ -257,7 +270,12 @@ class AdminService:
         
         if not config:
             return {
-                "business_name": "My Business",
+                "business_name": (tenant.get("name") if tenant else None) or "My Business",
+                "business_email": (owner or {}).get("email"),
+                "business_phone": (owner or {}).get("phone") or (tenant or {}).get("phone"),
+                "business_location": (tenant or {}).get("location") or (tenant or {}).get("address"),
+                "business_address": (tenant or {}).get("address"),
+                "timezone": (tenant or {}).get("timezone") or "UTC",
                 "business_id": tenant_id or "default",
                 "tenant_id": tenant_id
             }
@@ -279,27 +297,42 @@ class AdminService:
                     pass  # Leave encrypted if decrypt fails
         
         # Defaults
-        if not config.get("business_name"): config["business_name"] = "My Business"
-        if not config.get("timezone"): config["timezone"] = "UTC"
+        if not config.get("business_name"):
+            config["business_name"] = (tenant.get("name") if tenant else None) or "My Business"
+        if not config.get("business_email"):
+            config["business_email"] = (owner or {}).get("email")
+        if not config.get("business_phone"):
+            config["business_phone"] = (owner or {}).get("phone") or (tenant or {}).get("phone")
+        if not config.get("business_location"):
+            config["business_location"] = (tenant or {}).get("location") or (tenant or {}).get("address")
+        if not config.get("business_address"):
+            config["business_address"] = (tenant or {}).get("address")
+        if not config.get("timezone"):
+            config["timezone"] = (tenant or {}).get("timezone") or "UTC"
         if "tenant_id" not in config and tenant_id: config["tenant_id"] = tenant_id
         
         return config
 
     async def update_business_config(self, tenant_id: str, config_update: Any) -> Dict[str, Any]:
-        config_dict = config_update.dict(exclude_unset=True)
-        config_dict["updated_at"] = datetime.utcnow()
+        if hasattr(config_update, "model_dump"):
+            config_dump = config_update.model_dump(by_alias=True, exclude={"id"}, exclude_unset=True)
+        elif hasattr(config_update, "dict"):
+            config_dump = config_update.dict(exclude_unset=True)
+        else:
+            config_dump = dict(config_update or {})
+
+        config_dump["updated_at"] = datetime.utcnow()
         
         query = {}
         if tenant_id:
             query["tenant_id"] = tenant_id
-            config_dict["tenant_id"] = tenant_id
+            config_dump["tenant_id"] = tenant_id
 
         # Encrypt
         encrypted_fields = ["openai_api_key", "groq_api_key", "elevenlabs_api_key", 
                            "twilio_auth_token", "twilio_account_sid", "airtable_api_key"]
         
         from utils.encryption import encrypt_value
-        config_dump = config_update.model_dump(by_alias=True, exclude={"id"})
         
         for field in encrypted_fields:
             if config_dump.get(field):
@@ -309,14 +342,41 @@ class AdminService:
                     raise HTTPException(500, f"Encryption failed for {field}")
 
         if "_id" in config_dump: del config_dump["_id"]
+
+        if tenant_id:
+            tenant_updates = {}
+            if "business_name" in config_dump:
+                tenant_updates["name"] = config_dump.get("business_name")
+            if "timezone" in config_dump:
+                tenant_updates["timezone"] = config_dump.get("timezone")
+            if "business_phone" in config_dump:
+                tenant_updates["phone"] = config_dump.get("business_phone")
+            if "business_location" in config_dump:
+                tenant_updates["location"] = config_dump.get("business_location")
+            if "business_address" in config_dump:
+                tenant_updates["address"] = config_dump.get("business_address")
+
+            if tenant_updates:
+                tenant_updates["updated_at"] = datetime.utcnow()
+                tenant_query = {"_id": ObjectId(tenant_id)} if ObjectId.is_valid(tenant_id) else {"_id": tenant_id}
+                await self.db.tenants.update_one(tenant_query, {"$set": tenant_updates})
         
         await self.db.business_config.update_one(query, {"$set": config_dump}, upsert=True)
         
         updated = await self.db.business_config.find_one(query)
         if "_id" in updated: del updated["_id"]
+
+        if tenant_id:
+            try:
+                from services.assistant_service import AssistantService
+                assistant_service = AssistantService(self.db)
+                await assistant_service.enable_tool(tenant_id, "get_business_location")
+            except Exception as tool_error:
+                logger.warning(f"Could not auto-enable get_business_location tool: {tool_error}")
         
         # Defaults
         if not updated.get("business_name"): updated["business_name"] = "My Business"
+        if not updated.get("business_location"): updated["business_location"] = None
         if not updated.get("timezone"): updated["timezone"] = "UTC"
         if "tenant_id" not in updated and tenant_id: updated["tenant_id"] = tenant_id
         

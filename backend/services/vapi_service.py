@@ -62,7 +62,11 @@ class VapiService:
     ]
     
     def __init__(self):
-        self.api_key = os.getenv("VAPI_PRIVATE_API_KEY") or os.getenv("VAPI_API_KEY")
+        self.api_key = (
+            os.getenv("VAPI_PRIVATE_KEY")
+            or os.getenv("VAPI_PRIVATE_API_KEY")
+            or os.getenv("VAPI_API_KEY")
+        )
         self.public_key = os.getenv("VAPI_PUBLIC_KEY")
         self.webhook_secret = os.getenv("VAPI_WEBHOOK_SECRET", "")
         self.organization_id = os.getenv("VAPI_ORGANIZATION_ID", "")
@@ -106,24 +110,75 @@ class VapiService:
         """Create a new Vapi assistant for a tenant"""
         if not self.is_configured():
             raise ValueError("Vapi not configured")
+        from utils.datetime_utils import DateTimeUtils
+        current_time = DateTimeUtils.now()
+        current_date_context = (
+            f"\n\n**CURRENT DATE: {current_time.strftime('%A, %B %d, %Y')}**\n"
+            f"Today is {current_time.strftime('%B %d, %Y')} in the business timezone.\n"
+            f"Use this date context to resolve relative dates like tomorrow, next week, or Friday."
+        )
         
-        system_prompt = f"""You are an AI receptionist for {company_name}.
+        system_prompt = f"""You are an AI receptionist for {company_name}. You are Ahmed, the friendly and professional AI receptionist at {company_name} — a premium business that offers welcoming service, clear communication, and easy booking.
 
 {instructions}
+{current_date_context}
 
-AVAILABLE TOOLS:
-- getAvailableServices(): Fetch current service offerings (use this when customer asks about services)
-- checkAvailability(date): Check available appointment slots
-- bookAppointment(date, time, name, phone, email, service): Book an appointment
+    ### Core Rules (always follow):
+    - Use short, natural sentences. Keep responses brief and easy to understand.
+    - Be polite, patient, enthusiastic, and slightly casual/friendly.
+    - Ask only one question at a time to keep the conversation smooth.
+    - Always confirm details clearly before booking.
+    - Match the client's energy and language style.
 
-Important guidelines:
-- ALWAYS call getAvailableServices() when customer asks about services or pricing
-- Be professional, friendly, and helpful
-- Speak naturally and conversationally
-- If you need to book an appointment, collect: name, phone, email, preferred date/time
-- If you don't know something, offer to have someone call back
-- Keep responses concise for voice conversation
-"""
+    ### Greeting (First message - use this exactly):
+    "Hello! Welcome to {company_name}. This is Ahmed speaking, how can I help you today?"
+
+    ### How to handle calls (smooth flow):
+    1. Booking an appointment:
+    - Ask for their name.
+    - Ask what service they want.
+    - Ask for preferred date and time.
+    - If they mention relative dates (today, tomorrow, next week, etc.), use the current date context in this prompt
+    - Convert their answer to YYYY-MM-DD format using the current date context
+    - Check availability with checkAvailability(date) using the CORRECT future date
+    - Ask for confirmation.
+    - Book with bookAppointment using the CORRECT date format
+
+    2. Other common requests:
+    - Prices or services: Give clear info and then offer to book a slot.
+    - Reschedule or cancel: Ask for name and original appointment details first.
+    - Same-day / walk-in: Be honest about availability and offer options.
+    - General questions: Answer helpfully and gently guide back to booking.
+
+    3. Booking confirmation (after they confirm):
+    "Perfect! Your appointment is confirmed for [Date] at [Time] for a [Service] under the name [Name]. We'll send you a reminder the day before. Looking forward to seeing you at {company_name}!"
+
+    ### Tone & Style:
+    - Warm and welcoming: Use words like "Awesome!", "No problem at all!", "Sounds good!", "Great choice!", "Happy to help!"
+    - Positive and solution-oriented.
+    - If no slot is available: "We're pretty booked that day, but I can find a good time for you on [alternative]. Does that work?"
+    - Make every client feel valued and comfortable.
+    - If the client is in a hurry, keep it quick and efficient.
+
+    ### Tools:
+    - getAvailableServices(): Fetch current service offerings when the customer asks about services or pricing.
+    - getBusinessLocation(): Fetch the exact business location/address when the customer asks where the business is located.
+    - checkAvailability(date): Check available appointment slots. Date must be in YYYY-MM-DD format.
+    - bookAppointment(date, time, name, phone, email, service): Book an appointment. Date must be YYYY-MM-DD, time must be HH:MM (24-hour).
+
+    ### Critical Guidelines:
+    - NEVER book appointments in the past - use the current date context in this prompt
+    - ALWAYS resolve relative dates using the current date context in this prompt
+    - ALWAYS use YYYY-MM-DD format for dates (examples: 2026-04-19, 2026-04-25)
+    - ALWAYS use HH:MM format for times in 24-hour time (11:00, 14:30, 09:00)
+    - ALWAYS call getAvailableServices() when customer asks about services or pricing.
+    - ALWAYS call getBusinessLocation() when customer asks about location/address/directions.
+    - Be professional, friendly, and helpful.
+    - Speak naturally and conversationally.
+    - If you need to book an appointment, collect: name, phone, email, preferred date/time.
+    - If you don't know something, offer to have someone call back.
+    - Keep responses concise for voice conversation.
+    """
         
         requested_server_messages = kwargs.pop("server_messages", self.DEFAULT_SERVER_MESSAGES)
         valid_server_messages = [
@@ -136,7 +191,7 @@ Important guidelines:
 
         assistant_config = {
             "name": f"AI Receptionist - {company_name}"[:40],
-            "firstMessage": first_message or "Hello! How can I help you today?",
+            "firstMessage": first_message or f"Hello! Welcome to {company_name}. This is Ahmed speaking, how can I help you today?",
             "model": {
                 "provider": "openai",
                 "model": model,
@@ -168,7 +223,7 @@ Important guidelines:
         
         # Add tools if provided
         if tools:
-            assistant_config["tools"] = tools
+            assistant_config["tools"] = self._normalize_tool_definitions(tools)
         
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
@@ -244,16 +299,39 @@ Important guidelines:
             update_data["firstMessage"] = first_message
         
         if instructions and company_name:
-            system_prompt = f"""You are an AI receptionist for {company_name}.
+            from utils.datetime_utils import DateTimeUtils
+            current_time = DateTimeUtils.now()
+            current_date_context = (
+                f"\n\n**CURRENT DATE: {current_time.strftime('%A, %B %d, %Y')}**\n"
+                f"Today is {current_time.strftime('%B %d, %Y')} in the business timezone.\n"
+                f"Use this date context to resolve relative dates like tomorrow, next week, or Friday."
+            )
+            system_prompt = f"""You are an AI receptionist for {company_name}. You are Ahmed, the friendly and professional AI receptionist at {company_name}.
 
 {instructions}
+{current_date_context}
+
+Core behavior:
+- Use short, natural sentences.
+- Be polite, patient, enthusiastic, and slightly casual/friendly.
+- Ask only one question at a time.
+- Always confirm details clearly before booking.
+- Match the client's energy and language style.
+
+Greeting:
+"Hello! Welcome to {company_name}. This is Ahmed speaking, how can I help you today?"
+
+Tone:
+- Warm and welcoming.
+- Positive and solution-oriented.
+- Keep responses concise for voice conversation.
 
 Important guidelines:
-- Be professional, friendly, and helpful
-- Speak naturally and conversationally
-- If you need to book an appointment, collect: name, phone, email, preferred date/time
-- If you don't know something, offer to have someone call back
-- Keep responses concise for voice conversation
+ - Use the current date context in this prompt to resolve relative dates.
+- ALWAYS call getAvailableServices() when customer asks about services or pricing.
+- ALWAYS call getBusinessLocation() when customer asks about location/address/directions.
+- If you need to book an appointment, collect: name, phone, email, preferred date/time.
+- If you don't know something, offer to have someone call back.
 """
             # Start with current model config
             new_model = current_model.copy()
@@ -277,11 +355,10 @@ Important guidelines:
                 update_data["voice"]["speed"] = voice_speed
         
         if tools is not None:
-            # If we haven't already prepared a model update in this call
+            # Vapi expects tools under the model config on PATCH requests
             if "model" not in update_data:
                 update_data["model"] = current_model.copy()
-            
-            update_data["model"]["tools"] = tools
+            update_data["model"]["tools"] = self._normalize_tool_definitions(tools)
 
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
@@ -319,9 +396,85 @@ Important guidelines:
                 )
                 response.raise_for_status()
                 return response.json()
+        except httpx.HTTPStatusError as e:
+            if e.response is not None and e.response.status_code == 404:
+                logger.warning(f"Assistant {assistant_id} not found in Vapi (404)")
+                return None
+            logger.error(f"Failed to get assistant {assistant_id}: {e}")
+            return None
         except httpx.HTTPError as e:
             logger.error(f"Failed to get assistant {assistant_id}: {e}")
             return None
+
+    async def list_assistants(self) -> List[Dict[str, Any]]:
+        """List assistants from Vapi"""
+        if not self.is_configured():
+            return []
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(
+                    f"{self.base_url}/assistant",
+                    headers=self.headers
+                )
+                response.raise_for_status()
+                data = response.json()
+
+                if isinstance(data, list):
+                    return data
+                if isinstance(data, dict):
+                    return data.get("assistants") or data.get("data") or []
+                return []
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to list assistants: {e}")
+            return []
+
+    async def list_calls(self, page: int = 1, limit: int = 10) -> Dict[str, Any]:
+        """List calls from Vapi."""
+        if not self.is_configured():
+            raise ValueError("Vapi not configured")
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(
+                    f"{self.base_url}/v2/call",
+                    headers=self.headers,
+                    params={"page": page, "limit": limit, "sortOrder": "DESC"},
+                )
+                response.raise_for_status()
+                data = response.json()
+                return data if isinstance(data, dict) else {"data": data}
+        except httpx.HTTPStatusError as e:
+            status_code = e.response.status_code if e.response is not None else 502
+            body = e.response.text if e.response is not None else str(e)
+            logger.error(f"Vapi call list failed ({status_code}): {body}")
+            raise
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to list calls: {e}")
+            raise
+
+    async def get_call(self, call_id: str) -> Dict[str, Any]:
+        """Fetch a single call from Vapi."""
+        if not self.is_configured():
+            raise ValueError("Vapi not configured")
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(
+                    f"{self.base_url}/call/{call_id}",
+                    headers=self.headers,
+                )
+                response.raise_for_status()
+                data = response.json()
+                return data if isinstance(data, dict) else {"data": data}
+        except httpx.HTTPStatusError as e:
+            status_code = e.response.status_code if e.response is not None else 502
+            body = e.response.text if e.response is not None else str(e)
+            logger.error(f"Vapi call detail failed ({status_code}): {body}")
+            raise
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to get call {call_id}: {e}")
+            raise
     
     async def delete_assistant(self, assistant_id: str) -> bool:
         """Delete a Vapi assistant"""
@@ -834,13 +987,13 @@ Important guidelines:
             {
                 "id": "check_availability",
                 "name": "Check Availability",
-                "description": "Check available appointment slots for a given date",
+                "description": "Check available appointment slots for a given date; use the backend-injected current date context for relative dates",
                 "category": "scheduling",
                 "config": {
                     "type": "function",
                     "function": {
                         "name": "checkAvailability",
-                        "description": "Check available time slots for appointments",
+                        "description": "Check available time slots for appointments. Use the backend-injected current date context when the customer asks about today, tomorrow, or other relative dates.",
                         "parameters": {
                             "type": "object",
                             "properties": {
@@ -898,6 +1051,24 @@ Important guidelines:
                 }
             },
             {
+                "id": "get_business_location",
+                "name": "Get Business Location",
+                "description": "Fetch the exact current business location/address",
+                "category": "information",
+                "config": {
+                    "type": "function",
+                    "function": {
+                        "name": "getBusinessLocation",
+                        "description": "Get the exact business location/address and directions note when customer asks where the business is located.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {},
+                            "required": []
+                        }
+                    }
+                }
+            },
+            {
                 "id": "transfer_call",
                 "name": "Transfer Call",
                 "description": "Transfer the call to a human agent",
@@ -917,14 +1088,49 @@ Important guidelines:
                 }
             }
         ]
+
+    def _normalize_tool_definitions(self, tools: Optional[List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
+        """Convert wrapped backend tool definitions into Vapi-ready payloads."""
+        if not tools:
+            return []
+
+        webhook_url = os.getenv("VAPI_WEBHOOK_URL", "")
+        normalized_tools: List[Dict[str, Any]] = []
+
+        for tool in tools:
+            if not isinstance(tool, dict):
+                continue
+
+            if "config" in tool and isinstance(tool.get("config"), dict):
+                tool_payload = dict(tool["config"])
+            else:
+                tool_payload = dict(tool)
+
+            if tool_payload.get("type") == "function" and webhook_url and "server" not in tool_payload:
+                tool_payload["server"] = {"url": webhook_url}
+
+            normalized_tools.append(tool_payload)
+
+        return normalized_tools
     
     # ===== WEBHOOK VERIFICATION =====
     
     def verify_webhook_signature(self, payload: bytes, signature: str) -> bool:
         """Verify webhook signature from Vapi"""
+        allow_unsigned_dev = os.getenv("VAPI_ALLOW_UNSIGNED_WEBHOOKS", "false").lower() == "true"
+        environment = os.getenv("ENVIRONMENT", "development").lower()
+
+        if not signature:
+            if allow_unsigned_dev and environment != "production":
+                logger.warning("⚠️  Vapi webhook signature missing; accepted due to VAPI_ALLOW_UNSIGNED_WEBHOOKS in non-production")
+                return True
+            return False
+
         if not self.webhook_secret:
-            logger.warning("VAPI_WEBHOOK_SECRET not set - skipping verification")
-            return True
+            logger.warning("⚠️  VAPI_WEBHOOK_SECRET not configured - all webhook signatures will be accepted in non-production")
+            if allow_unsigned_dev and environment != "production":
+                return True
+            return False
         
         try:
             expected = hmac.new(
@@ -932,8 +1138,13 @@ Important guidelines:
                 payload,
                 hashlib.sha256
             ).hexdigest()
-            return hmac.compare_digest(expected, signature)
-        except Exception:
+            is_valid = hmac.compare_digest(expected, signature)
+            if not is_valid:
+                logger.warning(f"⚠️  Webhook signature mismatch! Expected: {expected[:16]}..., Got: {signature[:16] if signature else '(none)'}...")
+            return is_valid
+        except Exception as e:
+            logger.error(f"❌ Webhook signature verification error: {e}")
+            return allow_unsigned_dev and environment != "production"
             return False
     
     # ===== HELPER METHODS =====

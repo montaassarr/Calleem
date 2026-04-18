@@ -1,9 +1,7 @@
 "use client";
 
 import { StatCard } from "@/components/dashboard/widgets/StatCard";
-import { RecentActivities } from "@/components/dashboard/widgets/RecentActivities";
-import { LiveCallStatus } from "@/components/dashboard/widgets/LiveCallStatus";
-import { Phone, CheckCircle2, Calendar, MessageSquare, Scissors, Plus, Upload, DollarSign } from "lucide-react";
+import { CheckCircle2, Calendar, MessageSquare, Plus, Upload, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useTenant } from "@/contexts/TenantContext";
@@ -22,8 +20,7 @@ export default function DashboardPage() {
             upcomingAppointments: 0,
             completedToday: 0,
             activeServices: 0
-        },
-        webhookStatus
+        }
     } = data || {};
 
     return (
@@ -31,7 +28,6 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="text-3xl font-bold mb-2">{config?.business_name || 'Donezo'} Dashboard</h1>
-                    <p className="text-muted-foreground">Monitor your AI receptionist and business operations.</p>
                 </div>
                 <div className="flex gap-3">
                     <Button
@@ -79,8 +75,8 @@ export default function DashboardPage() {
                 />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                <div className="lg:col-span-2 bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
+            <div className="grid grid-cols-1 gap-6 mb-6">
+                <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
                     <h3 className="text-lg font-semibold mb-4">Recent Appointments</h3>
                     {isLoading ? (
                         <p className="text-muted-foreground">Loading...</p>
@@ -109,36 +105,6 @@ export default function DashboardPage() {
                         </div>
                     )}
                 </div>
-                <RecentActivities />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
-                    <h3 className="text-lg font-semibold mb-4">AI Receptionist Status</h3>
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Webhook Status</span>
-                            <span className={`px-3 py-1 rounded-full text-sm ${webhookStatus?.status === 'active'
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-red-100 text-red-700'
-                                }`}>
-                                {webhookStatus?.status || 'Unknown'}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Conversations Handled</span>
-                            <span className="font-semibold">{conversations.length}</span>
-                        </div>
-                        <Button
-                            className="w-full gap-2"
-                            onClick={() => router.push('/dashboard/voice-agent/test')}
-                        >
-                            <Phone className="w-4 h-4" />
-                            Test AI Chat
-                        </Button>
-                    </div>
-                </div>
-                <LiveCallStatus />
             </div>
         </div >
     );

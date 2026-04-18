@@ -128,6 +128,7 @@ from routers import (
     appointments,
     services,
     conversations,
+    calls,
     tenants,
     assistants,
     phone_numbers,
@@ -148,6 +149,7 @@ app.include_router(users.router, prefix=f"{settings.API_V1_PREFIX}/users", tags=
 app.include_router(appointments.router, prefix=f"{settings.API_V1_PREFIX}/appointments", tags=["Appointments"])
 app.include_router(services.router, prefix=f"{settings.API_V1_PREFIX}/services", tags=["Services"])
 app.include_router(conversations.router, prefix=f"{settings.API_V1_PREFIX}/conversations", tags=["Conversations"])
+app.include_router(calls.router, prefix="/api", tags=["Calls"])
 
 # Tenant Management
 app.include_router(tenants.router, prefix=f"{settings.API_V1_PREFIX}/tenants", tags=["Tenants"])
