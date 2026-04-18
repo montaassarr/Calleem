@@ -126,6 +126,9 @@ class UserService:
             business_config = {
                 "tenant_id": tenant_id,
                 "business_name": business_name,
+                "business_email": user_create.email,
+                "business_phone": user_create.phone,
+                "business_location": None,
                 "timezone": "UTC",
                 "api_keys": [],
                 "features_enabled": {"voice_agent": False},
@@ -203,6 +206,7 @@ class UserService:
              cfg = {
                 "tenant_id": tenant_id,
                 "business_name": name,
+                     "business_location": None,
                 "timezone": "UTC",
                 "api_keys": [],
                 "features_enabled": {"voice_agent": False},

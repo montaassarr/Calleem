@@ -9,17 +9,20 @@ import { Save, ArrowLeft, RefreshCw, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useConfig } from "@/hooks/use-config";
+import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 
 export default function BusinessSettingsPage() {
     const router = useRouter();
-    const { config, isLoading, error, updateConfig, isUpdating, reloadConfig, isReloading } = useConfig();
+    const { user, isAuthenticated } = useAuth();
+    const tenantId = user?.tenant_id || user?.business_id || "default";
+    const { config, isLoading, error, updateConfig, isUpdating, reloadConfig, isReloading } = useConfig(tenantId, isAuthenticated && !!tenantId);
 
     const [formData, setFormData] = useState({
         business_name: "",
-        business_phone: "",
         business_email: "",
+        business_location: "",
         business_address: "",
         timezone: "America/New_York",
     });
@@ -29,8 +32,8 @@ export default function BusinessSettingsPage() {
         if (config) {
             setFormData({
                 business_name: config.business_name || "",
-                business_phone: config.business_phone || "",
                 business_email: config.business_email || "",
+                business_location: config.business_location || "",
                 business_address: config.business_address || "",
                 timezone: config.timezone || "America/New_York",
             });
@@ -89,7 +92,7 @@ export default function BusinessSettingsPage() {
                 </Alert>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6">
                 {/* Form */}
                 <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
                     {isLoading ? (
@@ -112,28 +115,30 @@ export default function BusinessSettingsPage() {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <Label htmlFor="business_phone">Phone Number</Label>
-                                    <Input
-                                        id="business_phone"
-                                        value={formData.business_phone}
-                                        onChange={(e) => setFormData({ ...formData, business_phone: e.target.value })}
-                                        className="bg-white border border-slate-200 shadow-sm mt-2"
-                                        placeholder="+1 (555) 123-4567"
-                                    />
-                                </div>
-                                <div>
-                                    <Label htmlFor="business_email">Email</Label>
-                                    <Input
-                                        id="business_email"
-                                        type="email"
-                                        value={formData.business_email}
-                                        onChange={(e) => setFormData({ ...formData, business_email: e.target.value })}
-                                        className="bg-white border border-slate-200 shadow-sm mt-2"
-                                        placeholder="contact@business.com"
-                                    />
-                                </div>
+                            <div>
+                                <Label htmlFor="business_email">Email</Label>
+                                <Input
+                                    id="business_email"
+                                    type="email"
+                                    value={formData.business_email}
+                                    onChange={(e) => setFormData({ ...formData, business_email: e.target.value })}
+                                    className="bg-white border border-slate-200 shadow-sm mt-2"
+                                    placeholder="contact@business.com"
+                                />
+                            </div>
+
+                            <div>
+                                <Label htmlFor="business_location">Location</Label>
+                                <Input
+                                    id="business_location"
+                                    value={formData.business_location}
+                                    onChange={(e) => setFormData({ ...formData, business_location: e.target.value })}
+                                    className="bg-white border border-slate-200 shadow-sm mt-2"
+                                    placeholder="Downtown Tunis, Avenue Habib Bourguiba"
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    This is what the AI shares when callers ask where your business is located.
+                                </p>
                             </div>
 
                             <div>
@@ -190,42 +195,6 @@ export default function BusinessSettingsPage() {
                             </div>
                         </div>
                     )}
-                </div>
-
-                {/* Preview */}
-                <div className="space-y-6">
-                    <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
-                        <h3 className="text-lg font-semibold mb-4">Live Preview</h3>
-                        <div className="space-y-6">
-                            {/* Sidebar Preview */}
-                            <div className="space-y-2">
-                                <Label>Sidebar Branding</Label>
-                                <div className="p-4 rounded-lg bg-white border border-slate-200 shadow-sm">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                                            <span className="text-white text-xs">Logo</span>
-                                        </div>
-                                        <span className="text-lg font-bold text-primary truncate">
-                                            {formData.business_name || 'Business Name'}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Dashboard Header Preview */}
-                            <div className="space-y-2">
-                                <Label>Dashboard Header</Label>
-                                <div className="p-4 rounded-lg bg-white border border-slate-200 shadow-sm border-slate-200">
-                                    <h1 className="text-2xl font-bold mb-1">
-                                        {formData.business_name || 'Business Name'} Dashboard
-                                    </h1>
-                                    <p className="text-sm text-muted-foreground">
-                                        Monitor your AI receptionist and business operations.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

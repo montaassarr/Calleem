@@ -42,11 +42,10 @@ export default function ToolsPage() {
 
             setBuiltInTools(builtIn.tools || []);
 
-            // Extract enabled tool function names
-            const enabledNames = (enabled.tools || []).map((t: any) =>
-                t.function?.name || t.name || ""
-            );
-            setEnabledTools(enabledNames);
+            const enabledIds = (enabled.tools || []).map((t: any) =>
+                t.tool_id || t.id || ""
+            ).filter(Boolean);
+            setEnabledTools(enabledIds);
         } catch (error) {
             console.error("Failed to load tools:", error);
             toast({
@@ -63,22 +62,22 @@ export default function ToolsPage() {
         loadTools();
     }, [loadTools]);
 
-    const toggleTool = async (toolId: string, toolName: string) => {
-        const isEnabled = enabledTools.includes(toolName);
+    const toggleTool = async (toolId: string) => {
+        const isEnabled = enabledTools.includes(toolId);
 
         try {
             setTogglingTool(toolId);
 
             if (isEnabled) {
                 await assistantApi.disableTool(toolId);
-                setEnabledTools(enabledTools.filter(n => n !== toolName));
+                setEnabledTools(enabledTools.filter(n => n !== toolId));
                 toast({
                     title: "Disabled",
                     description: `${builtInTools.find(t => t.id === toolId)?.name} has been disabled`
                 });
             } else {
                 await assistantApi.enableTool(toolId);
-                setEnabledTools([...enabledTools, toolName]);
+                setEnabledTools([...enabledTools, toolId]);
                 toast({
                     title: "Enabled",
                     description: `${builtInTools.find(t => t.id === toolId)?.name} has been enabled`
@@ -188,7 +187,7 @@ export default function ToolsPage() {
                             <div className="grid gap-4 md:grid-cols-2">
                                 {tools.map((tool) => {
                                     const functionName = getToolFunctionName(tool);
-                                    const isEnabled = enabledTools.includes(functionName);
+                                    const isEnabled = enabledTools.includes(tool.id);
                                     const isToggling = togglingTool === tool.id;
 
                                     return (
@@ -220,7 +219,7 @@ export default function ToolsPage() {
                                                     ) : (
                                                         <Switch
                                                             checked={isEnabled}
-                                                            onCheckedChange={() => toggleTool(tool.id, functionName)}
+                                                            onCheckedChange={() => toggleTool(tool.id)}
                                                         />
                                                     )}
                                                 </div>

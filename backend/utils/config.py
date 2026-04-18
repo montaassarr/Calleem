@@ -24,8 +24,8 @@ class Settings(BaseSettings):
     TESTING: bool = False
     
     # Database
-    MONGO_URI: str = "mongodb://REDACTED:REDACTED@localhost:27017/ai_barber_receptionist?authSource=admin"
-    MONGO_DB_NAME: str = "ai_barber_receptionist"
+    MONGO_URI: str = "mongodb://localhost:27017/calleem"
+    MONGO_DB_NAME: str = "calleem"
     
     # WhatsApp Cloud API
     WHATSAPP_TOKEN: str = ""

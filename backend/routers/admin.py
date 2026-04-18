@@ -328,9 +328,8 @@ async def get_global_analytics(
 
 @router.post("/assistants/{tenant_id}/refresh-date")
 async def refresh_assistant_date(tenant_id: str):
-    """Refresh assistant system prompt with current date - fixes hardcoded dates"""
+    """Remove any hardcoded current-date text from the assistant system prompt."""
     from services.vapi_service import vapi_service
-    from utils.datetime_utils import DateTimeUtils
     import re
     
     db = get_database()
@@ -361,17 +360,6 @@ async def refresh_assistant_date(tenant_id: str):
     if not system_prompt:
         return {"error": "No system prompt found"}
     
-    # Generate new date header
-    now = DateTimeUtils.now()
-    current_date_str = now.strftime("%B %d, %Y")
-    tomorrow = now + timedelta(days=1)
-    tomorrow_str = tomorrow.strftime("%B %d, %Y")
-    
-    date_header = f"""**CURRENT DATE: {current_date_str} - Use this for all date calculations**
-When customers say 'tomorrow', they mean {tomorrow_str}.
-
-"""
-    
     # Remove old date header if present
     updated_prompt = re.sub(
         r'\*\*CURRENT DATE:.*?\*\*\n.*?tomorrow.*?\n\n?',
@@ -379,15 +367,6 @@ When customers say 'tomorrow', they mean {tomorrow_str}.
         system_prompt,
         flags=re.DOTALL
     )
-    
-    # Inject new date header
-    lines = updated_prompt.split('\n')
-    if lines and lines[0].strip().startswith('You are'):
-        # Insert after the "You are..." line
-        updated_prompt = lines[0] + '\n\n' + date_header + '\n'.join(lines[1:])
-    else:
-        # Insert at the very beginning
-        updated_prompt = date_header + updated_prompt
     
     # Update assistant directly with the model config
     # Can't use update_assistant because it wraps instructions with a template
@@ -421,9 +400,7 @@ When customers say 'tomorrow', they mean {tomorrow_str}.
             
         return {
             "success": True,
-            "message": f"Assistant date updated to {current_date_str}",
-            "current_date": current_date_str,
-            "tomorrow": tomorrow_str,
+            "message": "Assistant prompt cleaned of hardcoded current-date text",
             "assistant_id": assistant_id
         }
     except Exception as e:

@@ -9,6 +9,7 @@ import { Loader2, Phone, Clock, TrendingUp, DollarSign, BarChart3, MessageSquare
 import { assistantApi } from "@/lib/api-endpoints";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+import { WebCallsModal } from "@/components/dashboard/WebCallsModal";
 
 interface CallAnalytics {
     total_calls: number;
@@ -29,6 +30,17 @@ interface Conversation {
     created_at?: string;
 }
 
+interface WebCall {
+    id: string;
+    phoneNumber: string;
+    duration?: number;
+    createdAt?: string;
+    endedAt?: string;
+    transcript?: string;
+    status?: string;
+    cost?: number;
+}
+
 export default function AnalyticsPage() {
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
@@ -36,6 +48,9 @@ export default function AnalyticsPage() {
     const [analytics, setAnalytics] = useState<CallAnalytics | null>(null);
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [loadingConversations, setLoadingConversations] = useState(false);
+    const [showWebCallsModal, setShowWebCallsModal] = useState(false);
+    const [webCalls, setWebCalls] = useState<WebCall[]>([]);
+    const [loadingWebCalls, setLoadingWebCalls] = useState(false);
 
     const loadAnalytics = useCallback(async () => {
         try {
@@ -61,6 +76,32 @@ export default function AnalyticsPage() {
         }
     }, []);
 
+    const loadWebCalls = useCallback(async () => {
+        try {
+            setLoadingWebCalls(true);
+            const data = await assistantApi.getConversations(100, 0);
+            const formattedCalls: WebCall[] = (data.conversations || []).map((conv: any) => ({
+                id: conv.id || conv.vapi_call_id,
+                phoneNumber: conv.customer_phone || conv.phone_number || "Web Call",
+                duration: conv.duration,
+                createdAt: conv.created_at || conv.datetime,
+                endedAt: conv.ended_at,
+                transcript: conv.transcript || conv.summary,
+                status: conv.status || "unknown",
+                cost: conv.cost,
+            }));
+            setWebCalls(formattedCalls);
+        } catch (error) {
+            console.error("Failed to load web calls:", error);
+            toast({
+                title: "Error",
+                description: "Failed to load web calls",
+                variant: "destructive",
+            });
+        } finally {
+            setLoadingWebCalls(false);
+        }
+    }, [toast]);
     useEffect(() => {
         loadAnalytics();
     }, [loadAnalytics]);
@@ -69,6 +110,10 @@ export default function AnalyticsPage() {
         loadConversations();
     }, [loadConversations]);
 
+    const handleOpenWebCalls = () => {
+        setShowWebCallsModal(true);
+        loadWebCalls();
+    };
     const formatDuration = (seconds?: number) => {
         if (!seconds) return "0:00";
         const mins = Math.floor(seconds / 60);
@@ -273,6 +318,26 @@ export default function AnalyticsPage() {
                     )}
                 </CardContent>
             </Card>
+            
+                {/* View All Web Calls Button */}
+                <div className="flex justify-center py-4">
+                    <Button 
+                        onClick={handleOpenWebCalls} 
+                        size="lg"
+                        className="w-full md:w-auto"
+                    >
+                        <Phone className="h-4 w-4 mr-2" />
+                        View All Web Calls
+                    </Button>
+                </div>
+
+                {/* Web Calls Modal */}
+                <WebCallsModal
+                    isOpen={showWebCallsModal}
+                    onClose={() => setShowWebCallsModal(false)}
+                    calls={webCalls}
+                    isLoading={loadingWebCalls}
+                />
         </div>
     );
 }

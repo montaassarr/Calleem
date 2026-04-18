@@ -24,9 +24,6 @@ export function PhoneNumberManager() {
     const [statusLoading, setStatusLoading] = useState(true);
     const [phoneStatus, setPhoneStatus] = useState<PhoneStatus | null>(null);
 
-    // Get token from storage
-    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-
     // Form state
     const [accountSid, setAccountSid] = useState('');
     const [authToken, setAuthToken] = useState('');
@@ -35,24 +32,20 @@ export function PhoneNumberManager() {
     const fetchStatus = useCallback(async () => {
         try {
             setStatusLoading(true);
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/phone-numbers/status/${user?.email}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setPhoneStatus(data);
-            }
+            const tenantId = user?.tenant_id;
+            if (!tenantId) return;
+
+            const data = await phoneApi.getStatus(tenantId);
+            setPhoneStatus(data);
         } catch (error) {
             console.error("Failed to fetch phone status:", error);
         } finally {
             setStatusLoading(false);
         }
-    }, [user, token]);
+    }, [user]);
 
     useEffect(() => {
-        if (user?.email) {
+        if (user?.tenant_id) {
             fetchStatus();
         }
     }, [user, fetchStatus]);
@@ -70,24 +63,16 @@ export function PhoneNumberManager() {
 
         try {
             setLoading(true);
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/phone-numbers/provision/${user?.email}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    twilio_account_sid: accountSid,
-                    twilio_auth_token: authToken,
-                    phone_number: phoneNumber
-                })
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.detail || "Provisioning failed");
+            const tenantId = user?.tenant_id;
+            if (!tenantId) {
+                throw new Error("Tenant ID not found");
             }
+
+            await phoneApi.provision(tenantId, {
+                twilio_account_sid: accountSid,
+                twilio_auth_token: authToken,
+                phone_number: phoneNumber,
+            });
 
             toast({
                 title: "Success",
@@ -150,17 +135,12 @@ export function PhoneNumberManager() {
 
         try {
             setLoading(true);
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/phone-numbers/${user?.email}?delete_from_vapi=false`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.detail || "Removal failed");
+            const tenantId = user?.tenant_id;
+            if (!tenantId) {
+                throw new Error("Tenant ID not found");
             }
+
+            await phoneApi.remove(tenantId, false);
 
             toast({
                 title: "Removed",

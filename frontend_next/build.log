@@ -33,7 +33,7 @@ Route (app)
 ├ ○ /dashboard/conversations
 ├ ƒ /dashboard/conversations/[id]
 ├ ○ /dashboard/help
-├ ○ /dashboard/onboarding
+├ ○ 
 ├ ○ /dashboard/schedule
 ├ ○ /dashboard/services
 ├ ○ /dashboard/settings

@@ -223,20 +223,20 @@ export const apiEndpoints = {
 
 export const phoneApi = {
     // Get phone number status
-    getStatus: async (): Promise<any> => {
-        return await api.get(`/phone-numbers/status`);
+    getStatus: async (tenantId: string): Promise<any> => {
+        return await api.get(`/phone-numbers/status/${tenantId}`);
     },
     // Sync phone numbers from Vapi dashboard
     syncFromVapi: async (tenantId: string): Promise<any> => {
         return await api.post(`/phone-numbers/sync/${tenantId}`, {});
     },
     // Provision new phone number
-    provision: async (data: any): Promise<any> => {
-        return await api.post(`/phone-numbers/provision`, data);
+    provision: async (tenantId: string, data: any): Promise<any> => {
+        return await api.post(`/phone-numbers/provision/${tenantId}`, data);
     },
     // Remove phone number
-    remove: async (): Promise<any> => {
-        return await api.delete(`/phone-numbers/remove`);
+    remove: async (tenantId: string, deleteFromVapi: boolean = false): Promise<any> => {
+        return await api.delete(`/phone-numbers/${tenantId}?delete_from_vapi=${deleteFromVapi}`);
     }
 };
 

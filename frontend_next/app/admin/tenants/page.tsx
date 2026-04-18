@@ -32,7 +32,7 @@ import { format } from "date-fns";
 interface Tenant {
     id: string;
     name: string;
-    email: string;
+    email?: string;
     plan: string;
     status: string;
     created_at: string;
@@ -50,27 +50,18 @@ export default function TenantsAdminPage() {
     const queryClient = useQueryClient();
 
     // Fetch all tenants
-    const { data: tenants = [], isLoading, refetch } = useQuery({
+    const { data: tenants = [], isLoading, refetch } = useQuery<Tenant[]>({
         queryKey: ["admin-tenants"],
-        queryFn: async () => {
+        queryFn: async (): Promise<Tenant[]> => {
             const response = await adminApi.getTenants(0, 100);
-            return response as Tenant[];
+            return (Array.isArray(response) ? response : response.items).map((tenant) => tenant as unknown as Tenant);
         },
     });
 
     // Delete tenant mutation
     const deleteMutation = useMutation({
         mutationFn: async (tenantId: string) => {
-            const response = await fetch(`/api/v1/admin/tenants/${tenantId}`, {
-                method: "DELETE",
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            });
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || "Failed to delete tenant");
-            }
+            await adminApi.deleteTenant(tenantId);
         },
         onSuccess: () => {
             toast.success("Tenant deleted successfully");

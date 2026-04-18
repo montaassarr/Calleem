@@ -61,6 +61,7 @@ export interface BusinessConfig {
     business_name: string;
     business_email?: string;
     business_phone?: string;
+    business_location?: string;
     business_address?: string;
     email?: string;
     phone_number?: string;
@@ -89,6 +90,7 @@ export interface BusinessConfigUpdate {
     business_name?: string;
     business_email?: string;
     business_phone?: string;
+    business_location?: string;
     business_address?: string;
     timezone?: string;
     email?: string;
