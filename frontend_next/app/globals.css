@@ -127,6 +127,7 @@
   --shadow-color: #000000;
 }
 
+/* .dashboard-theme deactivated — dashboard now uses the global .dark theme
 .dashboard-theme {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -170,6 +171,7 @@
   --shadow-xl: 0px 1px 4px 0px hsl(0 0% 0% / 0.05), 0px 8px 10px -1px hsl(0 0% 0% / 0.05);
   --shadow-2xl: 0px 1px 4px 0px hsl(0 0% 0% / 0.13);
 }
+*/
 
 @theme inline {
   --color-background: var(--background);
@@ -348,4 +350,87 @@ body {
   /* IE and Edge */
   scrollbar-width: none;
   /* Firefox */
+}
+
+/* Callem design system utilities */
+.bg-striped {
+  background: repeating-linear-gradient(-45deg,
+      #d1d5db,
+      #d1d5db 2px,
+      #f3f4f6 2px,
+      #f3f4f6 8px);
+}
+
+.bg-striped-green {
+  background: repeating-linear-gradient(-45deg,
+      #0C4A2A,
+      #0C4A2A 4px,
+      #08351e 4px,
+      #08351e 8px);
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Sonner Overrides for Callem Design */
+[data-sonner-toast] {
+  background: linear-gradient(to bottom, #156e40, #0a4c2f, #052b19) !important;
+  border: 1px solid rgba(27, 133, 80, 0.2) !important;
+  color: white !important;
+  border-radius: 20px !important;
+  box-shadow: 0 20px 25px -5px rgba(21, 110, 64, 0.2), 0 8px 10px -6px rgba(21, 110, 64, 0.2) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+[data-sonner-toast]::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  left: -40px;
+  width: 128px;
+  height: 128px;
+  background-color: #21a05e;
+  border-radius: 50%;
+  filter: blur(24px);
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-sonner-toast] [data-title] {
+  color: white !important;
+  font-weight: 600 !important;
+  font-size: 15px !important;
+  position: relative;
+  z-index: 10;
+}
+
+[data-sonner-toast] [data-description] {
+  color: rgba(255, 255, 255, 0.8) !important;
+  position: relative;
+  z-index: 10;
+}
+
+[data-sonner-toast] [data-close-button] {
+  background: transparent !important;
+  border: none !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+[data-sonner-toast] [data-close-button]:hover {
+  color: white !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-sonner-toast] svg.absolute {
+  display: block !important;
 }

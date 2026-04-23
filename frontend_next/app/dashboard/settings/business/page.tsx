@@ -1,16 +1,10 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Save, ArrowLeft, RefreshCw, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useConfig } from "@/hooks/use-config";
 import { useAuth } from "@/contexts/AuthContext";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 
 export default function BusinessSettingsPage() {
@@ -27,7 +21,6 @@ export default function BusinessSettingsPage() {
         timezone: "America/New_York",
     });
 
-    // Load config data into form
     useEffect(() => {
         if (config) {
             setFormData({
@@ -47,155 +40,90 @@ export default function BusinessSettingsPage() {
         });
     };
 
-    const handleReload = () => {
-        reloadConfig();
-    };
+    const fields = [
+        { id: "business_name", label: "Business Name *", placeholder: "Enter your business name", type: "text" },
+        { id: "business_email", label: "Email", placeholder: "contact@business.com", type: "email" },
+        { id: "business_location", label: "Location", placeholder: "Downtown Tunis, Avenue Habib Bourguiba", type: "text", hint: "This is what the AI shares when callers ask where your business is located." },
+        { id: "business_address", label: "Address", placeholder: "123 Main St, City, State 12345", type: "textarea" },
+        { id: "timezone", label: "Timezone *", placeholder: "America/New_York", type: "text", hint: "Use IANA timezone format (e.g., America/New_York, Europe/London)" },
+    ];
 
     return (
-        <div className="p-6">
+        <div>
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => router.push('/dashboard/settings')}
-                    >
+                    <button onClick={() => router.push('/dashboard/settings')} className="p-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
                         <ArrowLeft className="w-5 h-5" />
-                    </Button>
+                    </button>
                     <div>
-                        <h1 className="text-3xl font-bold mb-2">Business Profile</h1>
-                        <p className="text-muted-foreground">
-                            Manage your business information and operating hours
-                        </p>
+                        <h1 className="text-[32px] font-bold tracking-tight text-gray-900 mb-1 leading-none">Business Profile</h1>
+                        <p className="text-[14px] text-gray-500 font-medium">Manage your business information and operating hours.</p>
                     </div>
                 </div>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleReload}
-                    disabled={isReloading}
-                    className="gap-2"
-                >
+                <button onClick={() => reloadConfig()} disabled={isReloading} className="p-2.5 bg-white border border-gray-200 text-gray-700 rounded-full hover:bg-gray-50 transition-colors shadow-sm">
                     <RefreshCw className={`w-4 h-4 ${isReloading ? 'animate-spin' : ''}`} />
-                    Reload
-                </Button>
+                </button>
             </div>
 
             {/* Error Alert */}
             {error && (
-                <Alert variant="destructive" className="mb-6">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                        Failed to load configuration. Please try again.
-                    </AlertDescription>
-                </Alert>
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+                    <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
+                    <p className="text-sm text-red-700">Failed to load configuration. Please try again.</p>
+                </div>
             )}
 
-            <div className="grid grid-cols-1 gap-6">
-                {/* Form */}
-                <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
-                    {isLoading ? (
-                        <div className="space-y-6">
-                            <Skeleton className="h-20 w-full" />
-                            <Skeleton className="h-20 w-full" />
-                            <Skeleton className="h-32 w-full" />
-                            <Skeleton className="h-20 w-full" />
+            {/* Form */}
+            <div className="bg-white rounded-[24px] shadow-[0_2px_15px_-4px_rgba(0,0,0,0.03)] border border-gray-100 p-6">
+                {isLoading ? (
+                    <div className="space-y-6">
+                        {[1, 2, 3, 4].map(i => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)}
+                    </div>
+                ) : (
+                    <div className="space-y-5">
+                        {fields.map((field) => (
+                            <div key={field.id} className="space-y-2">
+                                <label htmlFor={field.id} className="text-sm font-semibold text-gray-700">{field.label}</label>
+                                {field.type === "textarea" ? (
+                                    <textarea
+                                        id={field.id}
+                                        value={(formData as any)[field.id]}
+                                        onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
+                                        placeholder={field.placeholder}
+                                        rows={3}
+                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0a4c2f]/20 focus:border-[#0a4c2f]/30 transition-all resize-none"
+                                    />
+                                ) : (
+                                    <input
+                                        id={field.id}
+                                        type={field.type}
+                                        value={(formData as any)[field.id]}
+                                        onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
+                                        placeholder={field.placeholder}
+                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0a4c2f]/20 focus:border-[#0a4c2f]/30 transition-all"
+                                    />
+                                )}
+                                {field.hint && <p className="text-xs text-gray-400">{field.hint}</p>}
+                            </div>
+                        ))}
+
+                        <div className="flex gap-3 pt-4">
+                            <button
+                                onClick={handleSave}
+                                disabled={isUpdating || !formData.business_name}
+                                className="px-5 py-2.5 bg-gradient-to-b from-[#187848] via-[#0a4c2f] to-[#052b19] text-white rounded-[20px] font-semibold transition-all shadow-[0_4px_16px_rgba(10,76,47,0.3)] flex items-center gap-2 relative overflow-hidden disabled:opacity-50"
+                            >
+                                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/20 via-transparent to-transparent opacity-50"></div>
+                                {isUpdating ? <RefreshCw className="w-4 h-4 animate-spin relative z-10" /> : <Save className="w-4 h-4 relative z-10" />}
+                                <span className="relative z-10">{isUpdating ? "Saving..." : "Save Changes"}</span>
+                            </button>
+                            <button onClick={() => router.push('/dashboard/settings')} disabled={isUpdating} className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-[20px] font-semibold hover:bg-gray-50 transition-colors">
+                                Cancel
+                            </button>
                         </div>
-                    ) : (
-                        <div className="space-y-6">
-                            <div>
-                                <Label htmlFor="business_name">Business Name *</Label>
-                                <Input
-                                    id="business_name"
-                                    value={formData.business_name}
-                                    onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
-                                    className="bg-white border border-slate-200 shadow-sm mt-2"
-                                    placeholder="Enter your business name"
-                                />
-                            </div>
-
-                            <div>
-                                <Label htmlFor="business_email">Email</Label>
-                                <Input
-                                    id="business_email"
-                                    type="email"
-                                    value={formData.business_email}
-                                    onChange={(e) => setFormData({ ...formData, business_email: e.target.value })}
-                                    className="bg-white border border-slate-200 shadow-sm mt-2"
-                                    placeholder="contact@business.com"
-                                />
-                            </div>
-
-                            <div>
-                                <Label htmlFor="business_location">Location</Label>
-                                <Input
-                                    id="business_location"
-                                    value={formData.business_location}
-                                    onChange={(e) => setFormData({ ...formData, business_location: e.target.value })}
-                                    className="bg-white border border-slate-200 shadow-sm mt-2"
-                                    placeholder="Downtown Tunis, Avenue Habib Bourguiba"
-                                />
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    This is what the AI shares when callers ask where your business is located.
-                                </p>
-                            </div>
-
-                            <div>
-                                <Label htmlFor="business_address">Address</Label>
-                                <Textarea
-                                    id="business_address"
-                                    value={formData.business_address}
-                                    onChange={(e) => setFormData({ ...formData, business_address: e.target.value })}
-                                    className="bg-white border border-slate-200 shadow-sm mt-2"
-                                    rows={3}
-                                    placeholder="123 Main St, City, State 12345"
-                                />
-                            </div>
-
-                            <div>
-                                <Label htmlFor="timezone">Timezone *</Label>
-                                <Input
-                                    id="timezone"
-                                    value={formData.timezone}
-                                    onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-                                    className="bg-white border border-slate-200 shadow-sm mt-2"
-                                    placeholder="America/New_York"
-                                />
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    Use IANA timezone format (e.g., America/New_York, Europe/London)
-                                </p>
-                            </div>
-
-                            <div className="flex gap-3 pt-4">
-                                <Button
-                                    className="gap-2 bg-gradient-to-r from-primary to-accent"
-                                    onClick={handleSave}
-                                    disabled={isUpdating || !formData.business_name}
-                                >
-                                    {isUpdating ? (
-                                        <>
-                                            <RefreshCw className="w-4 h-4 animate-spin" />
-                                            Saving...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Save className="w-4 h-4" />
-                                            Save Changes
-                                        </>
-                                    )}
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => router.push('/dashboard/settings')}
-                                    disabled={isUpdating}
-                                >
-                                    Cancel
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
         </div>
     );

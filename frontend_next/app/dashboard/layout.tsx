@@ -20,7 +20,6 @@ export default function DashboardLayout({
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
-        // Check for token (either 'token' or 'access_token' depending on login implementation)
         const token = localStorage.getItem("token") || localStorage.getItem("access_token")
         if (!token) {
             router.push("/login")
@@ -32,7 +31,7 @@ export default function DashboardLayout({
     if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-white">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <Loader2 className="h-8 w-8 animate-spin text-[#0a4c2f]" />
             </div>
         )
     }
@@ -41,21 +40,31 @@ export default function DashboardLayout({
         <ErrorBoundary>
             <ConfigProvider>
                 <TooltipProvider>
-                    <div className="dashboard-theme min-h-screen bg-white text-slate-900">
-                        <div
-                            className="absolute inset-0 z-0 pointer-events-none"
-                            style={{
-                                background: "radial-gradient(ellipse 50% 35% at 50% 0%, rgba(0, 0, 0, 0.02), transparent)",
-                            }}
-                        />
-                        <Sidebar />
-                        <main className="ml-64 min-h-screen relative z-10">
-                            <DashboardHeader />
-                            {children}
-                        </main>
-                        <Toaster />
-                        <Sonner />
+                    <div className="flex bg-white text-gray-800 font-sans h-screen w-screen overflow-hidden md:p-2.5 gap-0 md:gap-2.5 relative">
+                        {/* Sidebar panel */}
+                        <div className="hidden lg:flex bg-[#f3f5f4] rounded-[32px] flex-shrink-0 relative overflow-hidden shadow-sm">
+                            <Sidebar />
+                        </div>
+
+                        {/* Main content area */}
+                        <div className="flex-1 flex flex-col gap-0 md:gap-2.5 overflow-hidden relative bg-[#f3f5f4] md:bg-transparent">
+                            {/* Header panel */}
+                            <div className="hidden md:block bg-transparent md:bg-[#f3f5f4] rounded-none md:rounded-[32px] flex-shrink-0 md:overflow-hidden md:shadow-sm z-20">
+                                <DashboardHeader />
+                            </div>
+
+                            {/* Content panel */}
+                            <div className="bg-[#f3f5f4] rounded-none md:rounded-[32px] flex-1 overflow-hidden relative md:shadow-sm">
+                                <main className="h-full overflow-y-auto p-4 md:p-8 pt-4 md:pt-6 pb-28 md:pb-8 scroll-smooth relative z-10 scrollbar-hide">
+                                    <div className="max-w-[1400px] mx-auto">
+                                        {children}
+                                    </div>
+                                </main>
+                            </div>
+                        </div>
                     </div>
+                    <Toaster />
+                    <Sonner />
                 </TooltipProvider>
             </ConfigProvider>
         </ErrorBoundary>

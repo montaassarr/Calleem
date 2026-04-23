@@ -28,7 +28,7 @@ import {
     MessageCircle,
     Key,
 } from "lucide-react";
-import { NavLink } from "./NavLink";
+import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useConfig } from "@/contexts/ConfigContext";
 
@@ -36,7 +36,7 @@ const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
     { icon: Calendar, label: "Appointments", path: "/dashboard/appointments" },
     { icon: Scissors, label: "Services", path: "/dashboard/services" },
-    { icon: MessageSquare, label: "Call History", path: "/dashboard/calls" },
+    { icon: MessageSquare, label: "Call History", path: "/dashboard/calls", badge: "5" },
     {
         icon: Mic,
         label: "Voice AI",
@@ -63,7 +63,6 @@ const generalItems = [
         subItems: [
             { icon: Settings, label: "Settings Hub", path: "/dashboard/settings" },
             { icon: Building2, label: "Business", path: "/dashboard/settings/business" },
-
             { icon: Key, label: "API Keys", path: "/dashboard/settings/api-keys" },
         ]
     },
@@ -88,6 +87,10 @@ export const Sidebar = () => {
         return expandedItems.includes(path) || pathname.startsWith(path);
     };
 
+    const isActive = (path: string) => {
+        return pathname === path;
+    };
+
     const handleLogout = () => {
         localStorage.removeItem("access_token");
         localStorage.removeItem("username");
@@ -97,48 +100,59 @@ export const Sidebar = () => {
     const renderMenuItem = (item: any, isGeneral = false) => {
         const hasSubItems = item.subItems && item.subItems.length > 0;
         const expanded = hasSubItems && isExpanded(item.path);
-        // Check if user is on Pro plan (fallback to false if plan field doesn't exist)
-        const isPro = (config as any)?.plan === "pro" || (config as any)?.plan === "enterprise";
-        const needsProPlan = item.proPlan && !isPro;
+        const active = !hasSubItems && isActive(item.path);
 
         return (
             <div key={item.path}>
-                <NavLink
-                    href={!hasSubItems ? item.path : "#"}
-                    onClick={(e: any) => {
-                        if (hasSubItems) {
-                            e.preventDefault();
-                            toggleExpand(item.path);
-                        }
-                    }}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all hover:bg-white/50 hover:text-primary hover:shadow-md group"
-                    activeClassName={!hasSubItems ? "bg-primary text-white shadow-lg shadow-primary/30" : ""}
-                >
-                    <item.icon className="w-5 h-5" />
-                    <span className="flex-1">{item.label}</span>
-                    {needsProPlan && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold">
-                            PRO
-                        </span>
-                    )}
-                    {hasSubItems && (
-                        expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />
-                    )}
-                </NavLink>
+                {hasSubItems ? (
+                    <button
+                        onClick={() => toggleExpand(item.path)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors relative w-full text-left ${active
+                            ? 'text-[#0a4c2f] font-semibold bg-white shadow-sm'
+                            : 'text-gray-500 font-medium hover:text-gray-900 hover:bg-gray-50'
+                            }`}
+                    >
+                        <item.icon className={`w-[22px] h-[22px] ${active ? 'stroke-[2.5px]' : 'stroke-2'}`} />
+                        <span className="flex-1">{item.label}</span>
+                        {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    </button>
+                ) : (
+                    <Link
+                        href={item.path}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors relative ${active
+                            ? 'text-[#0a4c2f] font-semibold bg-white shadow-sm'
+                            : 'text-gray-500 font-medium hover:text-gray-900 hover:bg-gray-50'
+                            }`}
+                    >
+                        {active && (
+                            <div className="absolute -left-6 top-1/2 -translate-y-1/2 w-[5px] h-8 bg-gradient-to-b from-[#187848] via-[#0a4c2f] to-[#052b19] rounded-r-md shadow-[2px_0_12px_rgba(24,120,72,0.4)]"></div>
+                        )}
+                        <item.icon className={`w-[22px] h-[22px] ${active ? 'stroke-[2.5px]' : 'stroke-2'}`} />
+                        <span>{item.label}</span>
+                        {item.badge && (
+                            <span className="ml-auto bg-[#0a4c2f] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">{item.badge}</span>
+                        )}
+                    </Link>
+                )}
 
                 {hasSubItems && expanded && (
-                    <div className="ml-4 mt-1 space-y-1 border-l-2 border-slate-200 pl-2">
-                        {item.subItems.map((subItem: any) => (
-                            <NavLink
-                                key={subItem.path}
-                                href={subItem.path}
-                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all hover:bg-white/50 hover:text-primary hover:shadow-md"
-                                activeClassName="bg-primary/80 text-white shadow-lg shadow-primary/20"
-                            >
-                                <subItem.icon className="w-4 h-4" />
-                                <span className="text-xs">{subItem.label}</span>
-                            </NavLink>
-                        ))}
+                    <div className="ml-4 mt-1 space-y-1 pl-2 border-l-2 border-gray-200">
+                        {item.subItems.map((subItem: any) => {
+                            const subActive = isActive(subItem.path);
+                            return (
+                                <Link
+                                    key={subItem.path}
+                                    href={subItem.path}
+                                    className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-colors text-sm ${subActive
+                                        ? 'text-[#0a4c2f] font-semibold bg-white shadow-sm'
+                                        : 'text-gray-500 font-medium hover:text-gray-900 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    <subItem.icon className="w-4 h-4" />
+                                    <span className="text-xs">{subItem.label}</span>
+                                </Link>
+                            );
+                        })}
                     </div>
                 )}
             </div>
@@ -146,47 +160,66 @@ export const Sidebar = () => {
     };
 
     return (
-        <aside className="fixed left-0 top-0 h-screen w-64 bg-white flex flex-col z-50 overflow-y-auto border-r border-slate-200">
-            <div className="p-6">
-                <div className="flex items-center gap-2">
-                    {config?.logo_url ? (
-                        <>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={config.logo_url} alt="Logo" className="w-10 h-10 rounded-full object-cover" />
-                        </>
-                    ) : (
-                        <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-                            <Scissors className="w-5 h-5 text-white" />
-                        </div>
-                    )}
-                    <span className="text-xl font-bold text-primary truncate">
-                        {config?.business_name || 'Donezo'}
-                    </span>
+        <aside className="w-[260px] flex flex-col h-full overflow-y-auto scrollbar-hide shrink-0">
+            {/* CALLEEM Logo */}
+            <div className="px-6 py-8 flex items-center gap-3">
+                <div className="w-8 h-8 flex items-center justify-center">
+                    <svg viewBox="0 0 100 100" fill="currentColor" className="w-[36px] h-[36px] text-[#0a4c2f]">
+                        <path d="M46.5 45L23.5 24C20 20.8 14 23 14 28V46C14 55.4 21.6 63 31 63H65C70.5 63 73.5 56.5 69.5 52.5L46.5 45Z" />
+                        <path d="M53.5 55L76.5 76C80 79.2 86 77 86 72V54C86 44.6 78.4 37 69 37H35C29.5 37 26.5 43.5 30.5 47.5L53.5 55Z" />
+                        <path d="M29 51 L71 51" stroke="white" strokeWidth="8" strokeLinecap="round" />
+                    </svg>
                 </div>
+                <span className="text-[22px] font-black text-gray-900 tracking-tight ml-1 leading-none" style={{ fontStyle: 'italic', transform: 'skewX(-10deg)', letterSpacing: '-0.5px' }}>CALLEEM</span>
             </div>
 
-            <nav className="flex-1 px-3">
-                <div className="mb-6">
-                    <p className="px-3 text-xs font-semibold text-muted-foreground mb-2">MENU</p>
-                    <div className="space-y-1">
-                        {menuItems.map((item) => renderMenuItem(item))}
-                    </div>
-                </div>
+            {/* Menu */}
+            <div className="px-6 py-2">
+                <p className="text-[11px] font-semibold text-gray-400 mb-4 tracking-wider uppercase">Menu</p>
+                <nav className="flex flex-col gap-1.5">
+                    {menuItems.map((item) => renderMenuItem(item))}
+                </nav>
+            </div>
 
-                <div>
-                    <p className="px-3 text-xs font-semibold text-muted-foreground mb-2">GENERAL</p>
-                    <div className="space-y-1">
-                        {generalItems.map((item) => renderMenuItem(item, true))}
-                        <button
-                            onClick={handleLogout}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all hover:bg-white/50 hover:text-primary hover:shadow-md w-full text-left"
-                        >
-                            <LogOut className="w-5 h-5" />
-                            <span>Logout</span>
-                        </button>
+            {/* General */}
+            <div className="px-6 py-4 mt-2">
+                <p className="text-[11px] font-semibold text-gray-400 mb-4 tracking-wider uppercase">General</p>
+                <nav className="flex flex-col gap-1.5">
+                    {generalItems.map((item) => renderMenuItem(item, true))}
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 font-medium hover:text-gray-900 hover:bg-gray-50 transition-colors w-full text-left"
+                    >
+                        <LogOut className="w-[22px] h-[22px] stroke-2" />
+                        <span>Logout</span>
+                    </button>
+                </nav>
+            </div>
+
+            {/* Bottom CTA card */}
+            <div className="mt-auto p-6 mb-2">
+                <div className="bg-gradient-to-b from-[#156e40] via-[#0a4c2f] to-[#052b19] rounded-[20px] p-5 relative overflow-hidden text-white shadow-xl shadow-green-900/20 border border-[#1b8550]/20">
+                    <div className="absolute -top-10 -left-10 w-32 h-32 bg-[#21a05e] rounded-full blur-3xl opacity-30 pointer-events-none"></div>
+                    <svg className="absolute inset-0 w-full h-full opacity-20 pointer-events-none" preserveAspectRatio="none" viewBox="0 0 100 100">
+                        <path d="M0,50 Q25,20 50,50 T100,50 L100,100 L0,100 Z" fill="#48a074" />
+                        <path d="M0,70 Q25,40 50,70 T100,70 L100,100 L0,100 Z" fill="#2f7351" />
+                    </svg>
+                    <div className="relative z-10">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-4 text-white">
+                            <svg viewBox="0 0 24 24" fill="none" className="w-8 h-8">
+                                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M12 18C15.3137 18 18 15.3137 18 12C18 8.68629 15.3137 6 12 6C8.68629 6 6 8.68629 6 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                <circle cx="12" cy="12" r="2.5" fill="currentColor" />
+                            </svg>
+                        </div>
+                        <h4 className="font-semibold text-[15px] mb-1 leading-tight text-white">AI Voice<br />Assistant</h4>
+                        <p className="text-[11px] text-white/60 mb-5 font-medium">Always on, always booking</p>
+                        <Link href="/dashboard/voice-agent/control-center" className="block w-full bg-[#073922] hover:bg-[#052817] text-white text-sm font-medium py-2.5 rounded-xl transition-colors text-center">
+                            Configure
+                        </Link>
                     </div>
                 </div>
-            </nav>
+            </div>
         </aside>
     );
 };

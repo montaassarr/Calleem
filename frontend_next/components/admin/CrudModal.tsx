@@ -24,16 +24,18 @@ export function CrudModal({
 }: CrudModalProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
-                <DialogHeader>
-                    <DialogTitle>{title}</DialogTitle>
-                    {description && (
-                        <DialogDescription>
-                            {description}
-                        </DialogDescription>
-                    )}
-                </DialogHeader>
-                <div className="py-4">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden p-0 rounded-[24px]" aria-describedby={undefined}>
+                <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold text-gray-900">{title}</DialogTitle>
+                        {description && (
+                            <DialogDescription className="text-sm text-gray-500">
+                                {description}
+                            </DialogDescription>
+                        )}
+                    </DialogHeader>
+                </div>
+                <div className="px-6 pb-6 pt-4 overflow-y-auto max-h-[70vh]">
                     {children}
                 </div>
             </DialogContent>

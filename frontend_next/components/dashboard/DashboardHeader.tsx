@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Mail, Bell } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Mail, Bell } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { billingApi, DashboardBillingSummary } from "@/lib/api/billing";
@@ -46,47 +44,41 @@ export const DashboardHeader = () => {
         .toUpperCase();
 
     return (
-        <header className="sticky top-0 z-40 bg-white border-b border-slate-200">
-            <div className="flex items-center justify-between p-6">
-                <div className="flex-1 max-w-md">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search calls, tickets..."
-                            className="pl-10 glass-card"
-                        />
-                        <kbd className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-                            ⌘F
-                        </kbd>
+        <header className="h-auto md:h-[88px] py-2 md:py-0 px-2 md:px-8 flex flex-col md:flex-row items-center justify-end shrink-0 gap-4 md:gap-0 bg-[#f3f5f4]">
+            <div className="flex items-center justify-between w-full md:w-auto gap-2 md:gap-5">
+                {/* Plan & Credits badges */}
+                <div className="hidden md:flex items-center gap-2">
+                    <div className="flex items-center rounded-full border border-gray-200/50 bg-white px-3 py-1.5 text-xs shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
+                        <span className="text-gray-500 mr-1">Plan:</span>
+                        <span className="font-bold text-gray-900">{billingSummary?.plan_price || "Free"}</span>
+                    </div>
+                    <div className="flex items-center rounded-full border border-gray-200/50 bg-white px-3 py-1.5 text-xs shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
+                        <span className="text-gray-500 mr-1">Credits:</span>
+                        <span className="font-bold text-gray-900">${creditBalance.toFixed(2)}</span>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="hidden md:flex items-center rounded-lg border border-slate-200 px-3 py-1.5 text-xs">
-                        <span className="text-muted-foreground mr-1">Plan:</span>
-                        <span className="font-semibold">{billingSummary?.plan_price || "Free"}</span>
-                    </div>
-                    <div className="hidden md:flex items-center rounded-lg border border-slate-200 px-3 py-1.5 text-xs">
-                        <span className="text-muted-foreground mr-1">Credits:</span>
-                        <span className="font-semibold">${creditBalance.toFixed(2)}</span>
-                    </div>
-                    <Button variant="ghost" size="icon" className="relative">
-                        <Mail className="w-5 h-5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="relative">
-                        <Bell className="w-5 h-5" />
-                        <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
-                    </Button>
-                    <div className="flex items-center gap-3 ml-3 pl-3 border-l border-border">
-                        <div className="text-right">
-                            <p className="text-sm font-medium">{displayName}</p>
-                            <p className="text-xs text-muted-foreground">{displayEmail}</p>
-                        </div>
-                        <Avatar>
-                            <AvatarFallback className="bg-gradient-to-br from-primary to-info text-white">
-                                {initials}
-                            </AvatarFallback>
-                        </Avatar>
+                {/* Action buttons */}
+                <div className="flex items-center gap-2 md:gap-3">
+                    <button className="w-10 h-10 md:w-11 md:h-11 bg-white rounded-full flex items-center justify-center shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-200/50 text-gray-600 hover:text-gray-900 transition-colors">
+                        <Mail className="w-4 h-4 md:w-5 md:h-5 stroke-2" />
+                    </button>
+                    <button className="w-10 h-10 md:w-11 md:h-11 bg-white rounded-full flex items-center justify-center shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-200/50 text-gray-600 hover:text-gray-900 transition-colors relative">
+                        <Bell className="w-4 h-4 md:w-5 md:h-5 stroke-2" />
+                        <span className="absolute top-2.5 md:top-3 right-2.5 md:right-3 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                    </button>
+                </div>
+
+                {/* User avatar pill */}
+                <div className="flex items-center gap-2 md:gap-3 bg-white pl-2 pr-3 md:pl-2.5 md:pr-5 py-2 md:py-2.5 rounded-full shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-200/50 cursor-pointer hover:bg-gray-50 transition-colors md:ml-2 shrink-0 max-w-[200px] md:max-w-none">
+                    <Avatar className="w-8 h-8 md:w-9 md:h-9">
+                        <AvatarFallback className="bg-gradient-to-br from-[#187848] to-[#0a4c2f] text-white text-sm font-bold">
+                            {initials}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col min-w-0">
+                        <span className="text-[13px] md:text-sm font-bold text-gray-900 leading-none mb-1 truncate">{displayName}</span>
+                        <span className="text-[10px] md:text-[11px] font-medium text-gray-500 leading-none truncate">{displayEmail}</span>
                     </div>
                 </div>
             </div>

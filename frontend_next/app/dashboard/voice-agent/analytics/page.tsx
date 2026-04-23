@@ -1,11 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Phone, Clock, TrendingUp, DollarSign, BarChart3, MessageSquare } from "lucide-react";
+import { Loader2, Phone, Clock, TrendingUp, DollarSign, BarChart3, MessageSquare, ArrowUpRight } from "lucide-react";
 import { assistantApi } from "@/lib/api-endpoints";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
@@ -93,27 +90,20 @@ export default function AnalyticsPage() {
             setWebCalls(formattedCalls);
         } catch (error) {
             console.error("Failed to load web calls:", error);
-            toast({
-                title: "Error",
-                description: "Failed to load web calls",
-                variant: "destructive",
-            });
+            toast({ title: "Error", description: "Failed to load web calls", variant: "destructive" });
         } finally {
             setLoadingWebCalls(false);
         }
     }, [toast]);
-    useEffect(() => {
-        loadAnalytics();
-    }, [loadAnalytics]);
 
-    useEffect(() => {
-        loadConversations();
-    }, [loadConversations]);
+    useEffect(() => { loadAnalytics(); }, [loadAnalytics]);
+    useEffect(() => { loadConversations(); }, [loadConversations]);
 
     const handleOpenWebCalls = () => {
         setShowWebCallsModal(true);
         loadWebCalls();
     };
+
     const formatDuration = (seconds?: number) => {
         if (!seconds) return "0:00";
         const mins = Math.floor(seconds / 60);
@@ -123,27 +113,35 @@ export default function AnalyticsPage() {
 
     const formatDate = (dateStr?: string) => {
         if (!dateStr) return "—";
-        return new Date(dateStr).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit"
-        });
+        return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
     };
 
+    const getStatusStyle = (status?: string) => {
+        switch (status) {
+            case "ended": return "bg-green-100 text-green-700";
+            case "in-progress": return "bg-amber-100 text-amber-700";
+            default: return "bg-gray-100 text-gray-600";
+        }
+    };
+
+    const statCards = [
+        { label: "Total Calls", value: analytics?.total_calls || 0, icon: Phone, color: "from-blue-500 to-blue-600" },
+        { label: "Total Duration", value: `${analytics?.total_duration_minutes?.toFixed(1) || 0} min`, icon: Clock, color: "from-[#187848] to-[#0a4c2f]" },
+        { label: "Avg Duration", value: `${analytics?.avg_duration_seconds?.toFixed(0) || 0} sec`, icon: TrendingUp, color: "from-purple-500 to-purple-600" },
+        { label: "Total Cost", value: `$${((analytics?.total_cost_cents || 0) / 100).toFixed(2)}`, icon: DollarSign, color: "from-amber-500 to-amber-600" },
+    ];
+
     return (
-        <div className="container mx-auto p-6 space-y-6">
+        <div>
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold">Analytics</h1>
-                    <p className="text-muted-foreground mt-1">
-                        Call metrics and conversation history
-                    </p>
+                    <h1 className="text-[32px] font-bold tracking-tight text-gray-900 mb-1 leading-none">Analytics</h1>
+                    <p className="text-[14px] text-gray-500 font-medium">Call metrics and conversation history.</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                     <Select value={period} onValueChange={setPeriod}>
-                        <SelectTrigger className="w-32">
+                        <SelectTrigger className="w-32 rounded-xl border-gray-200">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -152,192 +150,95 @@ export default function AnalyticsPage() {
                             <SelectItem value="90">Last 90 days</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Button variant="outline" asChild>
-                        <Link href="/dashboard/voice-agent/control-center">Back</Link>
-                    </Button>
+                    <Link href="/dashboard/voice-agent/control-center" className="px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors text-sm">
+                        Back
+                    </Link>
                 </div>
             </div>
 
             {/* Stats Cards */}
             {loading ? (
-                <div className="flex justify-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
+                <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-[#0a4c2f]" /></div>
             ) : (
-                <div className="grid gap-4 md:grid-cols-4">
-                    <Card className="bg-white border-slate-200 shadow-sm">
-                        <CardContent className="bg-white border-slate-200 shadow-sm pt-6">
+                <div className="grid gap-4 grid-cols-2 xl:grid-cols-4 mb-8">
+                    {statCards.map((card, i) => (
+                        <div key={i} className="bg-white rounded-[20px] shadow-[0_2px_15px_-4px_rgba(0,0,0,0.03)] border border-gray-100 p-5">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Total Calls</p>
-                                    <p className="text-3xl font-bold">{analytics?.total_calls || 0}</p>
+                                    <p className="text-sm text-gray-500 font-medium">{card.label}</p>
+                                    <p className="text-[28px] font-bold text-gray-900 mt-1">{card.value}</p>
                                 </div>
-                                <div className="p-3 bg-blue-100 rounded-full">
-                                    <Phone className="h-6 w-6 text-blue-600" />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="bg-white border-slate-200 shadow-sm">
-                        <CardContent className="bg-white border-slate-200 shadow-sm pt-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Total Duration</p>
-                                    <p className="text-3xl font-bold">
-                                        {analytics?.total_duration_minutes?.toFixed(1) || 0}
-                                        <span className="text-lg font-normal text-muted-foreground"> min</span>
-                                    </p>
-                                </div>
-                                <div className="p-3 bg-green-100 rounded-full">
-                                    <Clock className="h-6 w-6 text-green-600" />
+                                <div className={`p-3 rounded-xl bg-gradient-to-br ${card.color} text-white`}>
+                                    <card.icon className="h-5 w-5" />
                                 </div>
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="bg-white border-slate-200 shadow-sm">
-                        <CardContent className="bg-white border-slate-200 shadow-sm pt-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Avg Duration</p>
-                                    <p className="text-3xl font-bold">
-                                        {analytics?.avg_duration_seconds?.toFixed(0) || 0}
-                                        <span className="text-lg font-normal text-muted-foreground"> sec</span>
-                                    </p>
-                                </div>
-                                <div className="p-3 bg-purple-100 rounded-full">
-                                    <TrendingUp className="h-6 w-6 text-purple-600" />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="bg-white border-slate-200 shadow-sm">
-                        <CardContent className="bg-white border-slate-200 shadow-sm pt-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Total Cost</p>
-                                    <p className="text-3xl font-bold">
-                                        ${((analytics?.total_cost_cents || 0) / 100).toFixed(2)}
-                                    </p>
-                                </div>
-                                <div className="p-3 bg-yellow-100 rounded-full">
-                                    <DollarSign className="h-6 w-6 text-yellow-600" />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    ))}
                 </div>
             )}
 
             {/* Calls by Status */}
             {analytics && Object.keys(analytics.calls_by_status || {}).length > 0 && (
-                <Card className="bg-white border-slate-200 shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="bg-white border-slate-200 shadow-sm flex items-center gap-2">
-                            <BarChart3 className="h-5 w-5" />
-                            Calls by Status
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-wrap gap-3">
-                            {Object.entries(analytics.calls_by_status).map(([status, count]) => (
-                                <div key={status} className="flex items-center gap-2 p-3 bg-slate-100 rounded-lg">
-                                    <Badge variant={status === "ended" ? "default" : "secondary"}>
-                                        {status}
-                                    </Badge>
-                                    <span className="font-semibold">{count}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
+                <div className="bg-white rounded-[24px] shadow-[0_2px_15px_-4px_rgba(0,0,0,0.03)] border border-gray-100 p-6 mb-8">
+                    <h3 className="font-bold text-lg text-gray-900 mb-4 flex items-center gap-2"><BarChart3 className="h-5 w-5" />Calls by Status</h3>
+                    <div className="flex flex-wrap gap-3">
+                        {Object.entries(analytics.calls_by_status).map(([status, count]) => (
+                            <div key={status} className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl">
+                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${getStatusStyle(status)}`}>{status}</span>
+                                <span className="font-bold text-gray-900">{count}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             )}
 
             {/* Recent Conversations */}
-            <Card className="bg-white border-slate-200 shadow-sm">
-                <CardHeader>
-                    <CardTitle className="bg-white border-slate-200 shadow-sm flex items-center gap-2">
-                        <MessageSquare className="h-5 w-5" />
-                        Recent Conversations
-                    </CardTitle>
-                    <CardDescription>
-                        View call history and transcripts
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {loadingConversations ? (
-                        <div className="flex justify-center py-4">
-                            <Loader2 className="h-6 w-6 animate-spin" />
-                        </div>
-                    ) : conversations.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                            <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                            <p>No conversations yet</p>
-                            <p className="text-sm">Make a test call to see call history here</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {conversations.map((conv) => (
-                                <div
-                                    key={conv.id}
-                                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-100/50 transition-colors"
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-2 bg-slate-100 rounded-full">
-                                            <Phone className="h-4 w-4" />
-                                        </div>
-                                        <div>
-                                            <p className="font-medium">
-                                                {conv.customer_phone || "Web Call"}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {formatDate(conv.created_at)}
-                                            </p>
-                                        </div>
+            <div className="bg-white rounded-[24px] shadow-[0_2px_15px_-4px_rgba(0,0,0,0.03)] border border-gray-100 p-6 mb-8">
+                <h3 className="font-bold text-lg text-gray-900 mb-1 flex items-center gap-2"><MessageSquare className="h-5 w-5" />Recent Conversations</h3>
+                <p className="text-sm text-gray-500 mb-6">View call history and transcripts</p>
+
+                {loadingConversations ? (
+                    <div className="flex justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-[#0a4c2f]" /></div>
+                ) : conversations.length === 0 ? (
+                    <div className="text-center py-8">
+                        <MessageSquare className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                        <p className="font-medium text-gray-900">No conversations yet</p>
+                        <p className="text-sm text-gray-500">Make a test call to see call history here</p>
+                    </div>
+                ) : (
+                    <div className="flex flex-col gap-3">
+                        {conversations.map((conv) => (
+                            <div key={conv.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-10 h-10 rounded-full bg-[#f3f5f4] flex items-center justify-center shrink-0">
+                                        <Phone className="h-4 w-4 text-gray-500" />
                                     </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="text-right">
-                                            <p className="text-sm font-medium">
-                                                {formatDuration(conv.duration)}
-                                            </p>
-                                            <Badge variant={conv.status === "ended" ? "default" : "secondary"}>
-                                                {conv.status || "unknown"}
-                                            </Badge>
-                                        </div>
-                                        <Button variant="ghost" size="sm" asChild>
-                                            <Link href={`/dashboard/voice-agent/analytics/${conv.id}`}>
-                                                View
-                                            </Link>
-                                        </Button>
+                                    <div className="min-w-0">
+                                        <p className="font-bold text-gray-900 text-sm">{conv.customer_phone || "Web Call"}</p>
+                                        <p className="text-xs text-gray-500">{formatDate(conv.created_at)}</p>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-            
-                {/* View All Web Calls Button */}
-                <div className="flex justify-center py-4">
-                    <Button 
-                        onClick={handleOpenWebCalls} 
-                        size="lg"
-                        className="w-full md:w-auto"
-                    >
-                        <Phone className="h-4 w-4 mr-2" />
-                        View All Web Calls
-                    </Button>
-                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm font-medium text-gray-700">{formatDuration(conv.duration)}</span>
+                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${getStatusStyle(conv.status)}`}>{conv.status || "unknown"}</span>
+                                    <Link href={`/dashboard/voice-agent/analytics/${conv.id}`} className="text-sm text-[#0a4c2f] hover:underline font-medium">View</Link>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
 
-                {/* Web Calls Modal */}
-                <WebCallsModal
-                    isOpen={showWebCallsModal}
-                    onClose={() => setShowWebCallsModal(false)}
-                    calls={webCalls}
-                    isLoading={loadingWebCalls}
-                />
+            {/* View All Web Calls */}
+            <div className="flex justify-center py-4">
+                <button onClick={handleOpenWebCalls} className="px-6 py-2.5 bg-gradient-to-b from-[#187848] via-[#0a4c2f] to-[#052b19] text-white rounded-[20px] font-semibold transition-all shadow-[0_4px_16px_rgba(10,76,47,0.3)] flex items-center gap-2 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/20 via-transparent to-transparent opacity-50"></div>
+                    <Phone className="h-4 w-4 relative z-10" />
+                    <span className="relative z-10">View All Web Calls</span>
+                </button>
+            </div>
+
+            <WebCallsModal isOpen={showWebCallsModal} onClose={() => setShowWebCallsModal(false)} calls={webCalls} isLoading={loadingWebCalls} />
         </div>
     );
 }
