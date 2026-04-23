@@ -34,6 +34,7 @@ interface AppointmentFormModalProps {
     onOpenChange: (open: boolean) => void;
     appointment?: AppointmentResponse | null;
     mode: "create" | "edit";
+    initialDate?: Date;
 }
 
 export default function AppointmentFormModal({
@@ -41,10 +42,12 @@ export default function AppointmentFormModal({
     onOpenChange,
     appointment,
     mode,
+    initialDate,
 }: AppointmentFormModalProps) {
     const { formData, setFormData, services, timeSlots, submit, isLoading } = useAppointmentForm({
         mode,
         appointment,
+        initialDate,
         onSuccess: () => onOpenChange(false),
     });
 

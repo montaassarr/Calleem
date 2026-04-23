@@ -9,10 +9,15 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import type { CalendarEvent } from "@/lib/types";
+import type { CalendarEvent, AppointmentResponse } from "@/lib/types";
+import AppointmentFormModal from "@/components/dashboard/appointments/AppointmentFormModal";
 
 export default function SchedulePage() {
     const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalMode, setModalMode] = useState<"create" | "edit">("create");
+    const [selectedAppointment, setSelectedAppointment] = useState<AppointmentResponse | null>(null);
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
     const { data: appointments = [] } = useQuery({
         queryKey: ["appointments"],
@@ -54,13 +59,26 @@ export default function SchedulePage() {
     }, [appointments]);
 
     const handleDateClick = (arg: any) => {
-        // TODO: Open create appointment modal with selected date
-        console.log('Date clicked:', arg.dateStr);
+        setSelectedDate(new Date(arg.date));
+        setSelectedAppointment(null);
+        setModalMode("create");
+        setIsModalOpen(true);
     };
 
     const handleEventClick = (info: any) => {
-        // TODO: Open appointment details modal
-        console.log('Event clicked:', info.event);
+        const appointment = appointments.find((a: AppointmentResponse) => a.id === info.event.id);
+        if (appointment) {
+            setSelectedAppointment(appointment);
+            setModalMode("edit");
+            setIsModalOpen(true);
+        }
+    };
+
+    const handleNewAppointment = () => {
+        setSelectedDate(undefined);
+        setSelectedAppointment(null);
+        setModalMode("create");
+        setIsModalOpen(true);
     };
 
     return (
@@ -73,7 +91,10 @@ export default function SchedulePage() {
                         View and manage appointments in calendar view
                     </p>
                 </div>
-                <Button className="gap-2 bg-gradient-to-r from-primary to-accent">
+                <Button
+                    className="gap-2 bg-gradient-to-r from-primary to-accent"
+                    onClick={handleNewAppointment}
+                >
                     <Plus className="w-4 h-4" />
                     New Appointment
                 </Button>
@@ -129,6 +150,14 @@ export default function SchedulePage() {
                     }}
                 />
             </div>
+
+            <AppointmentFormModal
+                open={isModalOpen}
+                onOpenChange={setIsModalOpen}
+                mode={modalMode}
+                appointment={selectedAppointment}
+                initialDate={selectedDate}
+            />
         </div>
     );
 }

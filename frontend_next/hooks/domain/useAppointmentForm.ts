@@ -10,6 +10,7 @@ interface UseAppointmentFormProps {
     mode: "create" | "edit";
     appointment?: AppointmentResponse | null;
     onSuccess?: () => void;
+    initialDate?: Date;
 }
 
 interface FormData {
@@ -74,13 +75,13 @@ export function useAppointmentForm({ mode, appointment, onSuccess }: UseAppointm
                 client_name: "",
                 client_phone: "",
                 service: "",
-                date: undefined,
-                time: "09:00",
+                date: initialDate || undefined,
+                time: initialDate ? format(initialDate, "HH:mm") : "09:00",
                 duration_minutes: 30,
                 notes: "",
             });
         }
-    }, [mode, appointment]);
+    }, [mode, appointment, initialDate]);
 
     const submit = async () => {
         if (!formData.client_name || !formData.client_phone || !formData.service || !formData.date || !formData.time) {
