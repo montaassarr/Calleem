@@ -8,11 +8,13 @@ import json
 from typing import Dict, Any
 from fastapi import APIRouter, Request, BackgroundTasks, HTTPException, status
 from datetime import datetime
+import pytz
 
 from services.vapi_service import vapi_service
 from services.socket_manager import socket_manager
 from services.appointments_service import AppointmentsService
 from database.mongo_config import get_database
+from utils.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -218,23 +220,56 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
         })
     
     result_data = {}
+
+    async def get_tenant_timezone_name() -> str:
+        """Resolve timezone from business profile (business_config), then tenant, then fallback."""
+        if not tenant_id:
+            return settings.TIMEZONE
+
+        db = get_database()
+        config = await db.business_config.find_one({"tenant_id": tenant_id})
+        timezone_name = (config or {}).get("timezone")
+
+        if not timezone_name:
+            tenant = None
+            try:
+                from bson import ObjectId
+                if ObjectId.is_valid(tenant_id):
+                    tenant = await db.tenants.find_one({"_id": ObjectId(tenant_id)})
+            except Exception:
+                tenant = None
+            if tenant is None:
+                tenant = await db.tenants.find_one({"_id": tenant_id}) or await db.tenants.find_one({"_id": str(tenant_id)})
+            timezone_name = (tenant or {}).get("timezone")
+
+        timezone_name = timezone_name or settings.TIMEZONE
+        try:
+            pytz.timezone(timezone_name)
+            return timezone_name
+        except Exception:
+            logger.warning(f"Invalid tenant timezone '{timezone_name}', falling back to {settings.TIMEZONE}")
+            return settings.TIMEZONE
     
     try:
         if name == "getCurrentDateTime":
-            from utils.datetime_utils import DateTimeUtils
-            current_time = DateTimeUtils.now()
+            timezone_name = await get_tenant_timezone_name()
+            tz = pytz.timezone(timezone_name)
+            current_time = datetime.now(tz)
             # Format for AI understanding: full datetime and readable date
             result_data = {
                 "current_datetime": current_time.isoformat(),
                 "date": current_time.strftime("%Y-%m-%d"),
                 "time": current_time.strftime("%H:%M"),
                 "day_of_week": current_time.strftime("%A"),
+                "timezone": timezone_name,
                 "message": f"Current date and time: {current_time.strftime('%A, %B %d, %Y at %I:%M %p')}"
             }
             logger.info(f"✅ Current DateTime: {result_data['message']}")
         
         elif name == "checkAvailability":
-            date_str = args.get("date") or datetime.now().strftime("%Y-%m-%d")
+            timezone_name = await get_tenant_timezone_name()
+            tz = pytz.timezone(timezone_name)
+            date_str = args.get("date") or datetime.now(tz).strftime("%Y-%m-%d")
             time_str = args.get("time", "09:00")
             result = await appointments_service.check_availability(tenant_id, date_str, time_str)
             result_data = {"available": result.get("available", False), "details": result}
@@ -302,10 +337,6 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
         
         elif name == "bookAppointment":
             from models.appointment import AppointmentCreate
-            from datetime import timezone
-            import pytz
-            from utils.config import settings
-            from utils.datetime_utils import DateTimeUtils
             
             # Sanitize phone number (keep only digits, then validate 8-digit format)
             # Try both 'phone' and 'customerPhone' field names
@@ -324,12 +355,13 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
             time_str = args.get('time')
             
             # Log incoming values for debugging
-            now = DateTimeUtils.now()
+            timezone_name = await get_tenant_timezone_name()
+            tz = pytz.timezone(timezone_name)
+            now = datetime.now(tz)
             logger.info(f"📅 Booking request - Date: {date_str}, Time: {time_str}, Current time: {now}")
             
             naive_dt = datetime.fromisoformat(f"{date_str}T{time_str}:00")
             # Localize to business timezone (user's local time)
-            tz = pytz.timezone(settings.TIMEZONE)
             aware_dt = tz.localize(naive_dt)
             
             logger.info(f"⏰ Parsed datetime: {aware_dt}, Is future? {aware_dt > now}")

@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict, Any, Tuple
 from bson import ObjectId
 from fastapi import HTTPException
+import pytz
 
 from database.mongo_config import get_database
 from models.appointment import AppointmentStatus, AppointmentCreate, AppointmentUpdate
@@ -25,6 +26,31 @@ class AppointmentsService:
     def db(self):
         return get_database()
 
+    async def _resolve_tenant_timezone(self, tenant_id: str) -> pytz.BaseTzInfo:
+        """Resolve tenant timezone from business config, then tenant profile."""
+        timezone_name = settings.TIMEZONE
+
+        if tenant_id:
+            config = await self.db.business_config.find_one({"tenant_id": tenant_id})
+            timezone_name = (config or {}).get("timezone") or timezone_name
+
+            if not (config or {}).get("timezone"):
+                tenant = None
+                try:
+                    if ObjectId.is_valid(tenant_id):
+                        tenant = await self.db.tenants.find_one({"_id": ObjectId(tenant_id)})
+                except Exception:
+                    tenant = None
+                if tenant is None:
+                    tenant = await self.db.tenants.find_one({"_id": tenant_id}) or await self.db.tenants.find_one({"_id": str(tenant_id)})
+                timezone_name = (tenant or {}).get("timezone") or timezone_name
+
+        try:
+            return pytz.timezone(timezone_name)
+        except Exception:
+            logger.warning(f"Invalid timezone '{timezone_name}' for tenant {tenant_id}, using {settings.TIMEZONE}")
+            return pytz.timezone(settings.TIMEZONE)
+
     async def check_availability(
         self,
         tenant_id: str,
@@ -39,6 +65,7 @@ class AppointmentsService:
         try:
             # Parse datetime
             if date and time:
+                tenant_tz = await self._resolve_tenant_timezone(tenant_id)
                 # Handle time with or without seconds
                 time_clean = time if ":" in time else f"{time}:00"
                 if len(time_clean.split(":")) == 2:
@@ -46,15 +73,14 @@ class AppointmentsService:
                 datetime_str = f"{date}T{time_clean}"
                 try:
                     requested_datetime = datetime.fromisoformat(datetime_str)
-                    # Make UTC-aware if naive
+                    # Interpret naive datetime in tenant timezone (business local time).
                     if requested_datetime.tzinfo is None:
-                        requested_datetime = requested_datetime.replace(tzinfo=timezone.utc)
+                        requested_datetime = tenant_tz.localize(requested_datetime)
                 except ValueError:
                     # Fallback for some formats
                     try:
                         requested_datetime = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
-                        # Make UTC-aware
-                        requested_datetime = requested_datetime.replace(tzinfo=timezone.utc)
+                        requested_datetime = tenant_tz.localize(requested_datetime)
                     except:
                          return {"available": False, "reason": "Invalid date/time format"}
             else:

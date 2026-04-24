@@ -1,7 +1,7 @@
 "use client";
 
 import { Save, ArrowLeft, RefreshCw, AlertCircle } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useConfig } from "@/hooks/use-config";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,12 +40,40 @@ export default function BusinessSettingsPage() {
         });
     };
 
+    const timezoneOptions = useMemo(() => {
+        const intlAny = Intl as any;
+        const timezones = typeof Intl !== "undefined" && typeof intlAny.supportedValuesOf === "function"
+            ? intlAny.supportedValuesOf("timeZone")
+            : ["UTC", "America/New_York", "Europe/London", "Europe/Paris", "Asia/Dubai"];
+
+        const now = new Date();
+
+        const formatOffset = (timezone: string) => {
+            const tzPart = new Intl.DateTimeFormat("en-US", {
+                timeZone: timezone,
+                timeZoneName: "shortOffset",
+            }).formatToParts(now).find((p) => p.type === "timeZoneName")?.value || "GMT+00:00";
+            return tzPart;
+        };
+
+        const placeLabel = (timezone: string) => {
+            const [region, city] = timezone.split("/");
+            if (!city) return timezone;
+            return `${city.replace(/_/g, " ")}, ${region.replace(/_/g, " ")}`;
+        };
+
+        return timezones.map((tz) => ({
+            value: tz,
+            label: `(${formatOffset(tz)}) ${placeLabel(tz)} - ${tz}`,
+        }));
+    }, []);
+
     const fields = [
         { id: "business_name", label: "Business Name *", placeholder: "Enter your business name", type: "text" },
         { id: "business_email", label: "Email", placeholder: "contact@business.com", type: "email" },
         { id: "business_location", label: "Location", placeholder: "Downtown Tunis, Avenue Habib Bourguiba", type: "text", hint: "This is what the AI shares when callers ask where your business is located." },
         { id: "business_address", label: "Address", placeholder: "123 Main St, City, State 12345", type: "textarea" },
-        { id: "timezone", label: "Timezone *", placeholder: "America/New_York", type: "text", hint: "Use IANA timezone format (e.g., America/New_York, Europe/London)" },
+        { id: "timezone", label: "Timezone *", placeholder: "America/New_York", type: "select", hint: "Select your local timezone. AI uses this for current date/time and relative dates (today/tomorrow)." },
     ];
 
     return (
@@ -94,6 +122,19 @@ export default function BusinessSettingsPage() {
                                         rows={3}
                                         className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0a4c2f]/20 focus:border-[#0a4c2f]/30 transition-all resize-none"
                                     />
+                                ) : field.type === "select" ? (
+                                    <select
+                                        id={field.id}
+                                        value={(formData as any)[field.id]}
+                                        onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0a4c2f]/20 focus:border-[#0a4c2f]/30 transition-all"
+                                    >
+                                        {timezoneOptions.map((timezone) => (
+                                            <option key={timezone.value} value={timezone.value}>
+                                                {timezone.label}
+                                            </option>
+                                        ))}
+                                    </select>
                                 ) : (
                                     <input
                                         id={field.id}
