@@ -6,7 +6,7 @@ Handles Vapi webhooks (call events, function calls, transcripts)
 import logging
 import json
 from typing import Dict, Any
-from fastapi import APIRouter, Request, Header, BackgroundTasks
+from fastapi import APIRouter, Request, BackgroundTasks, HTTPException, status
 from datetime import datetime
 
 from services.vapi_service import vapi_service
@@ -23,17 +23,19 @@ router = APIRouter(tags=["Vapi Webhooks"])
 async def vapi_webhook_tenant(
     tenant_id: str,
     request: Request,
-    background_tasks: BackgroundTasks,
-    x_vapi_signature: str = Header(None)
+    background_tasks: BackgroundTasks
 ):
     """
     Tenant-specific webhook endpoint for Vapi
     """
     payload = await request.body()
-    # Verify signature strictly
-    if not vapi_service.verify_webhook_signature(payload, x_vapi_signature or ""):
-        logger.warning("Vapi webhook signature verification failed (tenant endpoint)")
-        return {"error": "invalid_signature"}
+    # Verify webhook auth via Vapi Credentials (Bearer or HMAC).
+    if not vapi_service.verify_webhook_request(payload, dict(request.headers)):
+        logger.warning("Vapi webhook auth verification failed (tenant endpoint)")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="invalid_webhook_auth"
+        )
     data = await request.json()
     message_type = data.get("message", {}).get("type")
     
@@ -61,18 +63,20 @@ async def vapi_webhook_tenant(
 @router.post("/webhook")
 async def vapi_webhook(
     request: Request,
-    background_tasks: BackgroundTasks,
-    x_vapi_signature: str = Header(None)
+    background_tasks: BackgroundTasks
 ):
     """
     Handle Vapi webhooks (call-start, call-end, function-call, transcript, etc.)
     """
     payload = await request.body()
     
-    # Verify signature strictly
-    if not vapi_service.verify_webhook_signature(payload, x_vapi_signature or ""):
-        logger.warning("Vapi webhook signature verification failed")
-        return {"error": "invalid_signature"}
+    # Verify webhook auth via Vapi Credentials (Bearer or HMAC).
+    if not vapi_service.verify_webhook_request(payload, dict(request.headers)):
+        logger.warning("Vapi webhook auth verification failed")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="invalid_webhook_auth"
+        )
     
     data = await request.json()
     message_type = data.get("message", {}).get("type")

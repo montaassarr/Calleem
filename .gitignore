@@ -9,6 +9,7 @@ ENV/
 env/
 .venv/
 .env
+backend/.env
 
 # IDE
 .idea/

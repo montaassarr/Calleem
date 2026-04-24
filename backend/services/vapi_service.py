@@ -6,7 +6,6 @@ Manages tenant assistant through Vapi API with full configuration support
 import os
 import logging
 import hmac
-import hashlib
 import httpx
 from typing import Optional, Dict, Any, List
 from datetime import datetime
@@ -68,7 +67,7 @@ class VapiService:
             or os.getenv("VAPI_API_KEY")
         )
         self.public_key = os.getenv("VAPI_PUBLIC_KEY")
-        self.webhook_secret = os.getenv("VAPI_WEBHOOK_SECRET", "")
+        self.webhook_bearer_token = os.getenv("VAPI_WEBHOOK_BEARER_TOKEN", "")
         self.organization_id = os.getenv("VAPI_ORGANIZATION_ID", "")
         self.base_url = os.getenv("VAPI_BASE_URL", "https://api.vapi.ai")
         
@@ -1095,6 +1094,7 @@ Important guidelines:
             return []
 
         webhook_url = os.getenv("VAPI_WEBHOOK_URL", "")
+        webhook_credential_id = os.getenv("VAPI_SERVER_CREDENTIAL_ID", "").strip()
         normalized_tools: List[Dict[str, Any]] = []
 
         for tool in tools:
@@ -1106,8 +1106,14 @@ Important guidelines:
             else:
                 tool_payload = dict(tool)
 
-            if tool_payload.get("type") == "function" and webhook_url and "server" not in tool_payload:
-                tool_payload["server"] = {"url": webhook_url}
+            if tool_payload.get("type") == "function":
+                server_config = dict(tool_payload.get("server") or {})
+                if webhook_url and "url" not in server_config:
+                    server_config["url"] = webhook_url
+                if webhook_credential_id and "credentialId" not in server_config:
+                    server_config["credentialId"] = webhook_credential_id
+                if server_config:
+                    tool_payload["server"] = server_config
 
             normalized_tools.append(tool_payload)
 
@@ -1115,37 +1121,24 @@ Important guidelines:
     
     # ===== WEBHOOK VERIFICATION =====
     
+    def verify_webhook_request(self, payload: bytes, headers: Dict[str, str]) -> bool:
+        """Verify webhook request using Vapi Credential Bearer auth only."""
+        normalized_headers = {k.lower(): v for k, v in headers.items()}
+
+        expected_token = self.webhook_bearer_token
+        auth_header = normalized_headers.get("authorization", "")
+        if not expected_token:
+            logger.error("❌ VAPI_WEBHOOK_BEARER_TOKEN is not configured")
+            return False
+        if not auth_header.startswith("Bearer "):
+            logger.warning("⚠️  Missing/invalid Authorization Bearer header on Vapi webhook")
+            return False
+        provided_token = auth_header[len("Bearer "):].strip()
+        return hmac.compare_digest(provided_token, expected_token)
+
     def verify_webhook_signature(self, payload: bytes, signature: str) -> bool:
-        """Verify webhook signature from Vapi"""
-        allow_unsigned_dev = os.getenv("VAPI_ALLOW_UNSIGNED_WEBHOOKS", "false").lower() == "true"
-        environment = os.getenv("ENVIRONMENT", "development").lower()
-
-        if not signature:
-            if allow_unsigned_dev and environment != "production":
-                logger.warning("⚠️  Vapi webhook signature missing; accepted due to VAPI_ALLOW_UNSIGNED_WEBHOOKS in non-production")
-                return True
-            return False
-
-        if not self.webhook_secret:
-            logger.warning("⚠️  VAPI_WEBHOOK_SECRET not configured - all webhook signatures will be accepted in non-production")
-            if allow_unsigned_dev and environment != "production":
-                return True
-            return False
-        
-        try:
-            expected = hmac.new(
-                self.webhook_secret.encode(),
-                payload,
-                hashlib.sha256
-            ).hexdigest()
-            is_valid = hmac.compare_digest(expected, signature)
-            if not is_valid:
-                logger.warning(f"⚠️  Webhook signature mismatch! Expected: {expected[:16]}..., Got: {signature[:16] if signature else '(none)'}...")
-            return is_valid
-        except Exception as e:
-            logger.error(f"❌ Webhook signature verification error: {e}")
-            return allow_unsigned_dev and environment != "production"
-            return False
+        """Deprecated: backwards compatibility wrapper for signature-only checks."""
+        return self.verify_webhook_request(payload, {"x-vapi-signature": signature})
     
     # ===== HELPER METHODS =====
     

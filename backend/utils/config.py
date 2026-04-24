@@ -40,7 +40,9 @@ class Settings(BaseSettings):
     VAPI_API_KEY: str = ""
     VAPI_PRIVATE_API_KEY: str = ""
     VAPI_PUBLIC_KEY: str = ""
-    VAPI_WEBHOOK_SECRET: str = ""
+    # Webhook auth now uses Vapi Credentials bearer token (server.credentialId), not legacy webhook secrets.
+    VAPI_WEBHOOK_BEARER_TOKEN: str = ""
+    VAPI_SERVER_CREDENTIAL_ID: str = ""
     VAPI_WEBHOOK_URL: str = ""  # Can be set explicitly or will be constructed from BACKEND_URL
     BACKEND_URL: str = "https://ai-receptionist-production-299a.up.railway.app"  # Production backend URL
     VAPI_ORGANIZATION_ID: str = ""
