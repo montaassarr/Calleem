@@ -65,3 +65,15 @@ backend/venv/
 data/
 frontend_next/.next/
 callem/
+
+# Claude Code — settings contain API keys and session-specific permission rules
+.claude/
+
+# Frontend env files — contain API keys and test credentials
+frontend_next/.env.local
+frontend_next/.env.test
+frontend_next/.env.*.local
+
+# Catch-all for any env file not already covered
+**/.env.local
+**/.env.test

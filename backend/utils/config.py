@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     VAPI_WEBHOOK_BEARER_TOKEN: str = ""
     VAPI_SERVER_CREDENTIAL_ID: str = ""
     VAPI_WEBHOOK_URL: str = ""  # Can be set explicitly or will be constructed from BACKEND_URL
+    AGENT_INTERNAL_TOKEN: str = ""
     BACKEND_URL: str = "https://ai-receptionist-production-299a.up.railway.app"  # Production backend URL
     VAPI_ORGANIZATION_ID: str = ""
     VAPI_BASE_URL: str = "https://api.vapi.ai"

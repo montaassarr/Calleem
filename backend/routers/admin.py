@@ -408,3 +408,91 @@ async def refresh_assistant_date(tenant_id: str):
         return {"error": f"Failed to update assistant: {str(e)}"}
 
 
+# ==================== BILLING OVERVIEW ====================
+
+@router.get("/billing/overview")
+async def admin_billing_overview(db=Depends(get_database)):
+    """
+    Platform-level billing overview.
+
+    For each tenant: subscription revenue, Vapi usage cost, credit balance,
+    and per-assistant breakdown.  Also returns platform-wide totals so the
+    platform owner can see gross margin in one call.
+    """
+    tenants = await db.tenants.find({}).to_list(length=2000)
+
+    # Aggregate billing_ledger by tenant_id and assistant_id in one pass
+    pipeline = [
+        {"$match": {"type": "call_debit"}},
+        {
+            "$group": {
+                "_id": {
+                    "tenant_id": "$tenant_id",
+                    "assistant_id": "$assistant_id",
+                },
+                "total_calls": {"$sum": 1},
+                "total_cost_usd": {"$sum": "$amount_usd"},
+                "total_duration_seconds": {"$sum": "$duration_seconds"},
+            }
+        },
+    ]
+    ledger_rows = await db.billing_ledger.aggregate(pipeline).to_list(length=10000)
+
+    # Index ledger rows by tenant_id
+    usage_by_tenant: Dict[str, Dict[str, Any]] = {}
+    for row in ledger_rows:
+        tid = row["_id"]["tenant_id"]
+        aid = row["_id"]["assistant_id"]
+        if tid not in usage_by_tenant:
+            usage_by_tenant[tid] = {"assistants": {}, "total_calls": 0, "total_cost_usd": 0.0, "total_duration_seconds": 0}
+
+        usage_by_tenant[tid]["assistants"][aid] = {
+            "assistant_id": aid,
+            "total_calls": row["total_calls"],
+            "total_cost_usd": round(row["total_cost_usd"], 4),
+            "total_minutes": round((row["total_duration_seconds"] or 0) / 60, 2),
+        }
+        usage_by_tenant[tid]["total_calls"] += row["total_calls"]
+        usage_by_tenant[tid]["total_cost_usd"] += row["total_cost_usd"]
+        usage_by_tenant[tid]["total_duration_seconds"] += row.get("total_duration_seconds") or 0
+
+    tenant_summaries: List[Dict[str, Any]] = []
+    for tenant in tenants:
+        tid = str(tenant.get("_id"))
+        usage = usage_by_tenant.get(tid, {})
+        monthly_sub = float(tenant.get("monthly_subscription_amount_usd") or 0)
+        credit_balance = float(tenant.get("credit_balance") or tenant.get("vapi_credit_balance") or 0)
+        total_cost = round(float(usage.get("total_cost_usd") or 0), 4)
+        total_minutes = round((usage.get("total_duration_seconds") or 0) / 60, 2)
+
+        tenant_summaries.append({
+            "tenant_id": tid,
+            "name": tenant.get("name"),
+            "email": tenant.get("email"),
+            "plan": tenant.get("plan", "free"),
+            "subscription_status": tenant.get("subscription_status", "inactive"),
+            "monthly_subscription_usd": round(monthly_sub, 2),
+            "credit_balance": round(credit_balance, 2),
+            "total_calls": usage.get("total_calls", 0),
+            "total_minutes": total_minutes,
+            "total_vapi_cost_usd": total_cost,
+            "profit_usd": round(monthly_sub - total_cost, 4),
+            "assistants": list(usage.get("assistants", {}).values()),
+        })
+
+    # Platform-wide totals
+    platform_revenue = sum(t["monthly_subscription_usd"] for t in tenant_summaries)
+    platform_cost = sum(t["total_vapi_cost_usd"] for t in tenant_summaries)
+
+    return {
+        "tenants": tenant_summaries,
+        "platform_summary": {
+            "total_tenants": len(tenant_summaries),
+            "active_tenants": sum(1 for t in tenant_summaries if t["subscription_status"] == "active"),
+            "total_subscription_revenue_usd": round(platform_revenue, 2),
+            "total_vapi_cost_usd": round(platform_cost, 4),
+            "platform_margin_usd": round(platform_revenue - platform_cost, 4),
+        },
+    }
+
+

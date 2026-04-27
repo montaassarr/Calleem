@@ -109,18 +109,10 @@ class VapiService:
         """Create a new Vapi assistant for a tenant"""
         if not self.is_configured():
             raise ValueError("Vapi not configured")
-        from utils.datetime_utils import DateTimeUtils
-        current_time = DateTimeUtils.now()
-        current_date_context = (
-            f"\n\n**CURRENT DATE: {current_time.strftime('%A, %B %d, %Y')}**\n"
-            f"Today is {current_time.strftime('%B %d, %Y')} in the business timezone.\n"
-            f"Use this date context to resolve relative dates like tomorrow, next week, or Friday."
-        )
         
         system_prompt = f"""You are an AI receptionist for {company_name}. You are Ahmed, the friendly and professional AI receptionist at {company_name} — a premium business that offers welcoming service, clear communication, and easy booking.
 
 {instructions}
-{current_date_context}
 
     ### Core Rules (always follow):
     - Use short, natural sentences. Keep responses brief and easy to understand.
@@ -137,8 +129,8 @@ class VapiService:
     - Ask for their name.
     - Ask what service they want.
     - Ask for preferred date and time.
-    - If they mention relative dates (today, tomorrow, next week, etc.), use the current date context in this prompt
-    - Convert their answer to YYYY-MM-DD format using the current date context
+    - ALWAYS call getCurrentDateTime() before resolving relative dates like today/tomorrow/next Friday.
+    - Convert relative dates to YYYY-MM-DD using the timezone returned by getCurrentDateTime().
     - Check availability with checkAvailability(date) using the CORRECT future date
     - Ask for confirmation.
     - Book with bookAppointment using the CORRECT date format
@@ -160,14 +152,15 @@ class VapiService:
     - If the client is in a hurry, keep it quick and efficient.
 
     ### Tools:
+    - getCurrentDateTime(): MUST call this first whenever a user gives relative date/time terms (today, tomorrow, this Friday, next week).
     - getAvailableServices(): Fetch current service offerings when the customer asks about services or pricing.
     - getBusinessLocation(): Fetch the exact business location/address when the customer asks where the business is located.
     - checkAvailability(date): Check available appointment slots. Date must be in YYYY-MM-DD format.
     - bookAppointment(date, time, name, phone, email, service): Book an appointment. Date must be YYYY-MM-DD, time must be HH:MM (24-hour).
 
     ### Critical Guidelines:
-    - NEVER book appointments in the past - use the current date context in this prompt
-    - ALWAYS resolve relative dates using the current date context in this prompt
+    - NEVER book appointments in the past.
+    - ALWAYS resolve relative dates by calling getCurrentDateTime() first.
     - ALWAYS use YYYY-MM-DD format for dates (examples: 2026-04-19, 2026-04-25)
     - ALWAYS use HH:MM format for times in 24-hour time (11:00, 14:30, 09:00)
     - ALWAYS call getAvailableServices() when customer asks about services or pricing.
@@ -298,17 +291,9 @@ class VapiService:
             update_data["firstMessage"] = first_message
         
         if instructions and company_name:
-            from utils.datetime_utils import DateTimeUtils
-            current_time = DateTimeUtils.now()
-            current_date_context = (
-                f"\n\n**CURRENT DATE: {current_time.strftime('%A, %B %d, %Y')}**\n"
-                f"Today is {current_time.strftime('%B %d, %Y')} in the business timezone.\n"
-                f"Use this date context to resolve relative dates like tomorrow, next week, or Friday."
-            )
             system_prompt = f"""You are an AI receptionist for {company_name}. You are Ahmed, the friendly and professional AI receptionist at {company_name}.
 
 {instructions}
-{current_date_context}
 
 Core behavior:
 - Use short, natural sentences.
@@ -326,7 +311,7 @@ Tone:
 - Keep responses concise for voice conversation.
 
 Important guidelines:
- - Use the current date context in this prompt to resolve relative dates.
+ - ALWAYS call getCurrentDateTime() before resolving relative dates (today/tomorrow/next week).
 - ALWAYS call getAvailableServices() when customer asks about services or pricing.
 - ALWAYS call getBusinessLocation() when customer asks about location/address/directions.
 - If you need to book an appointment, collect: name, phone, email, preferred date/time.
@@ -428,53 +413,6 @@ Important guidelines:
             logger.error(f"Failed to list assistants: {e}")
             return []
 
-    async def list_calls(self, page: int = 1, limit: int = 10) -> Dict[str, Any]:
-        """List calls from Vapi."""
-        if not self.is_configured():
-            raise ValueError("Vapi not configured")
-
-        try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(
-                    f"{self.base_url}/v2/call",
-                    headers=self.headers,
-                    params={"page": page, "limit": limit, "sortOrder": "DESC"},
-                )
-                response.raise_for_status()
-                data = response.json()
-                return data if isinstance(data, dict) else {"data": data}
-        except httpx.HTTPStatusError as e:
-            status_code = e.response.status_code if e.response is not None else 502
-            body = e.response.text if e.response is not None else str(e)
-            logger.error(f"Vapi call list failed ({status_code}): {body}")
-            raise
-        except httpx.HTTPError as e:
-            logger.error(f"Failed to list calls: {e}")
-            raise
-
-    async def get_call(self, call_id: str) -> Dict[str, Any]:
-        """Fetch a single call from Vapi."""
-        if not self.is_configured():
-            raise ValueError("Vapi not configured")
-
-        try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(
-                    f"{self.base_url}/call/{call_id}",
-                    headers=self.headers,
-                )
-                response.raise_for_status()
-                data = response.json()
-                return data if isinstance(data, dict) else {"data": data}
-        except httpx.HTTPStatusError as e:
-            status_code = e.response.status_code if e.response is not None else 502
-            body = e.response.text if e.response is not None else str(e)
-            logger.error(f"Vapi call detail failed ({status_code}): {body}")
-            raise
-        except httpx.HTTPError as e:
-            logger.error(f"Failed to get call {call_id}: {e}")
-            raise
-    
     async def delete_assistant(self, assistant_id: str) -> bool:
         """Delete a Vapi assistant"""
         if not self.is_configured():
@@ -983,6 +921,24 @@ Important guidelines:
     def get_built_in_tools(self) -> List[Dict[str, Any]]:
         """Get list of built-in tools available"""
         return [
+            {
+                "id": "get_current_datetime",
+                "name": "Get Current Date Time",
+                "description": "Fetch current date and time in the tenant business timezone",
+                "category": "information",
+                "config": {
+                    "type": "function",
+                    "function": {
+                        "name": "getCurrentDateTime",
+                        "description": "Get current date/time in business timezone. Use this before converting relative dates like today, tomorrow, next Friday.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {},
+                            "required": []
+                        }
+                    }
+                }
+            },
             {
                 "id": "check_availability",
                 "name": "Check Availability",

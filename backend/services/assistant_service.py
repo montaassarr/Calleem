@@ -642,7 +642,7 @@ Important:
             if day not in daily_counts:
                 daily_counts[day] = {"date": day, "count": 0, "duration": 0}
             daily_counts[day]["count"] += 1
-            daily_counts[day]["duration"] += c.get("duration", 0) or 0
+            daily_counts[day]["duration"] += call.get("duration", 0) or 0
             
         return {
             "period_days": days,

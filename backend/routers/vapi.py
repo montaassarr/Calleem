@@ -9,6 +9,7 @@ from typing import Dict, Any
 from fastapi import APIRouter, Request, BackgroundTasks, HTTPException, status
 from datetime import datetime
 import pytz
+from bson import ObjectId
 
 from services.vapi_service import vapi_service
 from services.socket_manager import socket_manager
@@ -19,6 +20,38 @@ from utils.config import settings
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Vapi Webhooks"])
+
+
+async def _is_duplicate_webhook_event(data: dict) -> bool:
+    """
+    Basic replay/idempotency guard:
+    store processed event keys and skip duplicates.
+    """
+    message = data.get("message", {}) or {}
+    call = message.get("call", {}) or {}
+    message_type = message.get("type", "unknown")
+
+    event_id = message.get("id") or data.get("id")
+    if not event_id:
+        call_id = call.get("id", "no-call")
+        event_id = f"{call_id}:{message_type}:{hash(json.dumps(message, sort_keys=True, default=str))}"
+
+    db = get_database()
+    existing = await db.webhook_events.find_one({"_id": event_id})
+    if existing:
+        return True
+
+    try:
+        await db.webhook_events.insert_one({
+            "_id": event_id,
+            "type": message_type,
+            "call_id": call.get("id"),
+            "created_at": datetime.utcnow()
+        })
+    except Exception:
+        # If another worker inserted the same id at the same time, treat as duplicate.
+        return True
+    return False
 
 
 @router.post("/webhook/{tenant_id}")
@@ -39,6 +72,8 @@ async def vapi_webhook_tenant(
             detail="invalid_webhook_auth"
         )
     data = await request.json()
+    if await _is_duplicate_webhook_event(data):
+        return {"success": True}
     message_type = data.get("message", {}).get("type")
     
     logger.info(f"Received Vapi webhook for tenant {tenant_id}: {message_type}")
@@ -81,6 +116,8 @@ async def vapi_webhook(
         )
     
     data = await request.json()
+    if await _is_duplicate_webhook_event(data):
+        return {"success": True}
     message_type = data.get("message", {}).get("type")
     
     logger.info(f"Received Vapi webhook: {message_type}")
@@ -480,6 +517,19 @@ async def store_call_log(data: dict):
             "cost": report.get("cost")
         })
     
+    # Extract cost — Vapi sends a float; guard against dict in case of API changes
+    raw_cost = report.get("cost")
+    cost_breakdown = report.get("costBreakdown") or {}
+    if isinstance(raw_cost, dict):
+        call_cost_usd = float(raw_cost.get("total") or raw_cost.get("amount") or 0)
+        if not cost_breakdown:
+            cost_breakdown = raw_cost
+    else:
+        try:
+            call_cost_usd = float(raw_cost or 0)
+        except (TypeError, ValueError):
+            call_cost_usd = 0.0
+
     # Build call record
     call_record = {
         "vapi_call_id": call_id,
@@ -488,7 +538,8 @@ async def store_call_log(data: dict):
         "customer_phone": call_data.get("customer", {}).get("number"),
         "transcript": report.get("transcript"),
         "summary": report.get("summary"),
-        "cost": report.get("cost"),
+        "cost": call_cost_usd,
+        "cost_breakdown": cost_breakdown,
         "duration": report.get("durationSeconds"),
         "started_at": report.get("startedAt"),
         "ended_at": report.get("endedAt"),
@@ -506,13 +557,6 @@ async def store_call_log(data: dict):
             upsert=True
         )
 
-        # Idempotent tenant debit (one ledger row per call id)
-        raw_cost = report.get("cost")
-        try:
-            call_cost_usd = float(raw_cost or 0)
-        except (TypeError, ValueError):
-            call_cost_usd = 0.0
-
         if call_cost_usd > 0:
             ledger_key = f"call:{call_id}"
             existing_entry = await db.billing_ledger.find_one({"key": ledger_key})
@@ -529,7 +573,7 @@ async def store_call_log(data: dict):
                 })
 
                 await db.tenants.update_one(
-                    {"_id": tenant_id},
+                    {"_id": ObjectId(tenant_id)} if ObjectId.is_valid(tenant_id) else {"_id": tenant_id},
                     {
                         "$inc": {"credit_balance": -call_cost_usd},
                         "$set": {"updated_at": datetime.utcnow()}

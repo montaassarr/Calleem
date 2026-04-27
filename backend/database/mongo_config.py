@@ -90,7 +90,20 @@ async def create_indexes():
         await database.contacts.create_index("status")
         await database.contacts.create_index("created_at")
         await database.contacts.create_index([("created_at", -1), ("status", 1)])
-        
+
+        # Call logs indexes
+        await database.call_logs.create_index("tenant_id")
+        await database.call_logs.create_index("assistant_id")
+        await database.call_logs.create_index("vapi_call_id", unique=True, sparse=True)
+        await database.call_logs.create_index([("tenant_id", 1), ("assistant_id", 1)])
+        await database.call_logs.create_index([("tenant_id", 1), ("updated_at", -1)])
+
+        # Billing ledger indexes — queried heavily by tenant/assistant for usage aggregation
+        await database.billing_ledger.create_index("key", unique=True, sparse=True)
+        await database.billing_ledger.create_index("tenant_id")
+        await database.billing_ledger.create_index([("tenant_id", 1), ("assistant_id", 1)])
+        await database.billing_ledger.create_index([("tenant_id", 1), ("created_at", -1)])
+
         logger.info("✅ Database indexes created successfully")
         
     except Exception as e:

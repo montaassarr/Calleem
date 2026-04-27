@@ -390,9 +390,10 @@ class AppointmentsService:
             if len(time_clean.split(":")) == 2:
                 time_clean = f"{time_clean}:00"
             start_time = datetime.fromisoformat(f"{date}T{time_clean}")
-            # Make UTC-aware if naive
+            # Interpret naive datetime in tenant local timezone for consistency.
             if start_time.tzinfo is None:
-                start_time = start_time.replace(tzinfo=timezone.utc)
+                tenant_tz = await self._resolve_tenant_timezone(tenant_id)
+                start_time = tenant_tz.localize(start_time)
             end_time = start_time + timedelta(minutes=duration_minutes)
             
             doc = {

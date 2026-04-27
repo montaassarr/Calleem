@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Query, Depends, Request
 from typing import List, Optional
 from datetime import datetime
 import logging
+import hmac
 
 from models.appointment import (
     AppointmentCreate, 
@@ -16,6 +17,7 @@ from models.appointment import (
 )
 from routers.users import get_current_user
 from services.appointments_service import AppointmentsService
+from utils.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +39,22 @@ def get_tenant_from_header(request: Request) -> str:
     return tenant_id
 
 
+def verify_internal_agent_auth(request: Request) -> None:
+    """Require static bearer token for internal agent endpoints."""
+    expected = settings.AGENT_INTERNAL_TOKEN
+    if not expected:
+        logger.error("AGENT_INTERNAL_TOKEN not configured for internal agent endpoints")
+        raise HTTPException(status_code=503, detail="Internal agent auth not configured")
+
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing bearer authorization")
+
+    provided = auth_header[len("Bearer "):].strip()
+    if not hmac.compare_digest(provided, expected):
+        raise HTTPException(status_code=401, detail="Invalid internal agent token")
+
+
 @router.get("/agent/availability")
 async def agent_check_availability(
     request: Request,
@@ -44,8 +62,9 @@ async def agent_check_availability(
     time: Optional[str] = Query(None, description="Time in HH:MM format"),
     duration_minutes: int = Query(30, ge=15, le=240),
 ):
-    """Agent-accessible availability check (no JWT required)"""
+    """Agent-accessible availability check (internal token required)."""
     try:
+        verify_internal_agent_auth(request)
         tenant_id = get_tenant_from_header(request)
         
         result = await appointments_service.check_availability(
@@ -57,8 +76,10 @@ async def agent_check_availability(
         return result
         
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         logger.error(f"Agent availability check error: {e}")
-        return {"available": True, "reason": "Slot appears available"}
+        return {"available": False, "reason": "Availability check failed"}
 
 
 @router.post("/agent/book")
@@ -66,8 +87,9 @@ async def agent_book_appointment(
     request: Request,
     data: dict,
 ):
-    """Agent-accessible booking endpoint (no JWT required)"""
+    """Agent-accessible booking endpoint (internal token required)."""
     try:
+        verify_internal_agent_auth(request)
         tenant_id = get_tenant_from_header(request)
         
         # Extract details
@@ -96,6 +118,8 @@ async def agent_book_appointment(
         return result
         
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         logger.error(f"Agent booking error: {e}")
         return {"success": False, "message": "Failed to book appointment"}
 

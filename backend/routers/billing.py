@@ -3,9 +3,9 @@ Billing Router - Subscription management with Stripe (Mock Mode for Testing)
 Handles checkout, webhooks, portal, and subscription status
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Request, status
+from fastapi import APIRouter, HTTPException, Depends, Request, Query, status
 from fastapi.responses import JSONResponse
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 import logging
 from bson import ObjectId
@@ -553,7 +553,7 @@ async def handle_subscription_updated(subscription: Dict[str, Any], db):
 async def handle_subscription_deleted(subscription: Dict[str, Any], db):
     """Handle subscription cancellation"""
     subscription_id = subscription["id"]
-    
+
     tenant = await db.tenants.find_one({"stripe_subscription_id": subscription_id})
     if tenant:
         await db.tenants.update_one(
@@ -566,3 +566,233 @@ async def handle_subscription_deleted(subscription: Dict[str, Any], db):
             }
         )
         logger.info(f"Subscription {subscription_id} canceled")
+
+
+# ==================== USAGE & LEDGER ====================
+
+@router.get("/usage")
+async def get_billing_usage(current_user: dict = Depends(get_current_user)):
+    """
+    Per-assistant usage breakdown for the current tenant.
+    Shows total calls, minutes, and cost grouped by Vapi assistant ID,
+    plus the tenant's current credit balance and subscription amount.
+    """
+    db = get_database()
+    tenant_id = current_user.get("tenant_id")
+    if not tenant_id:
+        raise HTTPException(status_code=400, detail="User has no tenant_id")
+
+    tenant_query = (
+        {"_id": ObjectId(tenant_id)} if ObjectId.is_valid(tenant_id)
+        else {"$or": [{"_id": tenant_id}, {"tenant_id": tenant_id}]}
+    )
+    tenant = await db.tenants.find_one(tenant_query)
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    # Aggregate billing_ledger by assistant_id for this tenant
+    pipeline = [
+        {"$match": {"tenant_id": tenant_id, "type": "call_debit"}},
+        {
+            "$group": {
+                "_id": "$assistant_id",
+                "total_calls": {"$sum": 1},
+                "total_cost_usd": {"$sum": "$amount_usd"},
+                "total_duration_seconds": {"$sum": "$duration_seconds"},
+            }
+        },
+        {"$sort": {"total_cost_usd": -1}},
+    ]
+    rows = await db.billing_ledger.aggregate(pipeline).to_list(length=200)
+
+    assistants: List[Dict[str, Any]] = []
+    for row in rows:
+        duration_s = row.get("total_duration_seconds") or 0
+        total_minutes = round(duration_s / 60, 2)
+        cost = round(row.get("total_cost_usd") or 0, 4)
+        avg_cost_per_min = round(cost / total_minutes, 4) if total_minutes > 0 else 0.0
+        assistants.append({
+            "assistant_id": row["_id"],
+            "total_calls": row.get("total_calls", 0),
+            "total_minutes": total_minutes,
+            "total_cost_usd": cost,
+            "avg_cost_per_minute": avg_cost_per_min,
+        })
+
+    summary = {
+        "total_calls": sum(a["total_calls"] for a in assistants),
+        "total_minutes": round(sum(a["total_minutes"] for a in assistants), 2),
+        "total_cost_usd": round(sum(a["total_cost_usd"] for a in assistants), 4),
+    }
+
+    credit_balance = tenant.get("credit_balance") or tenant.get("vapi_credit_balance") or 0
+    monthly_sub = tenant.get("monthly_subscription_amount_usd") or 0
+
+    return {
+        "tenant_id": tenant_id,
+        "credit_balance": round(float(credit_balance), 2),
+        "monthly_subscription_usd": round(float(monthly_sub), 2),
+        "assistants": assistants,
+        "summary": summary,
+    }
+
+
+@router.get("/ledger")
+async def get_billing_ledger(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    assistant_id: Optional[str] = Query(None),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Paginated billing ledger for the current tenant.
+    Each entry represents one call debit (cost charged after a Vapi call).
+    Optionally filter by assistant_id.
+    """
+    db = get_database()
+    tenant_id = current_user.get("tenant_id")
+    if not tenant_id:
+        raise HTTPException(status_code=400, detail="User has no tenant_id")
+
+    match: Dict[str, Any] = {"tenant_id": tenant_id, "type": "call_debit"}
+    if assistant_id:
+        match["assistant_id"] = assistant_id
+
+    skip = (page - 1) * limit
+    total = await db.billing_ledger.count_documents(match)
+    cursor = (
+        db.billing_ledger.find(match, {"_id": 0, "key": 0})
+        .sort("created_at", -1)
+        .skip(skip)
+        .limit(limit)
+    )
+    entries = await cursor.to_list(length=limit)
+
+    for entry in entries:
+        if isinstance(entry.get("created_at"), datetime):
+            entry["created_at"] = entry["created_at"].isoformat()
+
+    return {
+        "entries": entries,
+        "page": page,
+        "limit": limit,
+        "total": total,
+        "has_more": (skip + limit) < total,
+    }
+
+
+@router.post("/sync-vapi")
+async def sync_vapi_usage(current_user: dict = Depends(get_current_user)):
+    """
+    Pull all calls for this tenant's Vapi assistant and create any missing
+    billing_ledger entries + credit_balance debits.
+    Safe to call repeatedly — fully idempotent (one ledger row per call_id).
+    Returns the number of new entries created and total amount reconciled.
+    """
+    from services.vapi_service import vapi_service
+
+    db = get_database()
+    tenant_id = current_user.get("tenant_id")
+    if not tenant_id:
+        raise HTTPException(status_code=400, detail="User has no tenant_id")
+
+    tenant_query = (
+        {"_id": ObjectId(tenant_id)} if ObjectId.is_valid(tenant_id)
+        else {"$or": [{"_id": tenant_id}, {"tenant_id": tenant_id}]}
+    )
+    tenant = await db.tenants.find_one(tenant_query)
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    assistant_id = tenant.get("vapi_assistant_id")
+    if not assistant_id:
+        raise HTTPException(status_code=400, detail="Tenant has no Vapi assistant configured")
+
+    if not vapi_service.is_configured():
+        raise HTTPException(status_code=503, detail="Vapi not configured")
+
+    # Fetch up to 1000 calls for this assistant from Vapi
+    vapi_calls = await vapi_service.list_calls(assistant_id=assistant_id, limit=1000)
+    if not isinstance(vapi_calls, list):
+        vapi_calls = vapi_calls.get("results") or vapi_calls.get("data") or []
+
+    created_count = 0
+    reconciled_usd = 0.0
+
+    for call in vapi_calls:
+        call_id = call.get("id")
+        if not call_id:
+            continue
+
+        raw_cost = call.get("cost")
+        if isinstance(raw_cost, dict):
+            call_cost = float(raw_cost.get("total") or raw_cost.get("amount") or 0)
+        else:
+            try:
+                call_cost = float(raw_cost or 0)
+            except (TypeError, ValueError):
+                call_cost = 0.0
+
+        if call_cost <= 0:
+            continue
+
+        ledger_key = f"call:{call_id}"
+        existing = await db.billing_ledger.find_one({"key": ledger_key})
+        if existing:
+            continue
+
+        duration_s = call.get("durationSeconds") or 0
+
+        await db.billing_ledger.insert_one({
+            "key": ledger_key,
+            "type": "call_debit",
+            "tenant_id": tenant_id,
+            "assistant_id": assistant_id,
+            "vapi_call_id": call_id,
+            "amount_usd": call_cost,
+            "duration_seconds": duration_s,
+            "created_at": datetime.utcnow(),
+            "synced_from_vapi": True,
+        })
+
+        await db.tenants.update_one(
+            tenant_query,
+            {
+                "$inc": {"credit_balance": -call_cost},
+                "$set": {"updated_at": datetime.utcnow()},
+            },
+        )
+
+        # Upsert a minimal call_log entry so the calls page shows it
+        await db.call_logs.update_one(
+            {"vapi_call_id": call_id},
+            {
+                "$setOnInsert": {
+                    "vapi_call_id": call_id,
+                    "assistant_id": assistant_id,
+                    "tenant_id": tenant_id,
+                    "customer_phone": (call.get("customer") or {}).get("number"),
+                    "cost": call_cost,
+                    "duration": duration_s,
+                    "status": call.get("status"),
+                    "started_at": call.get("startedAt") or call.get("createdAt"),
+                    "ended_at": call.get("endedAt"),
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow(),
+                }
+            },
+            upsert=True,
+        )
+
+        created_count += 1
+        reconciled_usd += call_cost
+
+    logger.info(
+        f"Vapi sync for tenant {tenant_id}: {created_count} new entries, ${reconciled_usd:.4f} reconciled"
+    )
+
+    return {
+        "synced": created_count,
+        "reconciled_usd": round(reconciled_usd, 4),
+        "message": f"Created {created_count} missing ledger entries totalling ${reconciled_usd:.4f}",
+    }
