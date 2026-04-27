@@ -15,6 +15,7 @@ import {
     Mail,
     LogOut,
     Clock,
+    CreditCard,
 } from "lucide-react";
 import { NavLink } from "../dashboard/NavLink";
 import { usePathname } from "next/navigation";
@@ -40,6 +41,7 @@ const menuItems = [
         items: [
             { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
             { icon: Activity, label: "System Health", path: "/admin/system" },
+            { icon: CreditCard, label: "Billing", path: "/admin/billing" },
         ]
     },
     // 3. System Control

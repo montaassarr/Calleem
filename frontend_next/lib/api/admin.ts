@@ -34,6 +34,32 @@ type Paginated<T> = {
 
 type PaginatedOrList<T> = Paginated<T> | T[];
 
+export interface TenantBillingSummary {
+    tenant_id: string;
+    name: string;
+    email: string;
+    plan: string;
+    subscription_status: string;
+    monthly_subscription_usd: number;
+    credit_balance: number;
+    total_calls: number;
+    total_minutes: number;
+    total_vapi_cost_usd: number;
+    profit_usd: number;
+    assistants: { assistant_id: string; total_calls: number; total_cost_usd: number; total_minutes: number }[];
+}
+
+export interface BillingOverview {
+    tenants: TenantBillingSummary[];
+    platform_summary: {
+        total_tenants: number;
+        active_tenants: number;
+        total_subscription_revenue_usd: number;
+        total_vapi_cost_usd: number;
+        platform_margin_usd: number;
+    };
+}
+
 interface GlobalAnalytics {
     tenants: {
         total: number;
@@ -184,6 +210,14 @@ export const adminApi = {
     getGlobalAnalytics: async (): Promise<GlobalAnalytics> => {
         const response = await api.get<GlobalAnalytics>('/admin/analytics/global');
         return response;
+    },
+
+    // Billing Overview
+    getBillingOverview: async (): Promise<BillingOverview> => {
+        return api.get<BillingOverview>('/admin/billing/overview');
+    },
+    addCredits: async (tenantId: string, amountUsd: number, note?: string): Promise<{ success: boolean; new_balance: number }> => {
+        return api.post(`/admin/billing/add-credits/${tenantId}`, { amount_usd: amountUsd, note });
     },
 
     // CrewAI

@@ -4,7 +4,8 @@ Platform owner endpoints for managing tenants, users, system configuration, and 
 Secured: Requires valid Admin/Owner/SuperAdmin authentication.
 """
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
+from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 from bson import ObjectId
@@ -495,4 +496,56 @@ async def admin_billing_overview(db=Depends(get_database)):
         },
     }
 
+
+class AddCreditsRequest(BaseModel):
+    amount_usd: float
+    note: Optional[str] = None
+
+
+@router.post("/billing/add-credits/{tenant_id}")
+async def admin_add_credits(
+    tenant_id: str,
+    body: AddCreditsRequest,
+    db=Depends(get_database),
+):
+    """Add credits to a tenant's balance (manual top-up by admin)."""
+    from datetime import datetime as dt
+    from bson import ObjectId
+
+    if body.amount_usd <= 0:
+        raise HTTPException(status_code=400, detail="amount_usd must be positive")
+
+    tenant_query = (
+        {"_id": ObjectId(tenant_id)} if ObjectId.is_valid(tenant_id)
+        else {"_id": tenant_id}
+    )
+    tenant = await db.tenants.find_one(tenant_query)
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    await db.tenants.update_one(
+        tenant_query,
+        {
+            "$inc": {"credit_balance": body.amount_usd},
+            "$set": {"updated_at": dt.utcnow()},
+        },
+    )
+
+    new_balance = float(tenant.get("credit_balance") or 0) + body.amount_usd
+
+    await db.billing_ledger.insert_one({
+        "key": f"admin_topup:{tenant_id}:{dt.utcnow().isoformat()}",
+        "type": "admin_topup",
+        "tenant_id": tenant_id,
+        "amount_usd": body.amount_usd,
+        "note": body.note or "Manual admin top-up",
+        "created_at": dt.utcnow(),
+    })
+
+    return {
+        "success": True,
+        "tenant_id": tenant_id,
+        "added_usd": round(body.amount_usd, 2),
+        "new_balance": round(new_balance, 2),
+    }
 
