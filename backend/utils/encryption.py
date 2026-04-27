@@ -16,72 +16,53 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Get master key from environment
-MASTER_KEY_HEX = os.getenv("MASTER_KEY")
-if not MASTER_KEY_HEX:
-    raise ValueError("MASTER_KEY environment variable not set. Generate one with: python3 -c 'import secrets; print(secrets.token_hex(32))'")
-
-try:
-    MASTER_KEY = REDACTED(MASTER_KEY_HEX)
-    if len(MASTER_KEY) != 32:
+def _load_master_key() -> bytes:
+    """Load and validate MASTER_KEY lazily so missing env var doesn't crash at import time."""
+    hex_val = os.getenv("MASTER_KEY")
+    if not hex_val:
+        raise ValueError(
+            "MASTER_KEY environment variable not set. "
+            "Generate one with: python3 -c 'import secrets; print(secrets.token_hex(32))'"
+        )
+    try:
+        key = bytes.fromhex(hex_val)
+    except ValueError:
+        raise ValueError("MASTER_KEY must be a valid hex string (64 hex characters = 32 bytes)")
+    if len(key) != 32:
         raise ValueError("MASTER_KEY must be 32 bytes (64 hex characters)")
-except ValueError as e:
-    raise ValueError(f"Invalid MASTER_KEY format: {e}")
+    return key
 
 
 def encrypt_value(plaintext: str) -> str:
-    """
-    Encrypt a value using AES-256-GCM
-    
-    Args:
-        plaintext: The value to encrypt (e.g., API key)
-        
-    Returns:
-        Encrypted string in format "iv:ciphertext" (base64 encoded)
-    """
+    """Encrypt a value using AES-256-GCM. Returns "iv:ciphertext" (base64)."""
     if not plaintext:
         raise ValueError("Cannot encrypt empty value")
-    
-    # Generate random 96-bit IV (12 bytes) for GCM
+
+    master_key = _load_master_key()
     iv = os.urandom(12)
-    
-    # Create cipher
-    aesgcm = AESGCM(MASTER_KEY)
-    
-    # Encrypt (GCM mode includes authentication tag)
+    aesgcm = AESGCM(master_key)
     ciphertext = aesgcm.encrypt(iv, plaintext.encode('utf-8'), None)
-    
-    # Return as "iv:ciphertext" (both base64 encoded)
+
     iv_b64 = base64.b64encode(iv).decode('utf-8')
     ciphertext_b64 = base64.b64encode(ciphertext).decode('utf-8')
-    
     return f"{iv_b64}:{ciphertext_b64}"
 
 
 def decrypt_value(encrypted: str) -> str:
-    """
-    Decrypt a value encrypted with encrypt_value
-    
-    Args:
-        encrypted: Encrypted string in format "iv:ciphertext"
-        
-    Returns:
-        Decrypted plaintext value
-    """
+    """Decrypt a value produced by encrypt_value."""
     if not encrypted or ':' not in encrypted:
         raise ValueError("Invalid encrypted value format")
-    
+
     try:
-        # Split and decode
         iv_b64, ciphertext_b64 = encrypted.split(':', 1)
         iv = base64.b64decode(iv_b64)
         ciphertext = base64.b64decode(ciphertext_b64)
-        
-        # Create cipher and decrypt
-        aesgcm = AESGCM(MASTER_KEY)
+        master_key = _load_master_key()
+        aesgcm = AESGCM(master_key)
         plaintext_bytes = aesgcm.decrypt(iv, ciphertext, None)
-        
         return plaintext_bytes.decode('utf-8')
+    except ValueError:
+        raise
     except Exception as e:
         logger.error(f"Decryption failed: {e}")
         raise ValueError("Failed to decrypt value - key may be corrupted or master key changed")
