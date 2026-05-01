@@ -140,6 +140,7 @@ from routers import (
     monitoring,
     contacts,
     chat,
+    webhook,
 )
 
 # Auth & Users
@@ -168,6 +169,9 @@ app.include_router(billing.router, prefix=f"{settings.API_V1_PREFIX}/billing", t
 
 # WhatsApp
 app.include_router(whatsapp.router, prefix=f"{settings.API_V1_PREFIX}/whatsapp", tags=["WhatsApp"])
+
+# Webhooks (Twilio SMS/WhatsApp inbound, status checks)
+app.include_router(webhook.router, prefix=f"{settings.API_V1_PREFIX}/webhook", tags=["Webhooks"])
 
 # WebSocket
 app.include_router(websocket.router)

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Trash2, Clock, DollarSign, ArrowUpRight } from "lucide-react";
+import { Plus, Pencil, Trash2, DollarSign, ArrowUpRight } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { servicesApi } from "@/lib/api-endpoints";
 import type { ServiceResponse } from "@/lib/types";
@@ -148,10 +148,6 @@ export default function ServicesPage() {
                                 </div>
 
                                 <div className="flex items-center gap-4 mb-5">
-                                    <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                                        <Clock className="w-4 h-4 text-gray-400" />
-                                        <span className="font-medium">{service.duration_minutes} min</span>
-                                    </div>
                                     <div className="flex items-center gap-1.5 text-sm text-gray-600">
                                         <DollarSign className="w-4 h-4 text-gray-400" />
                                         <span className="font-bold text-gray-900">${service.price.toFixed(2)}</span>

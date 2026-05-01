@@ -16,6 +16,7 @@ export default function BusinessSettingsPage() {
     const [formData, setFormData] = useState({
         business_name: "",
         business_email: "",
+        business_phone: "",
         business_location: "",
         business_address: "",
         timezone: "America/New_York",
@@ -26,6 +27,7 @@ export default function BusinessSettingsPage() {
             setFormData({
                 business_name: config.business_name || "",
                 business_email: config.business_email || "",
+                business_phone: config.business_phone || "",
                 business_location: config.business_location || "",
                 business_address: config.business_address || "",
                 timezone: config.timezone || "America/New_York",
@@ -71,8 +73,9 @@ export default function BusinessSettingsPage() {
     const fields = [
         { id: "business_name", label: "Business Name *", placeholder: "Enter your business name", type: "text" },
         { id: "business_email", label: "Email", placeholder: "contact@business.com", type: "email" },
-        { id: "business_location", label: "Location", placeholder: "Downtown Tunis, Avenue Habib Bourguiba", type: "text", hint: "This is what the AI shares when callers ask where your business is located." },
-        { id: "business_address", label: "Address", placeholder: "123 Main St, City, State 12345", type: "textarea" },
+        { id: "business_phone", label: "Phone", placeholder: "+1 555 123 4567", type: "tel", hint: "Public phone number callers can reach you on (used by the AI when asked)." },
+        { id: "business_location", label: "City / Area", placeholder: "e.g. Downtown Tunis, Florida, Manhattan", type: "text", hint: "Broad area or city the AI mentions when callers ask where you're located." },
+        { id: "business_address", label: "Street Address", placeholder: "e.g. Rue El Mourouj, 123 Main St", type: "textarea", hint: "Exact street address the AI gives for directions or shipping." },
         { id: "timezone", label: "Timezone *", placeholder: "America/New_York", type: "select", hint: "Select your local timezone. AI uses this for current date/time and relative dates (today/tomorrow)." },
     ];
 

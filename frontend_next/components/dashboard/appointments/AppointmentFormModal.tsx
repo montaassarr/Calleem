@@ -99,7 +99,7 @@ export default function AppointmentFormModal({
                                 <SelectContent>
                                     {services?.filter((s: any) => s.active).map((svc: any) => (
                                         <SelectItem key={svc.id} value={svc.name}>
-                                            {svc.name} ({svc.duration_minutes} min - ${svc.price})
+                                            {svc.name} (${svc.price})
                                         </SelectItem>
                                     )) || []}
                                 </SelectContent>

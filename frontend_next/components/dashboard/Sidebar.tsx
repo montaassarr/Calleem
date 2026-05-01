@@ -26,7 +26,6 @@ import {
     Waves,
     Zap,
     MessageCircle,
-    Key,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
@@ -63,7 +62,6 @@ const generalItems = [
         subItems: [
             { icon: Settings, label: "Settings Hub", path: "/dashboard/settings" },
             { icon: Building2, label: "Business", path: "/dashboard/settings/business" },
-            { icon: Key, label: "API Keys", path: "/dashboard/settings/api-keys" },
         ]
     },
     { icon: HelpCircle, label: "Help", path: "/dashboard/help" },
@@ -161,17 +159,21 @@ export const Sidebar = () => {
 
     return (
         <aside className="w-[260px] flex flex-col h-full overflow-y-auto scrollbar-hide shrink-0">
-            {/* CALLEEM Logo */}
-            <div className="px-6 py-8 flex items-center gap-3">
-                <div className="w-8 h-8 flex items-center justify-center">
-                    <svg viewBox="0 0 100 100" fill="currentColor" className="w-[36px] h-[36px] text-[#0a4c2f]">
-                        <path d="M46.5 45L23.5 24C20 20.8 14 23 14 28V46C14 55.4 21.6 63 31 63H65C70.5 63 73.5 56.5 69.5 52.5L46.5 45Z" />
-                        <path d="M53.5 55L76.5 76C80 79.2 86 77 86 72V54C86 44.6 78.4 37 69 37H35C29.5 37 26.5 43.5 30.5 47.5L53.5 55Z" />
-                        <path d="M29 51 L71 51" stroke="white" strokeWidth="8" strokeLinecap="round" />
-                    </svg>
-                </div>
-                <span className="text-[22px] font-black text-gray-900 tracking-tight ml-1 leading-none" style={{ fontStyle: 'italic', transform: 'skewX(-10deg)', letterSpacing: '-0.5px' }}>CALLEEM</span>
-            </div>
+            {/* Calleem Logo */}
+            <Link href="/dashboard" className="px-6 py-8 flex items-center gap-2 group">
+                <svg
+                    className="w-8 h-6 text-[#0a4c2f]"
+                    viewBox="0 0 41 24"
+                    fill="currentColor"
+                    xmlns="http://www.w3.org/2000/svg"
+                >
+                    <g transform="translate(0 0.5)">
+                        <path d="M 21.821 0.929 C 22.354 0.38 23.092 0.068 23.865 0.065 L 33.762 0.065 C 40.198 0.065 43.42 8.011 38.869 12.659 L 28.958 22.783 C 28.503 23.247 27.725 22.918 27.725 22.26 L 27.725 13.345 L 28.87 12.174 C 29.78 11.245 29.136 9.656 27.848 9.656 L 13.276 9.656 L 21.821 0.929 Z" fill="currentColor"></path>
+                        <path d="M 19.179 22.071 C 18.646 22.62 17.908 22.932 17.135 22.935 L 7.238 22.935 C 0.802 22.935 -2.42 14.988 2.131 10.341 L 12.042 0.217 C 12.497 -0.247 13.276 0.082 13.276 0.739 L 13.276 9.655 L 12.13 10.825 C 11.22 11.755 11.864 13.344 13.152 13.344 L 27.724 13.344 L 19.178 22.071 Z" fill="currentColor"></path>
+                    </g>
+                </svg>
+                 <span className="text-[22px] font-black text-gray-900 tracking-tight ml-1 leading-none" style={{ fontStyle: 'italic', transform: 'skewX(-10deg)', letterSpacing: '-0.5px' }}>CALLEEM</span>
+            </Link>
 
             {/* Menu */}
             <div className="px-6 py-2">

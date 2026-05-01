@@ -30,7 +30,6 @@ export default function ServicesPage() {
     const [formData, setFormData] = useState({
         name: '',
         description: '',
-        duration_minutes: 30,
         price: 0,
         active: true
     });
@@ -69,7 +68,6 @@ export default function ServicesPage() {
         setFormData({
             name: '',
             description: '',
-            duration_minutes: 30,
             price: 0,
             active: true
         });
@@ -81,7 +79,6 @@ export default function ServicesPage() {
         setFormData({
             name: service.name,
             description: service.description || '',
-            duration_minutes: service.duration_minutes,
             price: service.price || 0,
             active: service.active
         });
@@ -139,11 +136,6 @@ export default function ServicesPage() {
     const columns = [
         { key: 'name', label: 'Service Name' },
         {
-            key: 'duration_minutes',
-            label: 'Duration',
-            render: (mins: number) => `${mins} min`
-        },
-        {
             key: 'price',
             label: 'Price',
             render: (price: number) => `$${price}`
@@ -190,27 +182,15 @@ export default function ServicesPage() {
                             required
                         />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="duration">Duration (minutes)</Label>
-                            <Input
-                                id="duration"
-                                type="number"
-                                value={formData.duration_minutes}
-                                onChange={(e) => setFormData({ ...formData, duration_minutes: parseInt(e.target.value) })}
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="price">Price ($)</Label>
-                            <Input
-                                id="price"
-                                type="number"
-                                step="0.01"
-                                value={formData.price}
-                                onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
-                            />
-                        </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="price">Price ($)</Label>
+                        <Input
+                            id="price"
+                            type="number"
+                            step="0.01"
+                            value={formData.price}
+                            onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                        />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="description">Description</Label>

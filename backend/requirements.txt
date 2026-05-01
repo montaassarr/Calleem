@@ -17,8 +17,10 @@ dateparser==1.2.0
 # HTTP Clients
 requests==2.31.0
 aiohttp==3.9.1
+httpx==0.26.0
 
-# Database - MongoDB
+# SMS & Messaging - Twilio
+twilio>=9.0.0
 pymongo==4.6.1
 motor==3.3.2
 dnspython==2.4.2

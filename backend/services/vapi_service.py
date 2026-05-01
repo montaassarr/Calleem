@@ -996,7 +996,7 @@ Important guidelines:
                     "type": "function",
                     "function": {
                         "name": "getAvailableServices",
-                        "description": "Get list of services with prices, durations, and descriptions. Call this when customer asks about services or pricing.",
+                        "description": "Get list of services with prices and descriptions. Call this when customer asks about services or pricing.",
                         "parameters": {
                             "type": "object",
                             "properties": {},

@@ -55,7 +55,6 @@ async def agent_list_services(
             result.append({
                 "name": svc.get("name"),
                 "description": svc.get("description", ""),
-                "duration_minutes": svc.get("duration_minutes", 30),
                 "price": float(svc.get("price", 0)) if svc.get("price") else 0
             })
         

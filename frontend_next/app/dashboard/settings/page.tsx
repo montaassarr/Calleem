@@ -1,6 +1,6 @@
 "use client";
 
-import { Building, Bot, Key, Clock } from "lucide-react";
+import { Building, Bot, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
@@ -9,7 +9,6 @@ export default function SettingsPage() {
     const sections = [
         { title: "Business Profile", description: "Manage your business information and contact details", icon: Building, path: "/dashboard/settings/business", color: "from-blue-500 to-cyan-500" },
         { title: "AI Configuration", description: "Configure AI Voice Assistant (Vapi)", icon: Bot, path: "/dashboard/settings/ai", color: "from-[#187848] to-[#0a4c2f]" },
-        { title: "API Keys (Optional)", description: "Bring your own keys for external AI providers", icon: Key, path: "/dashboard/settings/api-keys", color: "from-red-500 to-orange-500" },
         { title: "Business Hours", description: "Set your weekly operating hours and schedule", icon: Clock, path: "/dashboard/settings/hours", color: "from-amber-500 to-yellow-500" },
     ];
 

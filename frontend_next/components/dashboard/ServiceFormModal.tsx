@@ -30,7 +30,6 @@ export default function ServiceFormModal({
     const [formData, setFormData] = useState<ServiceCreate & { active: boolean }>({
         name: "",
         description: "",
-        duration_minutes: 30,
         price: 0,
         active: true,
     });
@@ -40,12 +39,11 @@ export default function ServiceFormModal({
             setFormData({
                 name: service.name,
                 description: service.description || "",
-                duration_minutes: service.duration_minutes,
                 price: service.price,
                 active: service.active,
             });
         } else {
-            setFormData({ name: "", description: "", duration_minutes: 30, price: 0, active: true });
+            setFormData({ name: "", description: "", price: 0, active: true });
         }
     }, [mode, service, open]);
 
@@ -77,8 +75,8 @@ export default function ServiceFormModal({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.name || formData.price < 0 || formData.duration_minutes < 1) { toast.error("Please fill in all required fields correctly"); return; }
-        const submitData: ServiceCreate = { name: formData.name, description: formData.description, duration_minutes: formData.duration_minutes, price: formData.price, active: formData.active };
+        if (!formData.name || formData.price < 0) { toast.error("Please fill in all required fields correctly"); return; }
+        const submitData: ServiceCreate = { name: formData.name, description: formData.description, price: formData.price, active: formData.active };
         if (mode === "create") { createMutation.mutate(submitData); }
         else if (service?.id) { updateMutation.mutate({ id: service.id, data: submitData }); }
     };
@@ -88,7 +86,6 @@ export default function ServiceFormModal({
     const fields = [
         { id: "name", label: "Service Name", required: true, type: "text", placeholder: "e.g., Haircut, Consultation, Massage" },
         { id: "description", label: "Description", required: false, type: "textarea", placeholder: "Brief description of the service..." },
-        { id: "duration_minutes", label: "Duration (minutes)", required: true, type: "number", placeholder: "", min: "1", step: "5" },
         { id: "price", label: "Price ($)", required: true, type: "number", placeholder: "", min: "0", step: "0.01" },
     ];
 

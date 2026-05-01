@@ -5,15 +5,19 @@ Provides chat functionality using Google's Gemini API for the landing page chat 
 Trained specifically on Calleem AI Receptionist platform data.
 """
 
+import os
 import google.generativeai as genai
 from typing import List, Optional
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Configure Gemini API
-GEMINI_API_KEY = "REDACTED"
-genai.configure(api_key=GEMINI_API_KEY)
+# Configure Gemini API from environment (never hardcode — Google revokes leaked keys)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+else:
+    logger.warning("GEMINI_API_KEY not set — landing-page chat widget will be disabled")
 
 # Comprehensive platform knowledge for internal lookup
 PLATFORM_KNOWLEDGE = """
@@ -90,17 +94,25 @@ Pivot back to business:
 
 class GeminiChatService:
     """Service for handling chat interactions using Gemini API"""
-    
+
     def __init__(self):
-        self.model = genai.GenerativeModel(
-            'gemini-flash-lite-latest',
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.7,
-                max_output_tokens=500,
-            )
-        )
+        self._model = None
         self.chat_sessions: dict = {}  # Store chat sessions by session_id
-    
+
+    @property
+    def model(self):
+        if self._model is None:
+            if not GEMINI_API_KEY:
+                raise RuntimeError("GEMINI_API_KEY is not configured")
+            self._model = genai.GenerativeModel(
+                'gemini-flash-lite-latest',
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.7,
+                    max_output_tokens=500,
+                )
+            )
+        return self._model
+
     def get_or_create_session(self, session_id: str):
         """Get an existing chat session or create a new one"""
         if session_id not in self.chat_sessions:

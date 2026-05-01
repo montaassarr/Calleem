@@ -8,7 +8,6 @@ import { AISettings, FeatureFlags, WhatsAppConfiguration } from './config';
 export interface ServiceCreate {
     name: string;
     description: string;
-    duration_minutes: number;
     price: number;
     active?: boolean;
 }
@@ -16,7 +15,6 @@ export interface ServiceCreate {
 export interface ServiceUpdate {
     name?: string;
     description?: string;
-    duration_minutes?: number;
     price?: number;
     active?: boolean;
 }
@@ -25,7 +23,6 @@ export interface ServiceResponse {
     id: string;
     name: string;
     description: string;
-    duration_minutes: number;
     price: number;
     active: boolean;
     created_at: string;
