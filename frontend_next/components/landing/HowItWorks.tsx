@@ -2,11 +2,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Play } from 'lucide-react';
+import CallPipelineBox from '@/components/landing/CallPipelineBox';
 
 const HowItWorks: React.FC = () => {
     return (
         <section id="how-it-works" className="py-24 px-5 bg-sage relative overflow-hidden">
-            <div className="max-w-[1000px] mx-auto">
+            <div className="max-w-[1200px] mx-auto">
                 {/* Header */}
                 <motion.div
                     initial={{ opacity: 0, x: -50 }}
@@ -32,21 +33,10 @@ const HowItWorks: React.FC = () => {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.6, delay: 0.2 }}
-                    className="w-full rounded-[27px] overflow-hidden bg-black/20 shadow-2xl relative"
+                    className="w-full rounded-[30px] overflow-hidden shadow-2xl relative p-5 sm:p-8"
+                    style={{ background: "#0e2e22" }}
                 >
-                    <video
-                        className="w-full h-auto"
-                        src="/Screencast from 28-12-2025 02:01:39.webm"
-                        loop
-                        muted
-                        playsInline
-                        autoPlay
-                        ref={(el) => {
-                            if (el) {
-                                el.playbackRate = 1.5;
-                            }
-                        }}
-                    />
+                    <CallPipelineBox />
                 </motion.div>
             </div>
         </section>

@@ -341,64 +341,43 @@ Important:
     # ===== KNOWLEDGE BASE =====
     async def get_knowledge_base(self, tenant_id: str) -> Dict[str, Any]:
         kb_docs = await self.db.knowledge_base.find({"tenant_id": tenant_id}).to_list(100)
+        faqs = []
+        for doc in kb_docs:
+            if doc.get("type") == "faq":
+                faqs.append({
+                    "question": doc.get("question"),
+                    "answer": doc.get("answer")
+                })
         return {
-            "documents": [
-                {
-                    "id": str(doc.get("_id")),
-                    "vapi_file_id": doc.get("vapi_file_id"),
-                    "name": doc.get("name"),
-                    "type": doc.get("type", "document"),
-                    "size": doc.get("size"),
-                    "status": doc.get("status", "processed"),
-                    "created_at": doc.get("created_at")
-                }
-                for doc in kb_docs
-            ]
+            "documents": [], # Keep for frontend compatibility, but it's empty
+            "faqs": faqs
         }
 
-    async def upload_knowledge_document(self, tenant_id: str, file_content: bytes, filename: str, content_type: str) -> Dict[str, Any]:
-        try:
-            # Upload to Vapi
-            vapi_result = await vapi_service.upload_file(file_content, filename)
+    async def _sync_knowledge_base(self, tenant_id: str):
+        """Syncs all isolated tenant FAQs directly to their Vapi Assistant."""
+        tenant = await self._get_tenant(tenant_id)
+        assistant_id = tenant.get("vapi_assistant_id")
+        if not assistant_id:
+            return
             
-            document = {
-                "tenant_id": tenant_id,
-                "vapi_file_id": vapi_result.get("id"),
-                "name": filename,
-                "type": content_type or "document",
-                "size": len(file_content),
-                "status": "processed",
-                "created_at": datetime.utcnow()
-            }
-            await self.db.knowledge_base.insert_one(document)
-
-            return {
-                "success": True,
-                "document": {
-                    "id": str(vapi_result.get("id")),
-                    "name": filename,
-                    "type": content_type or "document",
-                    "size": len(file_content),
-                    "status": "processed"
-                }
-            }
-        except Exception as e:
-            logger.error(f"Error uploading knowledge document: {e}")
-            raise HTTPException(500, f"Failed to upload document: {e}")
-
-    async def delete_knowledge_document(self, tenant_id: str, doc_id: str) -> bool:
-        doc = await self.db.knowledge_base.find_one({"_id": ObjectId(doc_id), "tenant_id": tenant_id})
-        if not doc:
-            raise HTTPException(404, "Document not found")
-
-        if doc.get("vapi_file_id"):
-            await vapi_service.delete_file(doc.get("vapi_file_id"))
-
-        await self.db.knowledge_base.delete_one({"_id": ObjectId(doc_id)})
-        return True
+        kb_data = await self.get_knowledge_base(tenant_id)
+        faqs = kb_data.get("faqs", [])
+        
+        company_name = tenant.get("business_name", "Valued Business")
+        base_prompt = tenant.get("ai_config", {}).get("system_prompt", "")
+        
+        await vapi_service.update_assistant(
+            assistant_id=assistant_id,
+            company_name=company_name,
+            instructions=self._inject_current_date(base_prompt),
+            faqs=faqs
+        )
 
     async def add_faq_entries(self, tenant_id: str, faqs: List[Any]) -> int:
         from datetime import datetime
+        # Replace existing FAQs completely to avoid endless duplicates
+        await self.db.knowledge_base.delete_many({"tenant_id": tenant_id, "type": "faq"})
+        
         faq_docs = []
         for faq in faqs:
             doc = {
@@ -412,6 +391,9 @@ Important:
         
         if faq_docs:
             await self.db.knowledge_base.insert_many(faq_docs)
+        
+        # Sync to Vapi Assistant
+        await self._sync_knowledge_base(tenant_id)
         
         return len(faq_docs)
 

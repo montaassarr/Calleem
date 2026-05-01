@@ -219,36 +219,6 @@ async def get_knowledge_base(
     return await service.get_knowledge_base(tenant_id)
 
 
-@router.post("/assistant/me/knowledge-base/upload")
-async def upload_knowledge_document(
-    file: UploadFile = File(...),
-    current_user: dict = Depends(get_current_user),
-    service: AssistantService = Depends(get_assistant_service)
-):
-    """Upload a document to knowledge base"""
-    tenant_id = str(current_user.get("tenant_id"))
-    content = await file.read()
-    
-    return await service.upload_knowledge_document(
-        tenant_id, 
-        content, 
-        file.filename, 
-        file.content_type
-    )
-
-
-@router.delete("/assistant/me/knowledge-base/{doc_id}")
-async def delete_knowledge_document(
-    doc_id: str,
-    current_user: dict = Depends(get_current_user),
-    service: AssistantService = Depends(get_assistant_service)
-):
-    """Delete a knowledge base document"""
-    tenant_id = str(current_user.get("tenant_id"))
-    await service.delete_knowledge_document(tenant_id, doc_id)
-    return {"success": True, "message": "Document deleted"}
-
-
 @router.post("/assistant/me/knowledge-base/faq")
 async def add_faq_entries(
     faqs: List[FAQEntry],

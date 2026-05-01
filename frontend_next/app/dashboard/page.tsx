@@ -193,13 +193,10 @@ function ProjectAnalytics() {
 
 /* ─────────────── Appointments Timeline ─────────────── */
 function AppointmentsTimeline({ appointments }: { appointments: any[] }) {
-    // Generate hours from 8 AM to 6 PM mapping to row indices
     const startHour = 8;
     const endHour = 18;
     const times = Array.from({ length: endHour - startHour + 1 }, (_, i) => `${(startHour + i).toString().padStart(2, '0')}:00`);
-    const markers = [0, 15, 30, 45, 60];
 
-    // Filter appointments for today
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -210,6 +207,22 @@ function AppointmentsTimeline({ appointments }: { appointments: any[] }) {
         return d >= today && d < tomorrow;
     });
 
+    const PALETTE = [
+        { bg: "bg-[#b6f09c]/40", text: "text-[#0a4c2f]", iconBg: "bg-[#0a4c2f] text-white", border: "border-[#0a4c2f]" },
+        { bg: "bg-blue-100", text: "text-blue-800", iconBg: "bg-blue-600 text-white", border: "border-blue-600" },
+        { bg: "bg-orange-100", text: "text-orange-800", iconBg: "bg-orange-600 text-white", border: "border-orange-600" },
+        { bg: "bg-purple-100", text: "text-purple-800", iconBg: "bg-purple-600 text-white", border: "border-purple-600" },
+        { bg: "bg-rose-100", text: "text-rose-800", iconBg: "bg-rose-600 text-white", border: "border-rose-600" },
+        { bg: "bg-amber-100", text: "text-amber-800", iconBg: "bg-amber-600 text-white", border: "border-amber-600" },
+    ];
+
+    const uniqueServices = Array.from(new Set(todaysAppointments.map(a => a.service || "Standard Service")));
+    if (uniqueServices.length === 0) uniqueServices.push("Standard Service");
+
+    const serviceColors = Object.fromEntries(
+        uniqueServices.map((service, index) => [service, PALETTE[index % PALETTE.length]])
+    );
+
     const mappedAppointments = todaysAppointments.map(app => {
         const date = new Date(app.datetime);
         const hour = date.getHours();
@@ -218,40 +231,41 @@ function AppointmentsTimeline({ appointments }: { appointments: any[] }) {
         let timeIndex = hour - startHour;
         if (timeIndex < 0) timeIndex = 0;
 
-        // Use service to pick colors
-        let color = "bg-[#b6f09c]";
-        let textColor = "text-[#0a4c2f]";
-        let iconBg = "bg-[#0a4c2f] text-white";
-        let icon = <Scissors className="w-3.5 h-3.5" />;
+        const serviceName = app.service || "Standard Service";
+        const palette = serviceColors[serviceName];
 
-        if (app.service?.toLowerCase().includes("color")) {
-            color = "bg-[#ff9f2d]";
-            textColor = "text-white";
-            iconBg = "bg-black text-white";
-            icon = <Sparkles className="w-3.5 h-3.5" />;
-        } else if (app.service?.toLowerCase().includes("consult")) {
-            color = "bg-[#5b8eff]";
-            textColor = "text-white";
-            iconBg = "bg-white text-[#5b8eff]";
-            icon = <User className="w-3.5 h-3.5" />;
-        }
+        let icon = <Scissors className="w-3.5 h-3.5" />;
+        if (serviceName.toLowerCase().includes("consult")) icon = <User className="w-3.5 h-3.5" />;
+        else if (serviceName.toLowerCase().includes("color") || serviceName.toLowerCase().includes("treatment")) icon = <Sparkles className="w-3.5 h-3.5" />;
+
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour % 12 || 12;
+        const displayMin = minute.toString().padStart(2, '0');
+        const timeStr = `${displayHour}:${displayMin} ${ampm}`;
+        const clientName = app.client_name?.split(' ')[0] || 'Client';
 
         return {
             timeIndex,
             startOffset: minute,
             duration: app.duration_minutes || 30,
-            color,
-            textColor,
+            color: palette.bg,
+            textColor: palette.text,
+            border: palette.border,
             icon,
-            label: `${app.client_name?.split(' ')[0]} - ${app.service}`,
-            iconBg,
+            clientName,
+            serviceName,
+            timeStr,
+            label: `${timeStr} | ${clientName} (${serviceName})`,
+            iconBg: palette.iconBg,
             status: app.status
         };
     }).filter(app => app.timeIndex >= 0 && app.timeIndex < times.length);
 
+    const PIXELS_PER_HOUR = 60; // 1 min = 1px representation for the Y-Axis
+
     return (
-        <div className="bg-white p-6 rounded-[24px] shadow-[0_2px_15px_-4px_rgba(0,0,0,0.03)] border border-gray-100 flex flex-col h-full min-h-[320px]">
-            <div className="flex justify-between items-center mb-6 shrink-0 relative z-10 w-full">
+        <div className="bg-white p-6 rounded-[24px] shadow-[0_2px_15px_-4px_rgba(0,0,0,0.03)] border border-gray-100 flex flex-col h-full min-h-[420px]">
+            <div className="flex justify-between items-center mb-4 shrink-0 relative z-10 w-full">
                 <h3 className="font-semibold text-lg text-gray-900 uppercase tracking-tight">Today's Appointments</h3>
                 <button
                     onClick={() => window.location.href = "/dashboard/schedule"}
@@ -261,67 +275,63 @@ function AppointmentsTimeline({ appointments }: { appointments: any[] }) {
                 </button>
             </div>
 
-            <div className="relative flex-1 flex flex-col pt-2 min-h-[260px] ml-12 pb-8 overflow-y-auto pr-2">
-                {/* Vertical Grid Lines */}
-                <div className="absolute inset-y-0 left-0 right-0 flex justify-between ml-[10%] opacity-50">
-                    {markers.map((marker, i) => (
-                        <div key={i} className="h-full border-l border-dashed border-gray-200 relative">
-                            <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-semibold text-gray-300">
-                                {marker === 0 ? "0m" : marker}
-                            </span>
+            <div className="relative flex-1 overflow-y-auto pr-2 min-h-[300px] max-h-[400px] border-t border-b border-gray-50 my-2">
+                <div className="relative" style={{ height: `${times.length * PIXELS_PER_HOUR}px` }}>
+                    {/* Y-Axis Time Markers & Horizontal Grid Lines */}
+                    {times.map((time, idx) => (
+                        <div key={idx} className="absolute w-full flex items-start" style={{ top: `${idx * PIXELS_PER_HOUR}px`, height: `${PIXELS_PER_HOUR}px` }}>
+                            <span className="w-12 text-[10px] font-bold text-gray-400 text-right pr-3 -mt-2">{time}</span>
+                            <div className="flex-1 border-t border-gray-100"></div>
                         </div>
                     ))}
-                </div>
 
-                {/* Timeline Rows */}
-                <div className="flex flex-col flex-1 relative z-10 min-h-max space-y-2">
-                    {times.map((time, rowIdx) => (
-                        <div key={rowIdx} className="relative w-full h-[36px] flex items-center shrink-0">
-                            <span className="absolute -left-[54px] text-[11px] font-bold text-gray-400 w-[40px] text-right">{time}</span>
-                            {/* Render grid line across */}
-                            <div className="absolute inset-0 bg-gray-50/50 rounded-full max-h-full"></div>
-
-                            {mappedAppointments
-                                .filter((app) => app.timeIndex === rowIdx)
-                                .map((app, appIdx) => {
-                                    const startRatio = app.startOffset / 60;
-                                    const widthRatio = app.duration / 60;
-                                    const leftPos = `calc(10% + (90% * ${startRatio}))`;
-                                    const widthPos = `calc(90% * ${widthRatio})`;
-
-                                    return (
-                                        <div
-                                            key={appIdx}
-                                            className={`absolute h-[32px] rounded-full flex items-center px-1 shadow-sm transition-transform hover:scale-[1.02] cursor-pointer ${app.color} ${app.status === 'cancelled' ? 'opacity-50 grayscale' : ''}`}
-                                            style={{ left: leftPos, width: widthPos, zIndex: 10 + appIdx }}
-                                            title={app.label}
-                                        >
-                                            <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 shadow-sm ${app.iconBg}`}>
-                                                {app.icon}
-                                            </div>
-                                            <span className={`ml-2 text-[11px] font-bold truncate pr-3 ${app.textColor}`}>{app.label}</span>
+                    {/* Appointment Vertical Blocks */}
+                    <div className="absolute top-0 bottom-0 left-14 right-2">
+                        {mappedAppointments.map((app, appIdx) => {
+                            const topPos = (app.timeIndex * PIXELS_PER_HOUR) + app.startOffset;
+                            const height = Math.max(app.duration, 24); // Ensure blocks are tall enough to click/read
+                            
+                            return (
+                                <div
+                                    key={appIdx}
+                                    className={`absolute left-0 right-0 rounded-lg p-2 shadow-sm transition-transform hover:scale-[1.01] cursor-pointer overflow-hidden border-l-4 ${app.color} ${app.border} ${app.status === 'cancelled' ? 'opacity-50 grayscale' : ''}`}
+                                    style={{ 
+                                        top: `${topPos}px`, 
+                                        height: `${height}px`, 
+                                        zIndex: 10 + appIdx 
+                                    }}
+                                    title={app.label}
+                                >
+                                    <div className="flex items-start gap-2 h-full">
+                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 shadow-sm ${app.iconBg}`}>
+                                            {app.icon}
                                         </div>
-                                    );
-                                })}
-                        </div>
-                    ))}
+                                        <div className="flex flex-col overflow-hidden leading-tight justify-center">
+                                            <span className={`text-[12px] font-bold truncate ${app.textColor}`}>
+                                                {app.timeStr} - {app.clientName}
+                                            </span>
+                                            {height >= 40 && (
+                                                <span className={`text-[10px] font-medium truncate opacity-90 ${app.textColor} mt-0.5`}>
+                                                    {app.serviceName}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 
-            {/* Legend Footer */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 md:gap-6 mt-4 pt-4 border-t border-gray-100 shrink-0">
-                <div className="flex items-center gap-1.5 md:gap-2">
-                    <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full border-2 border-[#b6f09c] bg-white"></div>
-                    <span className="text-[10px] md:text-[12px] font-bold text-gray-500">Service</span>
-                </div>
-                <div className="flex items-center gap-1.5 md:gap-2">
-                    <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full border-2 border-[#ff9f2d] bg-white"></div>
-                    <span className="text-[10px] md:text-[12px] font-bold text-gray-500">Color/Treatment</span>
-                </div>
-                <div className="flex items-center gap-1.5 md:gap-2">
-                    <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full border-2 border-[#5b8eff] bg-white"></div>
-                    <span className="text-[10px] md:text-[12px] font-bold text-gray-500">Consultation</span>
-                </div>
+            {/* Dynamic Legend Footer synchronized with Services */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 md:gap-6 mt-2 pt-2 shrink-0">
+                {uniqueServices.map(srv => (
+                    <div key={srv} className="flex items-center gap-1.5 md:gap-2">
+                        <div className={`w-2.5 h-2.5 md:w-3 md:h-3 rounded-full border-2 ${serviceColors[srv].border} ${serviceColors[srv].bg.split('/')[0]}`}></div>
+                        <span className="text-[10px] md:text-[12px] font-bold text-gray-500 truncate max-w-[120px] capitalize">{srv}</span>
+                    </div>
+                ))}
                 <div className="ml-auto text-[10px] md:text-[12px] font-bold text-[#0a4c2f] w-full sm:w-auto text-right sm:text-left mt-1 sm:mt-0 bg-[#0a4c2f]/5 px-2 py-1 rounded-md">
                     {todaysAppointments.length} Today
                 </div>
@@ -483,15 +493,15 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-6">
                 <KPICards metrics={metrics} conversations={conversations} isLoading={isLoading} />
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <ProjectAnalytics />
-                    <div className="lg:col-span-2 relative">
+                    <div className="relative">
                         <AppointmentsTimeline appointments={appointments} />
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 relative">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="relative">
                         <RecentVoiceCalls />
                     </div>
                     <LiveAIAgent config={config} />

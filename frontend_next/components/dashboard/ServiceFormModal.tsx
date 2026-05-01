@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Type, AlignLeft, DollarSign } from "lucide-react";
 
 interface ServiceFormModalProps {
     open: boolean;
@@ -84,76 +84,86 @@ export default function ServiceFormModal({
     const isLoading = createMutation.isPending || updateMutation.isPending;
 
     const fields = [
-        { id: "name", label: "Service Name", required: true, type: "text", placeholder: "e.g., Haircut, Consultation, Massage" },
-        { id: "description", label: "Description", required: false, type: "textarea", placeholder: "Brief description of the service..." },
-        { id: "price", label: "Price ($)", required: true, type: "number", placeholder: "", min: "0", step: "0.01" },
+        { id: "name", label: "Service Name", required: true, type: "text", placeholder: "e.g., Haircut, Consultation, Massage", icon: Type },
+        { id: "description", label: "Description", required: false, type: "textarea", placeholder: "Brief description of the service...", icon: AlignLeft },
+        { id: "price", label: "Price ($)", required: true, type: "number", placeholder: "", min: "0", step: "0.01", icon: DollarSign },
     ];
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px] p-0 rounded-[24px]">
-                <form onSubmit={handleSubmit}>
-                    <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+            <DialogContent className="sm:max-w-md p-0 rounded-[2.5rem] overflow-hidden border-0 shadow-2xl">
+                <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-[#064e3b] to-emerald-500" />
+                
+                <form onSubmit={handleSubmit} className="p-8">
+                    <div className="mb-8">
                         <DialogHeader>
-                            <DialogTitle className="text-xl font-bold text-gray-900">
-                                {mode === "create" ? "Create New Service" : "Edit Service"}
+                            <DialogTitle className="text-2xl font-black text-slate-900 mb-1">
+                                {mode === "create" ? "Add New Service" : "Edit Service"}
                             </DialogTitle>
-                            <DialogDescription className="text-sm text-gray-500">
-                                {mode === "create" ? "Add a new service to your offerings." : "Update service details below."}
+                            <DialogDescription className="text-slate-500 font-medium text-sm">
+                                {mode === "create" ? "Create a new offering for your clients." : "Update service details below."}
                             </DialogDescription>
                         </DialogHeader>
                     </div>
 
-                    <div className="px-6 py-5 space-y-4">
+                    <div className="space-y-5">
                         {fields.map((field) => (
-                            <div key={field.id} className="space-y-2">
-                                <label htmlFor={field.id} className="text-sm font-semibold text-gray-700">
-                                    {field.label} {field.required && <span className="text-red-500">*</span>}
+                            <div key={field.id} className="space-y-1.5">
+                                <label htmlFor={field.id} className="text-sm font-bold text-slate-700 ml-1">
+                                    {field.label} {field.required && <span className="text-emerald-500">*</span>}
                                 </label>
-                                {field.type === "textarea" ? (
-                                    <textarea
-                                        id={field.id}
-                                        value={(formData as any)[field.id]}
-                                        onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
-                                        placeholder={field.placeholder}
-                                        rows={3}
-                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0a4c2f]/20 focus:border-[#0a4c2f]/30 transition-all resize-none"
-                                    />
-                                ) : (
-                                    <input
-                                        id={field.id}
-                                        type={field.type}
-                                        min={field.min}
-                                        step={field.step}
-                                        value={(formData as any)[field.id]}
-                                        onChange={(e) => setFormData({ ...formData, [field.id]: field.type === "number" ? (field.step === "0.01" ? parseFloat(e.target.value) || 0 : parseInt(e.target.value) || 0) : e.target.value })}
-                                        placeholder={field.placeholder}
-                                        required={field.required}
-                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0a4c2f]/20 focus:border-[#0a4c2f]/30 transition-all"
-                                    />
-                                )}
+                                <div className="relative">
+                                    <div className={`absolute left-0 pl-4 flex pointer-events-none ${field.type === "textarea" ? "top-3.5" : "inset-y-0 items-center"}`}>
+                                        <field.icon className="h-5 w-5 text-slate-400" />
+                                    </div>
+                                    {field.type === "textarea" ? (
+                                        <textarea
+                                            id={field.id}
+                                            value={(formData as any)[field.id]}
+                                            onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
+                                            placeholder={field.placeholder}
+                                            rows={3}
+                                            className="w-full pl-11 pr-4 py-3 bg-white/50 border border-slate-200/60 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-[#064e3b]/10 focus:border-[#064e3b] transition-all duration-300 shadow-sm resize-none"
+                                        />
+                                    ) : (
+                                        <input
+                                            id={field.id}
+                                            type={field.type}
+                                            min={field.min}
+                                            step={field.step}
+                                            value={(formData as any)[field.id]}
+                                            onChange={(e) => setFormData({ ...formData, [field.id]: field.type === "number" ? (field.step === "0.01" ? parseFloat(e.target.value) || 0 : parseInt(e.target.value) || 0) : e.target.value })}
+                                            placeholder={field.placeholder}
+                                            required={field.required}
+                                            className="w-full pl-11 pr-4 py-3 bg-white/50 border border-slate-200/60 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-[#064e3b]/10 focus:border-[#064e3b] transition-all duration-300 shadow-sm"
+                                        />
+                                    )}
+                                </div>
                             </div>
                         ))}
 
                         {/* Active Toggle */}
-                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                        <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                            <div className="space-y-0.5">
+                                <label htmlFor="active" className="text-sm font-bold text-slate-700 cursor-pointer">Service Status</label>
+                                <p className="text-xs font-medium text-slate-500">Make this service visible to clients</p>
+                            </div>
                             <Switch
                                 id="active"
                                 checked={formData.active}
                                 onCheckedChange={(checked) => setFormData({ ...formData, active: checked as boolean })}
+                                className="data-[state=checked]:bg-[#064e3b]"
                             />
-                            <label htmlFor="active" className="text-sm font-medium text-gray-700">Active (visible to clients)</label>
                         </div>
                     </div>
 
-                    <div className="px-6 pb-6 pt-2 flex justify-end gap-2">
-                        <button type="button" onClick={() => onOpenChange(false)} disabled={isLoading} className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors text-sm">
+                    <div className="mt-8 flex gap-3">
+                        <button type="button" onClick={() => onOpenChange(false)} disabled={isLoading} className="flex-1 py-3.5 px-6 rounded-2xl font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors duration-300">
                             Cancel
                         </button>
-                        <button type="submit" disabled={isLoading} className="px-5 py-2.5 bg-gradient-to-b from-[#187848] via-[#0a4c2f] to-[#052b19] text-white rounded-xl font-semibold transition-all shadow-[0_4px_16px_rgba(10,76,47,0.3)] relative overflow-hidden disabled:opacity-50 flex items-center gap-2 text-sm">
-                            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/20 via-transparent to-transparent opacity-50"></div>
-                            {isLoading && <Loader2 className="w-4 h-4 animate-spin relative z-10" />}
-                            <span className="relative z-10">{mode === "create" ? "Create Service" : "Save Changes"}</span>
+                        <button type="submit" disabled={isLoading} className="flex-1 bg-[#064e3b] hover:bg-[#064e3b]/90 text-white font-medium py-3.5 px-6 rounded-2xl transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-[#064e3b]/20 disabled:opacity-50">
+                            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                            {mode === "create" ? "Add Service" : "Save Changes"}
                         </button>
                     </div>
                 </form>

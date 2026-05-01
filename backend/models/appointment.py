@@ -20,7 +20,7 @@ class AppointmentStatus(str, Enum):
 class AppointmentBase(BaseModel):
     """Base appointment model"""
     client_name: Optional[str] = Field(None, min_length=2, max_length=100)
-    client_phone: Optional[str] = Field(None, pattern=r'^\d{8}$')
+    client_phone: Optional[str] = Field(None, pattern=r'^\+?\d{6,15}$')
     client_email: Optional[str] = Field(None, pattern=r'^[\w\.-]+@[\w\.-]+\.\w+$')
     service: Optional[str] = Field(None, min_length=2)
     datetime: Optional[dt] = None
@@ -45,7 +45,7 @@ class AppointmentCreate(AppointmentBase):
 class AppointmentUpdate(BaseModel):
     """Model for updating an appointment"""
     client_name: Optional[str] = Field(None, min_length=2, max_length=100)
-    client_phone: Optional[str] = Field(None, pattern=r'^\d{8}$')
+    client_phone: Optional[str] = Field(None, pattern=r'^\+?\d{6,15}$')
     client_email: Optional[str] = Field(None, pattern=r'^[\w\.-]+@[\w\.-]+\.\w+$')
     service: Optional[str] = None
     datetime: Optional[dt] = None

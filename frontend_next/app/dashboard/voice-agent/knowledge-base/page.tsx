@@ -1,40 +1,37 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Input } from "@/components/ui/input";
-import { Loader2, Upload, FileText, Trash2, Plus, HelpCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Loader2, Trash2, Plus, HelpCircle } from "lucide-react";
 import { assistantApi } from "@/lib/api-endpoints";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 
-interface KBDocument { id: string; vapi_file_id?: string; name: string; type: string; size?: number; status: string; created_at?: string; }
 interface FAQ { question: string; answer: string; }
 
 export default function KnowledgeBasePage() {
     const { toast } = useToast();
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const [loading, setLoading] = useState(true);
-    const [uploading, setUploading] = useState(false);
-    const [documents, setDocuments] = useState<KBDocument[]>([]);
     const [faqs, setFaqs] = useState<FAQ[]>([{ question: "", answer: "" }]);
     const [savingFaqs, setSavingFaqs] = useState(false);
 
-    useEffect(() => { loadDocuments(); }, []);
+    useEffect(() => {
+        loadFaqs();
+    }, []);
 
-    const loadDocuments = async () => {
-        try { setLoading(true); const data = await assistantApi.getKnowledgeBase(); setDocuments(data.documents || []); } catch (error) { console.error("Failed to load KB:", error); } finally { setLoading(false); }
-    };
-
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]; if (!file) return;
-        try { setUploading(true); await assistantApi.uploadDocument(file); toast({ title: "Uploaded", description: `${file.name} added to knowledge base` }); loadDocuments(); }
-        catch { toast({ title: "Upload Failed", description: "Could not upload document", variant: "destructive" }); }
-        finally { setUploading(false); if (fileInputRef.current) fileInputRef.current.value = ""; }
-    };
-
-    const handleDelete = async (docId: string) => {
-        try { await assistantApi.deleteDocument(docId); toast({ title: "Deleted", description: "Document removed" }); setDocuments(documents.filter(d => d.id !== docId)); }
-        catch { toast({ title: "Error", description: "Could not delete document", variant: "destructive" }); }
+    const loadFaqs = async () => {
+        try { 
+            setLoading(true); 
+            const data = await assistantApi.getKnowledgeBase(); 
+            if (data.faqs && data.faqs.length > 0) {
+                setFaqs(data.faqs);
+            } else {
+                setFaqs([{ question: "", answer: "" }]);
+            }
+        } catch (error) { 
+            console.error("Failed to load KB:", error); 
+        } finally { 
+            setLoading(false); 
+        }
     };
 
     const addFaqRow = () => setFaqs([...faqs, { question: "", answer: "" }]);
@@ -44,92 +41,75 @@ export default function KnowledgeBasePage() {
     const saveFaqs = async () => {
         const valid = faqs.filter(f => f.question.trim() && f.answer.trim());
         if (!valid.length) { toast({ title: "No FAQs", description: "Please add at least one Q&A", variant: "destructive" }); return; }
-        try { setSavingFaqs(true); await assistantApi.addFAQs(valid); toast({ title: "Saved", description: `${valid.length} FAQ(s) added` }); setFaqs([{ question: "", answer: "" }]); loadDocuments(); }
+        try { setSavingFaqs(true); await assistantApi.addFAQs(valid); toast({ title: "Saved", description: `${valid.length} FAQ(s) added` }); loadFaqs(); }
         catch { toast({ title: "Error", description: "Could not save FAQs", variant: "destructive" }); }
         finally { setSavingFaqs(false); }
     };
 
-    const formatFileSize = (bytes?: number) => { if (!bytes) return "—"; if (bytes < 1024) return `${bytes} B`; if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`; return `${(bytes / (1024 * 1024)).toFixed(1)} MB`; };
-
     return (
-        <div>
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                <div>
-                    <h1 className="text-[32px] font-bold tracking-tight text-gray-900 mb-1 leading-none">Knowledge Base</h1>
-                    <p className="text-[14px] text-gray-500 font-medium">Train your AI with documents and FAQs.</p>
+        <div className="max-w-7xl mx-auto pb-12">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+                <div className="space-y-1">
+                    <h1 className="text-4xl font-black tracking-tight text-slate-900 leading-none">Knowledge Base</h1>
+                    <p className="text-slate-500 font-medium">Train your AI with documents and FAQs.</p>
                 </div>
-                <Link href="/dashboard/voice-agent/control-center" className="px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-[20px] font-semibold hover:bg-gray-50 transition-colors text-sm shadow-sm">
+                <Link href="/dashboard/voice-agent/control-center" className="py-3 px-6 bg-white border border-slate-200 text-slate-700 rounded-2xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
                     Back to Control Center
                 </Link>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-2">
-                {/* Documents */}
-                <div className="bg-white rounded-[24px] shadow-[0_2px_15px_-4px_rgba(0,0,0,0.03)] border border-gray-100 p-6">
-                    <h3 className="font-bold text-lg text-gray-900 mb-1 flex items-center gap-2"><FileText className="h-5 w-5" />Documents</h3>
-                    <p className="text-sm text-gray-500 mb-6">Upload PDFs, text files, or documents to train your assistant</p>
-
-                    <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center mb-4 hover:border-[#0a4c2f]/30 transition-colors">
-                        <input ref={fileInputRef} type="file" onChange={handleFileUpload} accept=".pdf,.txt,.doc,.docx,.md" className="hidden" id="file-upload" />
-                        <label htmlFor="file-upload" className="cursor-pointer">
-                            {uploading ? <Loader2 className="h-8 w-8 mx-auto animate-spin text-[#0a4c2f]" /> : <Upload className="h-8 w-8 mx-auto text-gray-400" />}
-                            <p className="mt-2 font-medium text-gray-900">{uploading ? "Uploading..." : "Click to upload"}</p>
-                            <p className="text-sm text-gray-500">PDF, TXT, DOC, DOCX, MD (max 10MB)</p>
-                        </label>
+            <div className="flex justify-center">
+                {/* FAQs Card */}
+                <div className="group relative bg-white rounded-[2.5rem] shadow-sm border border-slate-100 p-8 overflow-hidden h-fit w-full max-w-3xl">
+                    <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-[#064e3b] to-emerald-500 opacity-90" />
+                    
+                    <div className="mb-8">
+                        <h3 className="text-2xl font-black text-slate-900 flex items-center gap-2 mb-1">
+                            <HelpCircle className="h-6 w-6 text-[#064e3b]" />
+                            Frequently Asked Questions
+                        </h3>
+                        <p className="text-sm font-medium text-slate-500">Add common Q&A pairs for your assistant.</p>
                     </div>
 
                     {loading ? (
-                        <div className="flex justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-[#0a4c2f]" /></div>
-                    ) : documents.length === 0 ? (
-                        <p className="text-center text-gray-500 py-4">No documents uploaded yet</p>
+                        <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-[#064e3b]" /></div>
                     ) : (
-                        <div className="space-y-2">
-                            {documents.map((doc) => (
-                                <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                        <div className="space-y-4">
+                            {faqs.map((faq, index) => (
+                                <div key={index} className="space-y-3 p-5 bg-slate-50/50 border border-slate-100 rounded-[1.5rem]">
                                     <div className="flex items-center gap-3">
-                                        <FileText className="h-4 w-4 text-gray-400" />
-                                        <div>
-                                            <p className="font-medium text-sm text-gray-900">{doc.name}</p>
-                                            <p className="text-xs text-gray-500">{formatFileSize(doc.size)} • {doc.status}</p>
-                                        </div>
+                                        <span className="px-3 py-1 rounded-xl text-xs font-black bg-[#064e3b]/10 text-[#064e3b]">Q{index + 1}</span>
+                                        <input 
+                                            placeholder="Question..." 
+                                            value={faq.question} 
+                                            onChange={(e) => updateFaq(index, "question", e.target.value)} 
+                                            className="w-full px-4 py-3 bg-white border border-slate-200/60 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-[#064e3b]/10 focus:border-[#064e3b] transition-all shadow-sm" 
+                                        />
+                                        {faqs.length > 1 && (
+                                            <button onClick={() => removeFaq(index)} className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors shrink-0 shadow-sm border border-transparent hover:border-red-100 bg-white">
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        )}
                                     </div>
-                                    <button onClick={() => handleDelete(doc.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                                        <Trash2 className="h-4 w-4" />
-                                    </button>
+                                    <textarea 
+                                        placeholder="Answer..." 
+                                        value={faq.answer} 
+                                        onChange={(e) => updateFaq(index, "answer", e.target.value)} 
+                                        className="w-full px-4 py-3 bg-white border border-slate-200/60 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-[#064e3b]/10 focus:border-[#064e3b] transition-all shadow-sm resize-none h-24" 
+                                    />
                                 </div>
                             ))}
+
+                            <div className="flex gap-3 mt-6">
+                                <button onClick={addFaqRow} className="flex-1 py-3.5 px-6 rounded-2xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors duration-300 flex items-center justify-center gap-2">
+                                    <Plus className="h-5 w-5" /> Add Question
+                                </button>
+                                <button onClick={saveFaqs} disabled={savingFaqs} className="flex-1 bg-[#064e3b] hover:bg-[#064e3b]/90 text-white font-bold py-3.5 px-6 rounded-2xl transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-[#064e3b]/20 disabled:opacity-50">
+                                    {savingFaqs && <Loader2 className="w-4 h-4 animate-spin" />} Save FAQs
+                                </button>
+                            </div>
                         </div>
                     )}
-                </div>
-
-                {/* FAQs */}
-                <div className="bg-white rounded-[24px] shadow-[0_2px_15px_-4px_rgba(0,0,0,0.03)] border border-gray-100 p-6">
-                    <h3 className="font-bold text-lg text-gray-900 mb-1 flex items-center gap-2"><HelpCircle className="h-5 w-5" />Frequently Asked Questions</h3>
-                    <p className="text-sm text-gray-500 mb-6">Add common Q&A pairs for your assistant</p>
-
-                    <div className="space-y-4">
-                        {faqs.map((faq, index) => (
-                            <div key={index} className="space-y-2 p-3 border border-gray-100 rounded-xl">
-                                <div className="flex items-center gap-2">
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600">Q{index + 1}</span>
-                                    <Input placeholder="Question..." value={faq.question} onChange={(e) => updateFaq(index, "question", e.target.value)} className="rounded-lg border-gray-200" />
-                                    {faqs.length > 1 && (
-                                        <button onClick={() => removeFaq(index)} className="p-2 text-gray-400 hover:text-red-500 rounded-lg"><Trash2 className="h-4 w-4" /></button>
-                                    )}
-                                </div>
-                                <textarea placeholder="Answer..." value={faq.answer} onChange={(e) => updateFaq(index, "answer", e.target.value)} className="w-full p-2 border border-gray-200 rounded-lg text-sm resize-none h-16 focus:outline-none focus:ring-2 focus:ring-[#0a4c2f]/20 focus:border-[#0a4c2f]/30" />
-                            </div>
-                        ))}
-
-                        <div className="flex gap-3">
-                            <button onClick={addFaqRow} className="flex-1 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors text-sm flex items-center justify-center gap-2">
-                                <Plus className="h-4 w-4" />Add Question
-                            </button>
-                            <button onClick={saveFaqs} disabled={savingFaqs} className="flex-1 px-4 py-2.5 bg-[#0a4c2f] hover:bg-[#073922] text-white rounded-xl font-medium transition-colors text-sm flex items-center justify-center gap-2">
-                                {savingFaqs && <Loader2 className="h-4 w-4 animate-spin" />}Save FAQs
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

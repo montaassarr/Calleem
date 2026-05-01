@@ -255,6 +255,7 @@ class VapiService:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         tools: Optional[List[Dict]] = None,
+        faqs: Optional[List[Dict[str, str]]] = None,
         **kwargs
     ) -> Dict[str, Any]:
         """Update an existing Vapi assistant"""
@@ -329,6 +330,17 @@ Important guidelines:
                 new_model["maxTokens"] = max_tokens
                 
             update_data["model"] = new_model
+            
+            # Inject FAQs directly into the system prompt if they exist
+            if faqs and len(faqs) > 0:
+                faq_section = "\n\n### Business Frequently Asked Questions:\n"
+                for f in faqs:
+                    question = f.get("question", "").strip()
+                    answer = f.get("answer", "").strip()
+                    if question and answer:
+                        faq_section += f"Q: {question}\nA: {answer}\n\n"
+                faq_section += "If a customer asks a question covered above, use the provided answer exactly.\n"
+                update_data["model"]["messages"][0]["content"] += faq_section
         
         if voice:
             update_data["voice"] = {
@@ -841,79 +853,6 @@ Important guidelines:
                 return response.json()
         except httpx.HTTPError as e:
             logger.error(f"Failed to list calls: {e}")
-            return []
-    
-    # ===== FILE/KNOWLEDGE BASE MANAGEMENT =====
-    
-    async def upload_file(self, file_content: bytes, filename: str) -> Dict[str, Any]:
-        """Upload a file to Vapi for Knowledge Base"""
-        if not self.is_configured():
-            raise ValueError("Vapi not configured")
-        
-        import tempfile
-        
-        suffix = os.path.splitext(filename)[1]
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            tmp.write(file_content)
-            tmp_path = tmp.name
-        
-        try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                with open(tmp_path, 'rb') as f:
-                    files = {"file": (filename, f)}
-                    headers = {"Authorization": f"Bearer {self.api_key}"}
-                    response = await client.post(
-                        f"{self.base_url}/file",
-                        headers=headers,
-                        files=files
-                    )
-                    response.raise_for_status()
-                    result = response.json()
-                    
-                    logger.info(f"Uploaded file {filename} to Vapi: {result.get('id')}")
-                    return {
-                        "id": result.get("id"),
-                        "name": result.get("name", filename),
-                        "url": result.get("url"),
-                        "size": result.get("bytes"),
-                        "status": result.get("status", "processed")
-                    }
-        finally:
-            os.unlink(tmp_path)
-    
-    async def delete_file(self, file_id: str) -> bool:
-        """Delete a file from Vapi"""
-        if not self.is_configured():
-            raise ValueError("Vapi not configured")
-        
-        try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.delete(
-                    f"{self.base_url}/file/{file_id}",
-                    headers=self.headers
-                )
-                response.raise_for_status()
-                logger.info(f"Deleted file {file_id}")
-                return True
-        except httpx.HTTPError as e:
-            logger.error(f"Failed to delete file: {e}")
-            return False
-    
-    async def list_files(self) -> List[Dict[str, Any]]:
-        """List all files in the organization"""
-        if not self.is_configured():
-            return []
-        
-        try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(
-                    f"{self.base_url}/file",
-                    headers=self.headers
-                )
-                response.raise_for_status()
-                return response.json()
-        except httpx.HTTPError as e:
-            logger.error(f"Failed to list files: {e}")
             return []
     
     # ===== TOOLS MANAGEMENT =====

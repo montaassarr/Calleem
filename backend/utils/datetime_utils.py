@@ -219,18 +219,19 @@ class DateTimeUtils:
         Returns:
             True if within business hours
         """
-        # Parse business hours from settings
-        # Simplified: assume 9 AM - 8 PM, Mon-Sat
+        # Convert to local timezone before extracting time
+        tz = DateTimeUtils.get_timezone()
+        dt_local = dt.astimezone(tz) if dt.tzinfo else tz.localize(dt)
         
         # Check day of week (0 = Monday, 6 = Sunday)
-        if dt.weekday() == 6:  # Sunday
+        if dt_local.weekday() == 6:  # Sunday
             return False
         
         # Check time
         business_start = time(9, 0)
         business_end = time(20, 0)
         
-        return business_start <= dt.time() <= business_end
+        return business_start <= dt_local.time() <= business_end
     
     @staticmethod
     def get_available_slots(
@@ -331,8 +332,8 @@ class DateTimeUtils:
             tz = pytz.timezone(settings.TIMEZONE)
             dt = tz.localize(dt)
         
-        # Can't book in the past
-        if dt < now:
+        # Can't book in the past (allow 5-minute buffer)
+        if dt < now - timedelta(minutes=5):
             return False, "Cannot book appointments in the past"
         
         # Can't book too far in advance (3 months)
