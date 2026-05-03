@@ -113,7 +113,7 @@ const BentoGrid: React.FC = () => {
             <div className="relative h-[250px] md:h-[450px] w-full rounded-[25px] overflow-hidden bg-black/20">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="https://framerusercontent.com/images/HwM2nyrNOi66Ril4DdnD1t4jag.png?width=1329&height=866"
+                src="/hero-dashboard.png"
                 alt="Dashboard"
                 className="absolute inset-0 w-full h-full object-cover object-top opacity-90 group-hover:scale-105 transition-transform duration-700"
               />
@@ -136,9 +136,9 @@ const BentoGrid: React.FC = () => {
             <div className="relative h-[250px] w-full rounded-[25px] overflow-hidden bg-black/20">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="https://framerusercontent.com/images/NwRkzBvL4inSRa7qT1f8wNeXw.png?width=1419&height=627"
-                alt="Analytics"
-                className="absolute inset-0 w-full h-full object-cover object-left opacity-90 group-hover:scale-105 transition-transform duration-700"
+                src="/appointments.png"
+                alt="Appointments"
+                className="absolute inset-0 w-full h-full object-cover object-top opacity-90 group-hover:scale-105 transition-transform duration-700"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-forest to-transparent opacity-60"></div>
             </div>
@@ -159,9 +159,9 @@ const BentoGrid: React.FC = () => {
             <div className="relative h-[250px] w-full rounded-[25px] overflow-hidden bg-black/20">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="https://framerusercontent.com/images/BRVx9woQNdFyzGA8vweqj7vJJg.png?width=1043&height=631"
-                alt="Stats"
-                className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-700"
+                src="/call-history.png"
+                alt="Call History"
+                className="absolute inset-0 w-full h-full object-cover object-top opacity-90 group-hover:scale-105 transition-transform duration-700"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-forest to-transparent opacity-60"></div>
             </div>

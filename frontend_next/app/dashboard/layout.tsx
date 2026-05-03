@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Sidebar } from "@/components/dashboard/Sidebar"
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader"
+import { MobileFootbar } from "@/components/dashboard/MobileFootbar"
 import { Loader2 } from "lucide-react"
 import { ConfigProvider } from "@/contexts/ConfigContext"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -55,7 +56,7 @@ export default function DashboardLayout({
 
                             {/* Content panel */}
                             <div className="bg-[#f3f5f4] rounded-none md:rounded-[32px] flex-1 overflow-hidden relative md:shadow-sm">
-                                <main className="h-full overflow-y-auto p-4 md:p-8 pt-4 md:pt-6 pb-28 md:pb-8 scroll-smooth relative z-10 scrollbar-hide">
+                                <main className="h-full overflow-y-auto p-4 md:p-8 pt-4 md:pt-6 pb-36 md:pb-8 scroll-smooth relative z-10 scrollbar-hide">
                                     <div className="max-w-[1400px] mx-auto">
                                         {children}
                                     </div>
@@ -63,6 +64,7 @@ export default function DashboardLayout({
                             </div>
                         </div>
                     </div>
+                    <MobileFootbar />
                     <Toaster />
                     <Sonner />
                 </TooltipProvider>
