@@ -24,7 +24,9 @@ export function useAppointments(filters?: AppointmentFilters) {
         },
         onError: (error: any) => {
             console.error("Create error:", error);
-            toast.error(error.response?.data?.detail || "Failed to create appointment");
+            const detail = error.response?.data?.detail;
+            const message = Array.isArray(detail) ? detail.map((d: any) => d.msg).join(", ") : (detail || "Failed to create appointment");
+            toast.error(message);
         },
     });
 
@@ -37,7 +39,9 @@ export function useAppointments(filters?: AppointmentFilters) {
         },
         onError: (error: any) => {
             console.error("Update error:", error);
-            toast.error(error.response?.data?.detail || "Failed to update appointment");
+            const detail = error.response?.data?.detail;
+            const message = Array.isArray(detail) ? detail.map((d: any) => d.msg).join(", ") : (detail || "Failed to update appointment");
+            toast.error(message);
         },
     });
 
@@ -49,7 +53,9 @@ export function useAppointments(filters?: AppointmentFilters) {
         },
         onError: (error: any) => {
             console.error("Delete error:", error);
-            toast.error("Failed to delete appointment");
+            const detail = error.response?.data?.detail;
+            const message = Array.isArray(detail) ? detail.map((d: any) => d.msg).join(", ") : (detail || "Failed to delete appointment");
+            toast.error(message);
         },
     });
 

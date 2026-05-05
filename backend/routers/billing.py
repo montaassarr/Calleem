@@ -4,6 +4,10 @@ Handles checkout, webhooks, portal, and subscription status
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Request, Query, status
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 from fastapi.responses import JSONResponse
 from typing import Dict, Any, List, Optional
 from datetime import datetime
@@ -682,7 +686,8 @@ async def get_billing_ledger(
 
 
 @router.post("/sync-vapi")
-async def sync_vapi_usage(current_user: dict = Depends(get_current_user)):
+@limiter.limit("2/minute")
+async def sync_vapi_usage(request: Request, current_user: dict = Depends(get_current_user)):
     """
     Pull all calls for this tenant's Vapi assistant and create any missing
     billing_ledger entries + credit_balance debits.

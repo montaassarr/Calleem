@@ -10,7 +10,7 @@ from fastapi import HTTPException
 import pytz
 
 from database.mongo_config import get_database
-from models.appointment import AppointmentStatus, AppointmentCreate, AppointmentUpdate
+from models.appointment import AppointmentStatus, AppointmentCreate, AppointmentUpdate, normalize_phone
 from utils.datetime_utils import datetime_utils
 # from services.whatsapp_cloud import whatsapp_cloud # Disabled as per user request
 from utils.config import settings
@@ -178,7 +178,8 @@ class AppointmentsService:
 
         # Basic fields
         client_name = appointment.client_name or appointment.customer_name
-        client_phone = appointment.client_phone or appointment.customer_phone
+        raw_phone = appointment.client_phone or appointment.customer_phone
+        client_phone = normalize_phone(raw_phone) if raw_phone else None
 
         if not client_name or not client_phone:
             raise HTTPException(status_code=400, detail="Client name and phone are required")
@@ -398,7 +399,7 @@ class AppointmentsService:
             
             doc = {
                 "client_name": customer_name,
-                "client_phone": customer_phone,
+                "client_phone": normalize_phone(customer_phone) if customer_phone else customer_phone,
                 "client_email": customer_email,
                 "service": service,
                 "start_time": start_time,

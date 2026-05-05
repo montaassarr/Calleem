@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import DOMPurify from "dompurify"
 import { cn } from "@/lib/utils"
 
 interface Logo {
@@ -51,7 +52,7 @@ const ScrollingLogos: React.FC<ScrollingLogosProps> = ({ logos, speed = "normal"
               {logos.map((logo) => (
                 <div key={`${setIndex}-${logo.id}`} className="mx-8 flex items-center whitespace-nowrap">
                   {logo.svg ? (
-                    <div className={cn("fill-current", logo.height)} dangerouslySetInnerHTML={{ __html: logo.svg }} />
+                    <div className={cn("fill-current", logo.height)} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(logo.svg, { USE_PROFILES: { svg: true } }) }} />
                   ) : logo.image ? (
                     <>
                       {/* eslint-disable-next-line @next/next/no-img-element */}

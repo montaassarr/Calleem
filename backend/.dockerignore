@@ -1,9 +1,11 @@
-# Python
-__pycache__
+# ── Python bytecode ──────────────────────────────────────────────────────────
+__pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+
+# ── Virtual environments ─────────────────────────────────────────────────────
 venv/
 .venv/
 ENV/
@@ -12,39 +14,48 @@ env/
 *.egg-info/
 *.egg
 
-# Testing
+# ── Tests (not needed in production image) ───────────────────────────────────
+tests/
 .pytest_cache/
 .coverage
 htmlcov/
 .tox/
 .nox/
+junit*.xml
 
-# IDE
+# ── IDE ───────────────────────────────────────────────────────────────────────
 .idea/
 .vscode/
 *.swp
 *.swo
 
-# Logs
+# ── Logs ─────────────────────────────────────────────────────────────────────
 *.log
 logs/
 
-# Local env files
+# ── Secrets / local env (never bake credentials into the image) ───────────────
 .env
 .env.local
 .env.*.local
+*.pem
+*.key
+*.crt
 
-# Git
+# ── Git ───────────────────────────────────────────────────────────────────────
 .git/
 .gitignore
+.gitattributes
 
-# Docker
-Dockerfile
+# ── Docker (no need to COPY these into themselves) ────────────────────────────
+Dockerfile*
 docker-compose*.yml
+.dockerignore
 
-# Docs
+# ── Documentation ─────────────────────────────────────────────────────────────
 *.md
 docs/
+architecture-plan/
 
-# Tests (optional - remove if you want tests in image)
-tests/
+# ── OS artifacts ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

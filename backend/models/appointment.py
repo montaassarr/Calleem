@@ -2,10 +2,11 @@
 Appointment Data Model
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 from datetime import datetime as dt
 from enum import Enum
+import re
 
 
 class AppointmentStatus(str, Enum):
@@ -17,10 +18,23 @@ class AppointmentStatus(str, Enum):
     NO_SHOW = "no_show"
 
 
+def normalize_phone(phone: str) -> str:
+    """Normalize phone number to E.164 format (+digits only), stripping spaces/dashes/parens."""
+    if not phone:
+        return phone
+    # Keep leading + if present, strip everything else that isn't a digit
+    cleaned = re.sub(r'[^\d+]', '', phone)
+    # If multiple + signs, keep only the leading one
+    if cleaned.count('+') > 1:
+        cleaned = '+' + cleaned.replace('+', '')
+    return cleaned
+
+
 class AppointmentBase(BaseModel):
     """Base appointment model"""
     client_name: Optional[str] = Field(None, min_length=2, max_length=100)
-    client_phone: Optional[str] = Field(None, pattern=r'^\+?\d{6,15}$')
+    # Accept any phone that has 6-15 digits (with optional + prefix, spaces, dashes, parens, dots)
+    client_phone: Optional[str] = Field(None)
     client_email: Optional[str] = Field(None, pattern=r'^[\w\.-]+@[\w\.-]+\.\w+$')
     service: Optional[str] = Field(None, min_length=2)
     datetime: Optional[dt] = None
@@ -36,6 +50,18 @@ class AppointmentBase(BaseModel):
     start_time: Optional[dt] = None
     end_time: Optional[dt] = None
 
+    @field_validator('client_phone', 'customer_phone', mode='before')
+    @classmethod
+    def validate_and_normalize_phone(cls, v):
+        if not v:
+            return v
+        normalized = normalize_phone(str(v))
+        # Validate: 6 to 15 digits required
+        digits_only = re.sub(r'[^\d]', '', normalized)
+        if len(digits_only) < 6 or len(digits_only) > 15:
+            raise ValueError('Phone number must contain 6 to 15 digits')
+        return normalized
+
 
 class AppointmentCreate(AppointmentBase):
     """Model for creating a new appointment"""
@@ -45,7 +71,7 @@ class AppointmentCreate(AppointmentBase):
 class AppointmentUpdate(BaseModel):
     """Model for updating an appointment"""
     client_name: Optional[str] = Field(None, min_length=2, max_length=100)
-    client_phone: Optional[str] = Field(None, pattern=r'^\+?\d{6,15}$')
+    client_phone: Optional[str] = Field(None)
     client_email: Optional[str] = Field(None, pattern=r'^[\w\.-]+@[\w\.-]+\.\w+$')
     service: Optional[str] = None
     datetime: Optional[dt] = None
@@ -53,6 +79,17 @@ class AppointmentUpdate(BaseModel):
     barber_preference: Optional[str] = None
     status: Optional[AppointmentStatus] = None
     notes: Optional[str] = None
+
+    @field_validator('client_phone', mode='before')
+    @classmethod
+    def validate_and_normalize_phone(cls, v):
+        if not v:
+            return v
+        normalized = normalize_phone(str(v))
+        digits_only = re.sub(r'[^\d]', '', normalized)
+        if len(digits_only) < 6 or len(digits_only) > 15:
+            raise ValueError('Phone number must contain 6 to 15 digits')
+        return normalized
 
 
 class AppointmentInDB(AppointmentBase):

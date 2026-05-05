@@ -5,11 +5,15 @@ Public API endpoints for the landing page chat widget.
 Uses Gemini AI for intelligent responses.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional
 import logging
 import uuid
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 
 from services.gemini_chat_service import gemini_chat_service
 
@@ -37,7 +41,8 @@ class InitSessionResponse(BaseModel):
 
 
 @router.post("/init", response_model=InitSessionResponse)
-async def init_chat_session():
+@limiter.limit("10/minute")
+async def init_chat_session(request: Request):
     """Initialize a new chat session"""
     try:
         session_id = str(uuid.uuid4())
@@ -54,7 +59,8 @@ async def init_chat_session():
 
 
 @router.post("/message", response_model=ChatMessageResponse)
-async def send_chat_message(request: ChatMessageRequest):
+@limiter.limit("20/minute")
+async def send_chat_message(http_request: Request, request: ChatMessageRequest):
     """Send a message and get AI response"""
     try:
         # Use provided session_id or create new one

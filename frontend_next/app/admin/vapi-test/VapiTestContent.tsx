@@ -8,10 +8,12 @@ export default function VapiTestContent() {
   const [assistantId, setAssistantId] = useState<string>("");
   const { status } = useVapi();
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const a = params.get("assistantId");
-    if (a) setAssistantId(a);
+    if (a && UUID_RE.test(a)) setAssistantId(a);
   }, []);
 
   return (

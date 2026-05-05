@@ -69,6 +69,10 @@ function ChartContainer({
   )
 }
 
+// Only allow safe CSS color values to prevent CSS injection via chart config
+const SAFE_CSS_COLOR =
+  /^(#[0-9a-fA-F]{3,8}|rgb\([^)]+\)|rgba\([^)]+\)|hsl\([^)]+\)|hsla\([^)]+\)|var\(--[a-zA-Z0-9_-]+\)|[a-zA-Z]{2,30})$/
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
     ([, config]) => config.theme || config.color,
@@ -90,7 +94,8 @@ ${colorConfig
     const color =
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
       itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
+    if (!color || !SAFE_CSS_COLOR.test(color.trim())) return null
+    return `  --color-${key}: ${color};`
   })
   .join('\n')}
 }

@@ -92,6 +92,8 @@ export const Sidebar = () => {
     const handleLogout = () => {
         localStorage.removeItem("access_token");
         localStorage.removeItem("username");
+        localStorage.removeItem("tenant_id");
+        localStorage.removeItem("user");
         router.push("/login");
     };
 

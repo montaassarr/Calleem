@@ -1,36 +1,69 @@
-version: '3.8'
+# ─────────────────────────────────────────────────────────────────────────────
+# Shared security defaults applied to every service via YAML anchors
+# ─────────────────────────────────────────────────────────────────────────────
+x-security-defaults: &security-defaults
+  security_opt:
+    - no-new-privileges:true
+  restart: unless-stopped
 
 services:
-  # MongoDB Database
+
+  # ── MongoDB ────────────────────────────────────────────────────────────────
   mongodb:
+    <<: *security-defaults
     image: mongo:7
     container_name: callflow-mongodb
-    ports:
-      - "27017:27017"
+    # Do NOT expose 27017 to the host in production.
+    # Uncomment the port binding below ONLY for local debugging:
+    # ports:
+    #   - "127.0.0.1:27017:27017"
+    environment:
+      # Set strong credentials via .env or Docker secrets — never commit these values
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD must be set}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-calleem}
     volumes:
       - mongo_data:/data/db
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017 --quiet
+      test: ["CMD-SHELL", "echo 'db.runCommand(\"ping\").ok' | mongosh localhost:27017/admin --quiet -u ${MONGO_ROOT_USER:-admin} -p ${MONGO_ROOT_PASSWORD} --authenticationDatabase admin"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 15s
     networks:
       - callflow-network
 
-  # Backend API
+  # ── Backend API ───────────────────────────────────────────────────────────
   backend:
+    <<: *security-defaults
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: callflow-backend
+    # Only expose backend internally; Nginx/reverse-proxy handles public traffic
+    # Uncomment for local development only:
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
-      - MONGO_URI=mongodb://mongodb:27017/calleem
-      - MONGO_DB_NAME=calleem
+      # ── Database ────────────────────────────────────────────────
+      MONGO_URI: mongodb://REDACTED:REDACTED@mongodb:27017/${MONGO_DB_NAME:-calleem}?authSource=admin
+      MONGO_DB_NAME: ${MONGO_DB_NAME:-calleem}
+      # ── Application ─────────────────────────────────────────────
+      DEBUG: "false"
+      ENVIRONMENT: production
+      # ── Secrets (must be provided via .env or Docker secrets) ───
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set}
+      MASTER_KEY: ${MASTER_KEY:?MASTER_KEY must be set}
+      AGENT_INTERNAL_TOKEN: ${AGENT_INTERNAL_TOKEN:?AGENT_INTERNAL_TOKEN must be set}
+      # ── JWT ─────────────────────────────────────────────────────
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      # ── CORS (set to your actual frontend domain) ────────────────
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://calleem.tech,https://www.calleem.tech}
+      BACKEND_URL: ${BACKEND_URL:-}
     env_file:
-      - ./backend/.env
+      # Optional: loads additional secrets from .env (never commit .env to git)
+      - path: ./backend/.env
+        required: false
     depends_on:
       mongodb:
         condition: service_healthy
@@ -39,14 +72,13 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
-    volumes:
-      - ./backend:/app:ro
+      start_period: 40s
     networks:
       - callflow-network
 
-  # Frontend
+  # ── Frontend ──────────────────────────────────────────────────────────────
   frontend:
+    <<: *security-defaults
     build:
       context: ./frontend_next
       dockerfile: Dockerfile
@@ -54,43 +86,74 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # Use backend service name for internal Docker network communication
-      - NEXT_PUBLIC_API_URL=http://backend:8000
-      # For client-side requests, use localhost (will be proxied by Next.js rewrites)
-      - API_URL=http://backend:8000
+      # API_URL: Docker-internal address for server-side Next.js rewrites (never sent to browser)
+      API_URL: http://backend:8000
+      # NEXT_PUBLIC_API_URL: the public HTTPS URL your users' browsers will call.
+      # Set this to your actual production domain — NOT the internal Docker service name.
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+      NODE_ENV: production
     depends_on:
       backend:
         condition: service_healthy
     networks:
       - callflow-network
 
-  # Optional: Prometheus for monitoring
+  # ── Reverse Proxy (Nginx) ─────────────────────────────────────────────────
+  nginx:
+    <<: *security-defaults
+    image: nginx:1.27-alpine
+    container_name: callflow-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infrastructure/nginx/conf.d:/etc/nginx/conf.d:ro
+      # TLS certificates (e.g. from Let's Encrypt / Certbot)
+      - ./infrastructure/certbot/conf:/etc/letsencrypt:ro
+      - ./infrastructure/certbot/www:/var/www/certbot:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - callflow-network
+    profiles:
+      - production
+
+  # ── Prometheus (optional monitoring) ─────────────────────────────────────
   prometheus:
+    <<: *security-defaults
     image: prom/prometheus:latest
     container_name: callflow-prometheus
+    # Only bind locally; do not expose to public internet
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     volumes:
       - ./infrastructure/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
     networks:
       - callflow-network
     profiles:
       - monitoring
 
-  # Optional: Grafana for dashboards
+  # ── Grafana (optional monitoring) ────────────────────────────────────────
   grafana:
+    <<: *security-defaults
     image: grafana/grafana:latest
     container_name: callflow-grafana
+    # Only bind locally
     ports:
-      - "3001:3000"
+      - "127.0.0.1:3001:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin123
-      - GF_USERS_ALLOW_SIGN_UP=false
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      # Must be overridden — never use the default in production
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3001}
     volumes:
       - grafana_data:/var/lib/grafana
     depends_on:
@@ -105,7 +168,8 @@ volumes:
   prometheus_data:
   grafana_data:
 
-
 networks:
   callflow-network:
     driver: bridge
+    # Restrict inter-container communication to named links only
+    internal: false

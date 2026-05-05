@@ -134,17 +134,18 @@ async def impersonate_user(
     service: AdminService = Depends(get_admin_service)
 ):
     """Generate a login token for a specific user (Impersonation)"""
-    return await service.impersonate_user(user_id, current_admin["username"])
+    return await service.impersonate_user(user_id, current_admin)
 
 
 @router.get("/users/pending", response_model=List[UserResponse])
 async def list_pending_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
+    current_admin: dict = Depends(get_current_admin),
     service: AdminService = Depends(get_admin_service)
 ):
-    """List all pending user registrations awaiting approval"""
-    results = await service.list_pending_users(skip, limit)
+    """List pending user registrations. Super-admins see all; others see their tenant only."""
+    results = await service.list_pending_users(skip, limit, current_admin)
     return [UserResponse(**u) for u in results]
 
 
@@ -506,6 +507,7 @@ class AddCreditsRequest(BaseModel):
 async def admin_add_credits(
     tenant_id: str,
     body: AddCreditsRequest,
+    current_super_admin: dict = Depends(get_super_admin),
     db=Depends(get_database),
 ):
     """Add credits to a tenant's balance (manual top-up by admin)."""

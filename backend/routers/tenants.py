@@ -84,10 +84,10 @@ async def lookup_tenant_by_phone(request: TenantLookupRequest = Body(...)):
         count = await db.business_config.count_documents({})
         if count == 1:
             tenant = await db.business_config.find_one({})
-            logger.info(f"Tenant lookup: Returning default tenant (only 1 found) for phone {phone}")
-    
+            logger.info(f"Tenant lookup: Returning default tenant (only 1 found) for phone ***{phone[-4:]}")
+
     if not tenant:
-        logger.warning(f"Tenant lookup failed for phone: {phone}")
+        logger.warning(f"Tenant lookup failed for phone: ***{phone[-4:]}")
         raise HTTPException(status_code=404, detail="Tenant not found for this phone number")
         
     return TenantLookupResponse(

@@ -1,44 +1,56 @@
-# Multi-stage build for smaller image
-FROM python:3.11-slim as builder
+# ── Stage 1: build ──────────────────────────────────────────────────────────
+FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# Install build dependencies
+# Build-time system deps only (gcc for C extensions)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy and install requirements
 COPY requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
 
-# Production stage
+# ── Stage 2: runtime ─────────────────────────────────────────────────────────
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install curl for healthcheck
+# curl for healthcheck
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy installed packages from builder
-COPY --from=builder /root/.local /root/.local
+# Non-root user — never run app code as root
+RUN groupadd --system --gid 1001 appgroup \
+    && useradd --system --uid 1001 --gid appgroup --no-create-home appuser
 
-# Copy application code
-COPY . .
+# Copy installed packages from builder stage
+COPY --from=builder /root/.local /home/appuser/.local
 
-# Set environment variables
-ENV PATH=/root/.local/bin:$PATH
+# Copy application source
+COPY --chown=appuser:appgroup . .
+
+# Runtime environment
+ENV PATH=/home/appuser/.local/bin:$PATH
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONPATH=/app
+# Safe production defaults — override via env_file / environment in compose/Railway
+ENV DEBUG=false
+ENV ENVIRONMENT=production
 
-# Expose port
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+USER appuser
+
+# 2 workers balances throughput vs memory; tune via WORKERS env var if needed
+CMD uvicorn main:app \
+    --host 0.0.0.0 \
+    --port 8000 \
+    --workers ${WORKERS:-2} \
+    --proxy-headers \
+    --forwarded-allow-ips "*"

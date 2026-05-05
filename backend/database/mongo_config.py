@@ -22,7 +22,10 @@ async def connect_to_mongo():
     global mongodb_client, database
     
     try:
-        logger.info(f"Connecting to MongoDB at {settings.MONGO_URI}")
+        # Redact credentials before logging (e.g. mongodb+srv://REDACTED:REDACTED@host -> mongodb+srv://***@host)
+        import re as _re
+        safe_uri = _re.sub(r'://[^@]*@', '://***@', settings.MONGO_URI)
+        logger.info(f"Connecting to MongoDB at {safe_uri}")
         client = AsyncIOMotorClient(settings.MONGO_URI)
 
         # Test connection

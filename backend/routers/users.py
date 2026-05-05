@@ -3,10 +3,14 @@ Users/Authentication API Router
 User management and JWT authentication
 """
 
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, Request, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import datetime
 import logging
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 
 from models.user import (
     UserCreate, 
@@ -88,13 +92,15 @@ async def get_super_admin(current_user: dict = Depends(get_current_user)):
 
 
 @router.post("/register", response_model=RegistrationResponse, status_code=201)
-async def register_user(user: UserCreate):
+@limiter.limit("5/minute")
+async def register_user(request: Request, user: UserCreate):
     """Register a new user (returns pending status - admin approval required)"""
     return await user_service.register_user(user)
 
 
 @router.post("/login", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+@limiter.limit("10/minute")
+async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     """User login - returns JWT token (supports both username and email)"""
     user = await user_service.authenticate_user(form_data.username, form_data.password)
     
@@ -126,9 +132,9 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 # Alias for /token endpoint (standard OAuth2)
 @router.post("/token", response_model=Token)
-async def token(form_data: OAuth2PasswordRequestForm = Depends()):
+async def token(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     """OAuth2 compatible token endpoint - alias for /login"""
-    return await login(form_data)
+    return await login(request, form_data)
 
 
 @router.get("/me", response_model=UserResponse)

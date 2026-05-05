@@ -18,8 +18,8 @@ class Settings(BaseSettings):
     
     # Application
     APP_NAME: str = "Calleem"
-    DEBUG: bool = True
-    ENVIRONMENT: str = "development"
+    DEBUG: bool = False
+    ENVIRONMENT: str = "production"
     API_V1_PREFIX: str = "/api/v1"
     TESTING: bool = False
     
@@ -45,14 +45,14 @@ class Settings(BaseSettings):
     VAPI_SERVER_CREDENTIAL_ID: str = ""
     VAPI_WEBHOOK_URL: str = ""  # Can be set explicitly or will be constructed from BACKEND_URL
     AGENT_INTERNAL_TOKEN: str = ""
-    BACKEND_URL: str = "https://ai-receptionist-production-299a.up.railway.app"  # Production backend URL
+    BACKEND_URL: str = ""  # Set via BACKEND_URL environment variable
     VAPI_ORGANIZATION_ID: str = ""
     VAPI_BASE_URL: str = "https://api.vapi.ai"
     
     # JWT & Security
     SECRET_KEY: str = "REDACTED"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # Dashboard Access Control
     MAX_DASHBOARD_USERS: int = 5
@@ -128,4 +128,13 @@ if settings.SECRET_KEY in WEAK_KEYS and settings.ENVIRONMENT not in ["production
     logger.warning(
         "⚠️ WARNING: Using default SECRET_KEY. This is OK for development but "
         "MUST be changed before deploying to production!"
+    )
+
+# 🔒 AGENT_INTERNAL_TOKEN strength check
+_WEAK_AGENT_TOKENS = ["sdhcqkuefyqkjsdclzyedsdkfskdjsl", "", "changeme"]
+if settings.ENVIRONMENT in ["production", "prod"] and settings.AGENT_INTERNAL_TOKEN in _WEAK_AGENT_TOKENS:
+    raise RuntimeError(
+        "🚨 SECURITY ERROR: AGENT_INTERNAL_TOKEN is weak or unset in production!\n"
+        "Generate one with: python -c 'import secrets; print(secrets.token_urlsafe(32))'\n"
+        "Then set AGENT_INTERNAL_TOKEN=<value> in your environment."
     )

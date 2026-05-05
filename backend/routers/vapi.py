@@ -382,10 +382,10 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
             
             # Ensure exactly 8 digits
             if len(phone) != 8:
-                logger.error(f"Invalid phone format: '{phone}' - must be exactly 8 digits")
+                logger.error(f"Invalid phone format: ***{str(phone)[-4:] if len(str(phone)) >= 4 else '****'} - must be exactly 8 digits")
                 return {"error": "Phone number must be exactly 8 digits (without country code)"}
             
-            logger.info(f"✅ Phone sanitized and validated: {phone}")
+            logger.info(f"✅ Phone sanitized and validated: ***{str(phone)[-4:]}")
             
             # Create timezone-aware datetime in business timezone
             date_str = args.get('date')
@@ -648,8 +648,8 @@ async def send_sms_confirmation(tenant_id: str, customer_phone: str, call_report
         # Build message
         sms_body = twilio_messaging.build_confirmation_sms(appointment_data, business_name)
         
-        logger.info(f"📱 Sending SMS confirmation to {customer_phone}: {sms_body}")
-        logger.info(f"📤 Using sender number {sender_phone} for tenant {tenant_id}")
+        logger.info(f"📱 Sending SMS confirmation to ***{customer_phone[-4:]} for tenant {tenant_id}")
+        logger.info(f"📤 Using sender number ***{sender_phone[-4:]} for tenant {tenant_id}")
         
         # Send SMS
         result = await twilio_messaging.send_sms(

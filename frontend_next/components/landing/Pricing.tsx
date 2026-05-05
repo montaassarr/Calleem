@@ -7,20 +7,10 @@ const Pricing: React.FC = () => {
     // Usage State
     const [calls, setCalls] = useState(500);
     const [duration, setDuration] = useState(3);
-    const [isAdmin, setIsAdmin] = useState(false);
-
-    useEffect(() => {
-        // Simple owner-only check via query param
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('admin') === 'true') {
-            setIsAdmin(true);
-        }
-    }, []);
-
-    // Helper component for owner-only UI
+    // Helper component for owner-only UI — always hidden; admin view is not exposed to clients
     const AdminView = ({ children }: { children: React.ReactNode }) => {
-        if (!isAdmin) return null;
-        return <>{children}</>;
+        void children;
+        return null;
     };
 
     // Cost Assumptions State

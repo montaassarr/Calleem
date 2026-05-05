@@ -5,7 +5,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL ||
     (typeof window !== 'undefined'
         ? window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
             ? 'http://localhost:8000'
-            : `http://${window.location.hostname}:8000`
+            : `https://${window.location.hostname}`
         : '');
 
 const CALLS_API_BASE_URL = BASE_URL ? `${BASE_URL}/api` : '/api';
@@ -19,7 +19,6 @@ class CallsApiClient {
             headers: {
                 'Content-Type': 'application/json',
             },
-            withCredentials: true,
         });
 
         this.client.interceptors.request.use((config) => {

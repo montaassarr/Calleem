@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { useAppointmentForm } from "@/hooks/domain/useAppointmentForm";
 import { AppointmentResponse } from "@/lib/types";
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 
 interface AppointmentFormModalProps {
     open: boolean;
@@ -102,18 +104,37 @@ export default function AppointmentFormModal({
                                     Phone Number <span className="text-emerald-500">*</span>
                                 </label>
                                 <div className="relative">
-                                    <div className="absolute left-0 pl-4 inset-y-0 flex items-center pointer-events-none">
+                                    <div className="absolute left-0 pl-4 inset-y-0 flex items-center pointer-events-none z-10">
                                         <Phone className="h-5 w-5 text-slate-400" />
                                     </div>
-                                    <input
+                                    <PhoneInput
                                         id="client_phone"
-                                        type="tel"
+                                        international
+                                        defaultCountry="US"
                                         value={formData.client_phone}
-                                        onChange={(e) => setFormData({ ...formData, client_phone: e.target.value })}
-                                        placeholder="+1 (555) 000-0000"
-                                        required
-                                        className="w-full pl-11 pr-4 py-3 bg-white/50 border border-slate-200/60 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-[#064e3b]/10 focus:border-[#064e3b] transition-all duration-300 shadow-sm"
+                                        onChange={(value) => setFormData({ ...formData, client_phone: value ? value.toString() : '' })}
+                                        className="w-full pl-11 pr-4 py-3 bg-white/50 border border-slate-200/60 rounded-2xl text-slate-900 transition-all duration-300 shadow-sm focus-within:ring-4 focus-within:ring-[#064e3b]/10 focus-within:border-[#064e3b]"
+                                        style={{
+                                            '--PhoneInput-color--focus': 'transparent',
+                                            '--PhoneInputCountryFlag-height': '20px',
+                                            '--PhoneInputCountrySelectArrow-color': '#94a3b8',
+                                            '--PhoneInputCountrySelectArrow-color--focus': '#064e3b',
+                                        } as React.CSSProperties}
                                     />
+                                    <style jsx global>{`
+                                        .PhoneInputInput {
+                                            border: none;
+                                            background: transparent;
+                                            outline: none;
+                                            width: 100%;
+                                            padding-left: 8px;
+                                        }
+                                        .PhoneInputCountry {
+                                            margin-right: 8px;
+                                            padding-right: 8px;
+                                            border-right: 1px solid #e2e8f0;
+                                        }
+                                    `}</style>
                                 </div>
                             </div>
                         </div>

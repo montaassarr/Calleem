@@ -1,4 +1,13 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import { z } from 'zod';
+
+const StoredUserSchema = z.object({
+    id: z.string().optional(),
+    tenant_id: z.string().optional(),
+    role: z.enum(['user', 'admin', 'owner', 'super_admin']).optional(),
+    username: z.string().optional(),
+    email: z.string().email().optional(),
+});
 
 // Get API URL from environment variable
 // In production (Vercel), this MUST be set to the Railway backend URL
@@ -7,7 +16,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL ||
     (typeof window !== 'undefined'
         ? window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
             ? 'http://localhost:8000'
-            : `http://${window.location.hostname}:8000` // Fallback for LAN IPs
+            : `https://${window.location.hostname}`
         : '');
 
 // Validate API URL in production
@@ -37,8 +46,6 @@ class ApiClient {
             headers: {
                 'Content-Type': 'application/json',
             },
-            // Required for cross-origin requests with credentials (cookies, auth headers)
-            withCredentials: true,
         });
 
         // Request interceptor to add auth token and tenant ID
@@ -55,19 +62,20 @@ class ApiClient {
                     config.headers['X-Tenant-ID'] = tenantId;
                 }
 
-                // Fallback: try to get tenant_id from user object
+                // Fallback: try to get tenant_id from user object (schema-validated)
                 if (!tenantId) {
                     const userStr = localStorage.getItem('user');
                     if (userStr) {
                         try {
-                            const user = JSON.parse(userStr);
-                            if (user.tenant_id) {
-                                config.headers['X-Tenant-ID'] = user.tenant_id;
-                                // Cache it for next time
-                                localStorage.setItem('tenant_id', user.tenant_id);
+                            const parsed = StoredUserSchema.safeParse(JSON.parse(userStr));
+                            if (parsed.success && parsed.data.tenant_id) {
+                                config.headers['X-Tenant-ID'] = parsed.data.tenant_id;
+                                localStorage.setItem('tenant_id', parsed.data.tenant_id);
+                            } else if (!parsed.success) {
+                                localStorage.removeItem('user');
                             }
                         } catch (e) {
-                            console.error('Error parsing user data:', e);
+                            localStorage.removeItem('user');
                         }
                     }
                 }

@@ -1,5 +1,6 @@
 
 import logging
+import re
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from bson import ObjectId
@@ -72,7 +73,7 @@ class AdminService:
         try:
             query = {}
             if search:
-                query["name"] = {"$regex": search, "$options": "i"}
+                query["name"] = {"$regex": re.escape(search), "$options": "i"}
                 
             cursor = self.db.tenants.find(query).skip(skip).limit(limit)
             tenants = await cursor.to_list(length=limit)
@@ -197,9 +198,11 @@ class AdminService:
             results.append(u)
         return results
 
-    async def list_pending_users(self, skip: int, limit: int) -> List[Dict[str, Any]]:
-        """List users with pending approval status"""
+    async def list_pending_users(self, skip: int, limit: int, admin: dict) -> List[Dict[str, Any]]:
+        """List users with pending approval status. Non-super-admins see own tenant only."""
         query = {"approval_status": "pending"}
+        if admin.get("role") != "super_admin":
+            query["tenant_id"] = admin.get("tenant_id")
         cursor = self.db.users.find(query).sort("created_at", -1).skip(skip).limit(limit)
         users = await cursor.to_list(length=limit)
         
@@ -211,24 +214,40 @@ class AdminService:
             results.append(u)
         return results
 
-    async def impersonate_user(self, user_id: str, admin_username: str) -> Dict[str, str]:
+    async def impersonate_user(self, user_id: str, admin: dict) -> Dict[str, str]:
         if not ObjectId.is_valid(user_id):
             raise HTTPException(status_code=400, detail="Invalid user ID")
-            
+
         user = await self.db.users.find_one({"_id": ObjectId(user_id)})
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-            
+
+        # Tenant isolation: non-super-admins may only impersonate within their own tenant
+        if admin.get("role") != "super_admin":
+            if str(user.get("tenant_id")) != str(admin.get("tenant_id")):
+                raise HTTPException(status_code=403, detail="Cannot impersonate user from a different tenant")
+
         user_service = UserService()
         access_token = user_service.create_access_token(data={
             "sub": str(user["_id"]),
             "username": user["username"],
             "role": user["role"],
             "tenant_id": str(user.get("tenant_id")) if user.get("tenant_id") else None,
-            "impersonator": admin_username
+            "impersonator": admin.get("username"),
         })
-        
-        logger.warning(f"Admin {admin_username} impersonating user {user['username']}")
+
+        # Write immutable audit record
+        await self.db.audit_log.insert_one({
+            "action": "impersonate",
+            "admin_id": str(admin.get("id") or admin.get("_id")),
+            "admin_username": admin.get("username"),
+            "target_user_id": user_id,
+            "target_username": user["username"],
+            "target_tenant_id": str(user.get("tenant_id")),
+            "timestamp": datetime.utcnow(),
+        })
+
+        logger.warning(f"Admin {admin.get('username')} impersonating user {user['username']} (tenant {user.get('tenant_id')})")
         return {"access_token": access_token, "token_type": "bearer"}
 
     # --- System Management ---

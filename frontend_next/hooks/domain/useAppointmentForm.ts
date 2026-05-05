@@ -92,12 +92,16 @@ export function useAppointmentForm({ mode, appointment, onSuccess }: UseAppointm
         const combinedDate = new Date(formData.date);
         combinedDate.setHours(hours, minutes, 0, 0);
         const isoDatetime = combinedDate.toISOString();
+        
+        // Ensure phone number matches backend pattern '^\+?\d{6,15}$'
+        // by stripping spaces, dashes, and parentheses
+        const formattedPhone = formData.client_phone.replace(/[^\d+]/g, '');
 
         try {
             if (mode === "create") {
                 await createAsync({
                     client_name: formData.client_name,
-                    client_phone: formData.client_phone,
+                    client_phone: formattedPhone,
                     service: formData.service,
                     datetime: isoDatetime,
                     duration_minutes: formData.duration_minutes,

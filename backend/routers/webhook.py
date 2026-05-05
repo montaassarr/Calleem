@@ -7,9 +7,12 @@ import logging
 from typing import Dict, Any, Optional
 from fastapi import APIRouter, Request, HTTPException, status
 from twilio.twiml.messaging_response import MessagingResponse
+from twilio.request_validator import RequestValidator
 from fastapi.responses import Response
 from datetime import datetime
 from bson import ObjectId
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from database.mongo_config import get_database
 from services.twilio_messaging import twilio_messaging
@@ -17,7 +20,24 @@ from utils.config import settings
 
 logger = logging.getLogger(__name__)
 
+limiter = Limiter(key_func=get_remote_address)
 router = APIRouter()
+
+
+async def _validate_twilio_signature(request: Request, form_data: dict) -> None:
+    """Raise 403 if the request did not come from Twilio."""
+    auth_token = settings.TWILIO_AUTH_TOKEN
+    if not auth_token:
+        logger.warning("TWILIO_AUTH_TOKEN not set — skipping webhook signature validation")
+        return
+
+    validator = RequestValidator(auth_token)
+    url = str(request.url)
+    signature = request.headers.get("X-Twilio-Signature", "")
+
+    if not validator.validate(url, form_data, signature):
+        logger.warning(f"Invalid Twilio signature from {request.client.host}")
+        raise HTTPException(status_code=403, detail="Forbidden")
 
 
 async def resolve_tenant_from_phone(phone_number: str) -> Optional[str]:
@@ -44,11 +64,12 @@ async def resolve_tenant_from_phone(phone_number: str) -> Optional[str]:
         
         return None
     except Exception as e:
-        logger.error(f"Error resolving tenant from phone {phone_number}: {e}")
+        logger.error(f"Error resolving tenant from phone ***{phone_number[-4:]}: {e}")
         return None
 
 
 @router.post("/sms")
+@limiter.limit("30/minute")
 async def receive_sms(request: Request):
     """
     Receive inbound SMS from Twilio Messaging Service.
@@ -63,17 +84,16 @@ async def receive_sms(request: Request):
         message_text = form_data.get("Body", "")
         message_sid = form_data.get("MessageSid", "")
         account_sid = form_data.get("AccountSid", "")
-        
-        logger.info(f"📨 Received inbound SMS from {from_number} to {to_number}: {message_text[:50]}...")
-        
-        # Optional: Validate Twilio signature (recommended for production)
-        # TODO: Implement signature validation using Twilio auth token
-        
+
+        logger.info(f"📨 Received inbound SMS from ***{from_number[-4:]} to ***{to_number[-4:]}")
+
+        await _validate_twilio_signature(request, dict(form_data))
+
         # Resolve tenant from phone number
         tenant_id = await resolve_tenant_from_phone(to_number)
         
         if not tenant_id:
-            logger.warning(f"Could not resolve tenant for Twilio number {to_number}")
+            logger.warning(f"Could not resolve tenant for Twilio number ***{to_number[-4:]}")
             # Return TwiML response anyway (Twilio expects valid XML/TwiML)
             resp = MessagingResponse()
             resp.message("Thank you for your message. Unable to process at this time.")
@@ -117,6 +137,7 @@ async def receive_sms(request: Request):
 
 
 @router.post("/whatsapp")
+@limiter.limit("30/minute")
 async def receive_whatsapp(request: Request):
     """
     Receive inbound WhatsApp messages from Twilio WhatsApp Sandbox.
@@ -130,9 +151,11 @@ async def receive_whatsapp(request: Request):
         to_number = form_data.get("To", "")      # whatsapp:+1234567890
         message_text = form_data.get("Body", "")
         message_sid = form_data.get("MessageSid", "")
-        
-        logger.info(f"💬 Received inbound WhatsApp from {from_number}: {message_text[:50]}...")
-        
+
+        logger.info(f"💬 Received inbound WhatsApp from ***{from_number[-4:]}")
+
+        await _validate_twilio_signature(request, dict(form_data))
+
         # Remove "whatsapp:" prefix for phone lookup
         from_phone = from_number.replace("whatsapp:", "")
         to_phone = to_number.replace("whatsapp:", "")
@@ -141,7 +164,7 @@ async def receive_whatsapp(request: Request):
         tenant_id = await resolve_tenant_from_phone(to_phone)
         
         if not tenant_id:
-            logger.warning(f"Could not resolve tenant for WhatsApp number {to_phone}")
+            logger.warning(f"Could not resolve tenant for WhatsApp number ***{to_phone[-4:]}")
             resp = MessagingResponse()
             resp.message("Thank you for your message. Unable to process at this time.")
             return Response(str(resp), media_type="application/xml")

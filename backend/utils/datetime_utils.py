@@ -341,9 +341,8 @@ class DateTimeUtils:
         if dt > max_advance:
             return False, "Cannot book more than 3 months in advance"
         
-        # Must be during business hours
-        if not DateTimeUtils.is_business_hours(dt):
-            return False, "Time is outside business hours (Mon-Sat, 9 AM - 8 PM)"
+        # Business hours enforcement is done at the service layer per tenant config.
+        # is_valid_appointment_time only validates timing constraints, not hours.
         
         return True, None
 

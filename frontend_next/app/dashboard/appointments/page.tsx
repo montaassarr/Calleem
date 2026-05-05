@@ -9,6 +9,7 @@ import type { AppointmentResponse } from "@/lib/types";
 import AppointmentFormModal from "@/components/dashboard/appointments/AppointmentFormModal";
 import { toast } from "sonner";
 import Link from "next/link";
+import { formatPhone } from "@/lib/utils";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -221,7 +222,7 @@ export default function AppointmentsPage() {
                                                     </div>
                                                     <div className="flex flex-col">
                                                         <span className="font-semibold text-gray-900">{apt.client_name}</span>
-                                                        <span className="text-xs text-gray-500">{apt.client_phone}</span>
+                                                        <span className="text-xs text-gray-500">{formatPhone(apt.client_phone)}</span>
                                                     </div>
                                                 </div>
                                             </td>

@@ -2,12 +2,36 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
+import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Check, Shield, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
+
+const LoginSchema = z.object({
+    email: z.string().email("Invalid email address").max(254),
+    password: z.string().min(8, "Password must be at least 8 characters").max(128),
+})
+
+const RegisterSchema = z.object({
+    email: z.string().email("Invalid email address").max(254),
+    password: z.string()
+        .min(12, "Password must be at least 12 characters")
+        .max(128)
+        .regex(/[A-Z]/, "Must contain an uppercase letter")
+        .regex(/[a-z]/, "Must contain a lowercase letter")
+        .regex(/\d/, "Must contain a number")
+        .regex(/[!@#$%^&*(),.?":{}|<>]/, "Must contain a special character"),
+    confirmPassword: z.string(),
+    name: z.string().min(1, "Name is required").max(100),
+    business_name: z.string().min(1, "Business name is required").max(200),
+    phone: z.string().max(20).optional(),
+}).refine((d) => d.password === d.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+})
 
 type AuthStep = "login" | "signup" | "forgot-password" | "reset-password" | "otp" | "success" | "pending"
 type AuthMode = "login" | "signup"
@@ -84,6 +108,23 @@ export function FrostedGlassAuth({ initialMode = "login" }: FrostedGlassAuthProp
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsLoading(true)
+
+        // Client-side validation before hitting the network
+        if (step === "login") {
+            const result = LoginSchema.safeParse({ email: formData.email, password: formData.password })
+            if (!result.success) {
+                alert(result.error.errors[0].message)
+                setIsLoading(false)
+                return
+            }
+        } else if (step === "signup") {
+            const result = RegisterSchema.safeParse(formData)
+            if (!result.success) {
+                alert(result.error.errors[0].message)
+                setIsLoading(false)
+                return
+            }
+        }
 
         try {
             if (step === "login") {

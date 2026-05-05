@@ -8,6 +8,7 @@ import { adminApi, Appointment } from '@/lib/api/admin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { AppointmentResponse, AppointmentStatus } from "@/lib/types";
+import { formatPhone } from "@/lib/utils";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
@@ -126,6 +127,7 @@ export default function AppointmentsPage() {
             setIsSubmitting(true);
             const submitData: Partial<AppointmentResponse> = {
                 ...formData,
+                client_phone: formData.client_phone.replace(/[^\d+]/g, ''),
                 datetime: new Date(formData.datetime).toISOString()
             };
 
@@ -139,9 +141,23 @@ export default function AppointmentsPage() {
             setIsModalOpen(false);
             fetchAppointments();
         } catch (error: any) {
+            let errorMsg = "Operation failed";
+            if (error.response?.data?.detail) {
+                const detail = error.response.data.detail;
+                if (Array.isArray(detail)) {
+                    errorMsg = detail.map((err: any) => err.msg || JSON.stringify(err)).join(", ");
+                } else if (typeof detail === "string") {
+                    errorMsg = detail;
+                } else {
+                    errorMsg = JSON.stringify(detail);
+                }
+            } else if (error.response?.data?.message) {
+                errorMsg = error.response.data.message;
+            }
+
             toast({
                 title: "Error",
-                description: error.response?.data?.detail || "Operation failed",
+                description: errorMsg,
                 variant: "destructive"
             });
         } finally {
@@ -204,6 +220,11 @@ export default function AppointmentsPage() {
             render: (date: string) => new Date(date).toLocaleString()
         },
         { key: 'client_name', label: 'Client' },
+        {
+            key: 'client_phone',
+            label: 'Phone',
+            render: (phone: string) => formatPhone(phone)
+        },
         { key: 'service', label: 'Service' },
         {
             key: 'status',
