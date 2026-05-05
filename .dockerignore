@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+frontend_next/node_modules/
+**/node_modules/
+
+# Next.js build output
+.next/
+frontend_next/.next/
+frontend_next/.turbo/
+
+# Python environments
+venv/
+.venv/
+backend/venv/
+backend/.venv/
+__pycache__/
+*.pyc
+
+# Local env files
+.env
+.env.local
+.env.*.local
+frontend_next/.env.local
+
+# Git
+.git/
+.gitignore
+
+# Database and data
+data/
+*.db
+*.sqlite3
+
+# Misc
+.DS_Store
+*.log
+logs/
+backend/logs/

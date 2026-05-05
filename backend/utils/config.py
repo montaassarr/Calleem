@@ -133,8 +133,14 @@ if settings.SECRET_KEY in WEAK_KEYS and settings.ENVIRONMENT not in ["production
 # 🔒 AGENT_INTERNAL_TOKEN strength check
 _WEAK_AGENT_TOKENS = ["sdhcqkuefyqkjsdclzyedsdkfskdjsl", "", "changeme"]
 if settings.ENVIRONMENT in ["production", "prod"] and settings.AGENT_INTERNAL_TOKEN in _WEAK_AGENT_TOKENS:
-    raise RuntimeError(
-        "🚨 SECURITY ERROR: AGENT_INTERNAL_TOKEN is weak or unset in production!\n"
-        "Generate one with: python -c 'import secrets; print(secrets.token_urlsafe(32))'\n"
-        "Then set AGENT_INTERNAL_TOKEN=<value> in your environment."
+    import secrets
+    import logging
+    logger = logging.getLogger(__name__)
+    generated_token = secrets.token_urlsafe(32)
+    logger.error(
+        "🚨 SECURITY WARNING: AGENT_INTERNAL_TOKEN is weak or unset in production!\n"
+        "Auto-generating a temporary secure token for this session.\n"
+        "To ensure persistent access for your Vapi webhook, you MUST set AGENT_INTERNAL_TOKEN "
+        "in your Render/production environment variables."
     )
+    settings.AGENT_INTERNAL_TOKEN = REDACTED

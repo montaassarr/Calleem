@@ -40,17 +40,18 @@ ENV PYTHONPATH=/app
 ENV DEBUG=false
 ENV ENVIRONMENT=production
 
-EXPOSE 8000
+ENV PORT=8000
+EXPOSE ${PORT}
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:${PORT}/health || exit 1
 
 USER appuser
 
 # 2 workers balances throughput vs memory; tune via WORKERS env var if needed
 CMD uvicorn main:app \
     --host 0.0.0.0 \
-    --port 8000 \
+    --port ${PORT} \
     --workers ${WORKERS:-2} \
     --proxy-headers \
     --forwarded-allow-ips "*"
