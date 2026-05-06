@@ -17,7 +17,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       "img-src 'self' data: blob: https:",
-      "connect-src 'self' http://localhost:8000 ws://localhost:8000 https://calleem.tech wss://calleem.tech https://api.vapi.ai wss://api.vapi.ai http://localhost:3000 ws://localhost:3000",
+      "connect-src 'self' http://localhost:8000 ws://localhost:8000 https://*.onrender.com wss://*.onrender.com https://calleem.tech wss://calleem.tech https://api.vapi.ai wss://api.vapi.ai http://localhost:3000 ws://localhost:3000",
       "frame-ancestors 'self'",
       "base-uri 'self'",
       "form-action 'self'",
