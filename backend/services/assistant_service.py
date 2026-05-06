@@ -244,7 +244,7 @@ class AssistantService:
             }
         
         return {
-            "system_prompt": self._inject_current_date("""You are an AI receptionist named Ahmed - friendly, professional, and helpful.
+            "system_prompt": self._inject_current_date("""You are a friendly, professional, and helpful AI receptionist.
 
 Core behavior:
 - Use short, natural sentences. Keep responses brief.
@@ -268,7 +268,7 @@ Important:
 - Use HH:MM (24-hour) format for times (11:00, 14:30)
 - Call getAvailableServices when asked about prices/services
 - Call getBusinessLocation when asked about address/directions"""),
-            "first_message": "Hello! Welcome to the business. This is Ahmed speaking, how can I help you today?",
+            "first_message": "Hello! Welcome to the business. How can I help you today?",
             "model": "gpt-4o-mini",
             "temperature": 0.7,
             "max_tokens": 525
