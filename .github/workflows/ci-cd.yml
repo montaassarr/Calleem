@@ -31,8 +31,8 @@ jobs:
         env:
           PYTHONPATH: .
           # Stub values — CI only checks imports, never calls encrypt/decrypt
-          SECRET_KEY: REDACTED
-          MASTER_KEY: "REDACTED"
+          SECRET_KEY: ci-test-secret-key-not-used-in-production
+          MASTER_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
           MONGO_URI: mongodb://localhost:27017/ci_test
           VAPI_PRIVATE_API_KEY: ci-stub
           VAPI_PUBLIC_KEY: ci-stub

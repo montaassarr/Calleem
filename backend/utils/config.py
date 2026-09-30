@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     VAPI_BASE_URL: str = "https://api.vapi.ai"
     
     # JWT & Security
-    SECRET_KEY: str = "REDACTED"
+    SECRET_KEY: str = "change-this-secret-key-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 

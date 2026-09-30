@@ -47,7 +47,7 @@ class TestTwilioSignatureValidation:
         mock_request.client.host = "1.2.3.4"
 
         with patch("utils.config.settings") as mock_settings:
-            mock_settings.TWILIO_AUTH_TOKEN = "REDACTED"
+            mock_settings.TWILIO_AUTH_TOKEN = "real_auth_token"
             from routers.webhook import _validate_twilio_signature
             with pytest.raises(HTTPException) as exc_info:
                 await _validate_twilio_signature(mock_request, {"From": "+15551234567"})
