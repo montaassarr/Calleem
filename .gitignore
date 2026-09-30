@@ -77,3 +77,10 @@ frontend_next/.env.*.local
 # Catch-all for any env file not already covered
 **/.env.local
 **/.env.test
+
+# Build artifacts / binaries that should never be committed
+*.tsbuildinfo
+*.tgz
+*.zip
+ngrok*
+page.html
