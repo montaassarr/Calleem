@@ -4,7 +4,7 @@ Tests for backend/utils/config.py security settings.
 Verifies:
 - DEBUG defaults to False in code (not relying on .env)
 - JWT access token expiry is 30 minutes in code defaults
-- AGENT_INTERNAL_TOKEN weakness check raises RuntimeError in production
+- A weak AGENT_INTERNAL_TOKEN disables the internal agent endpoints in production
 - CORS origins list is correctly parsed from string
 - ENVIRONMENT defaults to "production" in code
 """
@@ -77,31 +77,27 @@ class TestDefaultSettings:
 
 
 class TestWeakTokenCheck:
-    def test_weak_agent_token_raises_in_production(self, monkeypatch):
-        """AGENT_INTERNAL_TOKEN startup check must raise RuntimeError for known-weak values."""
-        monkeypatch.setenv("ENVIRONMENT", "production")
-        monkeypatch.setenv("AGENT_INTERNAL_TOKEN", "sdhcqkuefyqkjsdclzyedsdkfskdjsl")
+    """In production a weak or missing AGENT_INTERNAL_TOKEN disables the internal
+    agent endpoints (empty token -> 503) without crashing the API."""
 
+    def _reload_config(self, monkeypatch, environment, token):
         import importlib
         import utils.config as config_mod
-        with pytest.raises((RuntimeError, SystemExit)):
-            importlib.reload(config_mod)
+        monkeypatch.setenv("ENVIRONMENT", environment)
+        monkeypatch.setenv("AGENT_INTERNAL_TOKEN", token)
+        return importlib.reload(config_mod)
 
-    def test_empty_agent_token_raises_in_production(self, monkeypatch):
-        monkeypatch.setenv("ENVIRONMENT", "production")
-        monkeypatch.setenv("AGENT_INTERNAL_TOKEN", "")
-
-        import importlib
-        import utils.config as config_mod
-        with pytest.raises((RuntimeError, SystemExit)):
-            importlib.reload(config_mod)
+    @pytest.mark.parametrize("token", ["sdhcqkuefyqkjsdclzyedsdkfskdjsl", "", "changeme"])
+    def test_weak_agent_token_disables_internal_endpoints_in_production(self, monkeypatch, token):
+        config_mod = self._reload_config(monkeypatch, "production", token)
+        assert config_mod.settings.AGENT_INTERNAL_TOKEN == ""
 
     def test_strong_agent_token_accepted(self, monkeypatch):
         import secrets
         strong_token = secrets.token_urlsafe(32)
-        monkeypatch.setenv("ENVIRONMENT", "production")
-        monkeypatch.setenv("AGENT_INTERNAL_TOKEN", strong_token)
+        config_mod = self._reload_config(monkeypatch, "production", strong_token)
+        assert config_mod.settings.AGENT_INTERNAL_TOKEN == strong_token
 
-        import importlib
-        import utils.config as config_mod
-        importlib.reload(config_mod)
+    def test_weak_agent_token_kept_in_development(self, monkeypatch):
+        config_mod = self._reload_config(monkeypatch, "development", "changeme")
+        assert config_mod.settings.AGENT_INTERNAL_TOKEN == "changeme"

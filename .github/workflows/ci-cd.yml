@@ -46,6 +46,12 @@ jobs:
           python -m py_compile main.py
           echo "✅ Syntax check passed"
 
+      - name: Run tests
+        working-directory: ./backend
+        env:
+          PYTHONPATH: .
+        run: python -m pytest tests -q
+
   # ===== TEST FRONTEND =====
   test-frontend:
     runs-on: ubuntu-latest
@@ -66,6 +72,10 @@ jobs:
       - name: Lint
         working-directory: ./frontend_next
         run: npm run lint || echo "Lint completed"
+
+      - name: Unit tests
+        working-directory: ./frontend_next
+        run: npm test
           
       - name: Build
         working-directory: ./frontend_next

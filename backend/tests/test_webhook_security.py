@@ -94,7 +94,7 @@ class TestWebhookRateLimits:
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "routers", "webhook.py"
         )
-        with open(webhook_path) as f:
+        with open(webhook_path, encoding="utf-8") as f:
             source = f.read()
         # Check both the decorator and the route are present together
         assert "@limiter.limit" in source, "webhook.py must use @limiter.limit"
@@ -105,7 +105,7 @@ class TestWebhookRateLimits:
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "routers", "webhook.py"
         )
-        with open(webhook_path) as f:
+        with open(webhook_path, encoding="utf-8") as f:
             source = f.read()
         assert "@limiter.limit" in source
         assert '"/whatsapp"' in source or "'/whatsapp'" in source
@@ -116,7 +116,7 @@ class TestWebhookRateLimits:
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "routers", "webhook.py"
         )
-        with open(webhook_path) as f:
+        with open(webhook_path, encoding="utf-8") as f:
             source = f.read()
         # Extract all rate limit strings like "30/minute"
         limits = re.findall(r'"(\d+)/minute"', source)
@@ -132,7 +132,7 @@ class TestPIIMasking:
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "routers", "webhook.py"
         )
-        with open(webhook_path) as f:
+        with open(webhook_path, encoding="utf-8") as f:
             source = f.read()
 
         log_lines = [
@@ -153,7 +153,7 @@ class TestPIIMasking:
         if not os.path.exists(vapi_path):
             pytest.skip("vapi.py not found")
 
-        with open(vapi_path) as f:
+        with open(vapi_path, encoding="utf-8") as f:
             source = f.read()
 
         # Only check lines that interpolate a phone number variable (not just containing "phone" as a word)

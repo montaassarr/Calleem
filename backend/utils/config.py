@@ -131,16 +131,31 @@ if settings.SECRET_KEY in WEAK_KEYS and settings.ENVIRONMENT not in ["production
     )
 
 # 🔒 AGENT_INTERNAL_TOKEN strength check
-_WEAK_AGENT_TOKENS = ["sdhcqkuefyqkjsdclzyedsdkfskdjsl", "", "changeme"]
-if settings.ENVIRONMENT in ["production", "prod"] and settings.AGENT_INTERNAL_TOKEN in _WEAK_AGENT_TOKENS:
-    import secrets
+# Fail closed: in production a weak or missing token disables the internal agent
+# endpoints (they answer 503) instead of crashing the whole API or silently
+# generating a random token that no caller knows.
+_WEAK_AGENT_TOKENS = {"", "sdhcqkuefyqkjsdclzyedsdkfskdjsl", "changeme"}
+_RECOMMENDED_AGENT_TOKEN_LENGTH = 32
+
+if settings.AGENT_INTERNAL_TOKEN and len(settings.AGENT_INTERNAL_TOKEN) < _RECOMMENDED_AGENT_TOKEN_LENGTH:
+    import logging
+    logging.getLogger(__name__).warning(
+        "⚠️ AGENT_INTERNAL_TOKEN is shorter than %d characters; consider rotating it.",
+        _RECOMMENDED_AGENT_TOKEN_LENGTH,
+    )
+
+if settings.AGENT_INTERNAL_TOKEN in _WEAK_AGENT_TOKENS:
     import logging
     logger = logging.getLogger(__name__)
-    generated_token = secrets.token_urlsafe(32)
-    logger.error(
-        "🚨 SECURITY WARNING: AGENT_INTERNAL_TOKEN is weak or unset in production!\n"
-        "Auto-generating a temporary secure token for this session.\n"
-        "To ensure persistent access for your Vapi webhook, you MUST set AGENT_INTERNAL_TOKEN "
-        "in your Render/production environment variables."
-    )
-    settings.AGENT_INTERNAL_TOKEN = REDACTED
+    if settings.ENVIRONMENT in ["production", "prod"]:
+        logger.error(
+            "🚨 AGENT_INTERNAL_TOKEN is weak or unset in production: internal agent endpoints "
+            "are DISABLED (503). Set a strong token (python -c 'import secrets; "
+            "print(secrets.token_urlsafe(32))') in the production environment variables."
+        )
+        settings.AGENT_INTERNAL_TOKEN = ""
+    else:
+        logger.warning(
+            "⚠️ AGENT_INTERNAL_TOKEN is weak or unset. OK for development, "
+            "but internal agent endpoints will be disabled in production."
+        )

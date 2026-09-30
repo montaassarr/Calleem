@@ -99,7 +99,7 @@ cd backend && pytest tests            # security-focused unit tests (auth guards
 cd frontend_next && npm test          # Vitest: auth schemas, API client, security headers
 ```
 
-The [GitHub Actions pipeline](.github/workflows/ci-cd.yml) runs on every push: backend install + import check, frontend lint and production build, and Docker builds for both services.
+The [GitHub Actions pipeline](.github/workflows/ci-cd.yml) runs on every push: backend import check and pytest suite, frontend lint, Vitest suite and production build, and Docker builds for both services.
 
 ## Project structure
 

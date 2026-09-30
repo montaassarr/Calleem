@@ -21,7 +21,7 @@ BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def read_source(relative_path: str) -> str:
     path = os.path.join(BACKEND_DIR, relative_path)
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         return f.read()
 
 
