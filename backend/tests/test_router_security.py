@@ -117,6 +117,13 @@ class TestAdminEndpointAuth:
             "get_current_admin lets owners in; admin.py must not use it"
         )
 
+    def test_admin_router_mount_is_switchable(self):
+        """Public deployments run with ADMIN_API_ENABLED=false, so main.py must only mount the admin router behind it."""
+        src = read_source("main.py")
+        assert re.search(r"if settings\.ADMIN_API_ENABLED:\s*\n\s+app\.include_router\(admin\.router", src), (
+            "admin.router must be included only when settings.ADMIN_API_ENABLED is true"
+        )
+
 
 class TestMainAppSecurity:
     def test_docs_disabled_in_production(self):

@@ -4,7 +4,9 @@ The new deployment reuses the environment variables, ports and health check of t
 that is currently live; only the image changes. Requires Docker and the AWS CLI (logged in).
 
     python scripts/deploy_backend_aws.py
+    python scripts/deploy_backend_aws.py --env ADMIN_API_ENABLED=false   # also set/override env vars
 """
+import argparse
 import json
 import os
 import subprocess
@@ -32,6 +34,10 @@ def aws_json(*args):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--env", action="append", default=[], metavar="KEY=VALUE", help="set an environment variable on the new deployment")
+    overrides = dict(item.split("=", 1) for item in parser.parse_args().env)
+
     sha = subprocess.run(["git", "-C", ROOT, "rev-parse", "--short", "HEAD"], check=True, capture_output=True, text=True).stdout.strip()
     dirty = subprocess.run(["git", "-C", ROOT, "status", "--porcelain", "backend"], capture_output=True, text=True).stdout.strip()
     tag = f"{sha}-{int(time.time())}" if dirty else sha
@@ -46,6 +52,7 @@ def main():
     current = service["currentDeployment"]
     containers = current["containers"]
     containers[CONTAINER]["image"] = image
+    containers[CONTAINER].setdefault("environment", {}).update(overrides)
     request = {"serviceName": SERVICE, "containers": containers, "publicEndpoint": current["publicEndpoint"]}
 
     # The request holds the production environment variables: keep it in a private temp file only.

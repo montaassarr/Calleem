@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     # Dashboard Access Control
     MAX_DASHBOARD_USERS: int = 5
     ALLOW_SELF_REGISTRATION: bool = False
+    # Platform admin API (/api/v1/admin). Set to false on public deployments; the
+    # super admin runs it locally with scripts/admin_console.py.
+    ADMIN_API_ENABLED: bool = True
     
     # CORS - Can be overridden via environment variable
     # Format: comma-separated list of origins

@@ -64,7 +64,14 @@ const nextConfig = {
     ]
   },
   async redirects() {
+    // The platform admin console only runs locally (scripts/admin_console.py sets
+    // ADMIN_UI_ENABLED=true); public deployments send /admin back to the home page.
+    const adminRedirects = process.env.ADMIN_UI_ENABLED === 'true' ? [] : [
+      { source: '/admin', destination: '/', permanent: false },
+      { source: '/admin/:path*', destination: '/', permanent: false },
+    ];
     return [
+      ...adminRedirects,
       {
         source: '/dashboard/voice-agent/settings',
         destination: '/dashboard/settings/ai',

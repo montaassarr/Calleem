@@ -176,8 +176,10 @@ app.include_router(webhook.router, prefix=f"{settings.API_V1_PREFIX}/webhook", t
 # WebSocket
 app.include_router(websocket.router)
 
-# Admin (Platform Owner - all admin endpoints including analytics)
-app.include_router(admin.router, prefix=f"{settings.API_V1_PREFIX}/admin", tags=["Admin"])
+# Admin (Platform Owner - all admin endpoints including analytics).
+# Not mounted on the public deployment (ADMIN_API_ENABLED=false).
+if settings.ADMIN_API_ENABLED:
+    app.include_router(admin.router, prefix=f"{settings.API_V1_PREFIX}/admin", tags=["Admin"])
 
 # Monitoring
 app.include_router(monitoring.router, prefix=f"{settings.API_V1_PREFIX}", tags=["Monitoring"])
