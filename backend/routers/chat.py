@@ -2,20 +2,27 @@
 Chat Router
 ============
 Public API endpoints for the landing page chat widget.
-Uses Gemini AI for intelligent responses.
+Uses Gemini or Amazon Bedrock, selected with the CHAT_PROVIDER env var.
 """
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional
 import logging
+import os
 import uuid
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 limiter = Limiter(key_func=get_remote_address)
 
-from services.gemini_chat_service import gemini_chat_service
+CHAT_PROVIDER = os.getenv("CHAT_PROVIDER", "gemini").strip().lower()
+if CHAT_PROVIDER == "bedrock":
+    from services.bedrock_chat_service import BedrockChatService
+
+    chat_service = BedrockChatService()
+else:
+    from services.gemini_chat_service import gemini_chat_service as chat_service
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +54,7 @@ async def init_chat_session(request: Request):
     try:
         session_id = str(uuid.uuid4())
         # Pre-create the session
-        gemini_chat_service.get_or_create_session(session_id)
+        chat_service.get_or_create_session(session_id)
         
         return InitSessionResponse(
             session_id=session_id,
@@ -60,14 +67,14 @@ async def init_chat_session(request: Request):
 
 @router.post("/message", response_model=ChatMessageResponse)
 @limiter.limit("20/minute")
-async def send_chat_message(http_request: Request, request: ChatMessageRequest):
+async def send_chat_message(request: Request, body: ChatMessageRequest):
     """Send a message and get AI response"""
     try:
         # Use provided session_id or create new one
-        session_id = request.session_id or str(uuid.uuid4())
+        session_id = body.session_id or str(uuid.uuid4())
         
-        # Get response from Gemini
-        response = await gemini_chat_service.send_message(session_id, request.message)
+        # Get response from the configured AI provider
+        response = await chat_service.send_message(session_id, body.message)
         
         return ChatMessageResponse(
             response=response,
@@ -82,7 +89,7 @@ async def send_chat_message(http_request: Request, request: ChatMessageRequest):
 async def clear_chat_session(session_id: str):
     """Clear a chat session"""
     try:
-        gemini_chat_service.clear_session(session_id)
+        chat_service.clear_session(session_id)
         return {"status": "success", "message": "Session cleared"}
     except Exception as e:
         logger.error(f"Error clearing chat session: {e}")

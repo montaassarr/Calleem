@@ -18,7 +18,7 @@ const securityHeaders = [
       "font-src 'self' data: https://fonts.gstatic.com",
       "img-src 'self' data: blob: https:",
       "media-src 'self' data: blob: https:",
-      "connect-src 'self' http://localhost:8000 ws://localhost:8000 https://*.onrender.com wss://*.onrender.com https://calleem.tech wss://calleem.tech https://*.vapi.ai wss://*.vapi.ai https://*.daily.co wss://*.daily.co http://localhost:3000 ws://localhost:3000",
+      "connect-src 'self' http://localhost:8000 ws://localhost:8000 https://calleem-backend.aghzx2xe6ajmt.eu-west-3.cs.amazonlightsail.com https://*.onrender.com wss://*.onrender.com https://calleem.tech wss://calleem.tech https://*.vapi.ai wss://*.vapi.ai https://*.daily.co wss://*.daily.co http://localhost:3000 ws://localhost:3000",
       "worker-src 'self' blob:",
       "frame-ancestors 'self'",
       "base-uri 'self'",
