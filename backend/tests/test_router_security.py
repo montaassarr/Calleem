@@ -124,6 +124,17 @@ class TestAdminEndpointAuth:
             "admin.router must be included only when settings.ADMIN_API_ENABLED is true"
         )
 
+    def test_contact_management_is_admin_only(self):
+        """Submitting the contact form is public; reading, editing and deleting leads is not."""
+        src = read_source("routers/contacts.py")
+        routes = re.findall(r"@router\.(get|post|put|delete)\((.*)\)", src)
+        assert routes, "no routes found in contacts.py"
+        for method, args in routes:
+            if method == "post" and args.startswith('""'):
+                assert "ADMIN_ONLY" not in args, "the public contact form must stay open"
+            else:
+                assert "dependencies=ADMIN_ONLY" in args, f"{method.upper()} {args.split(',')[0]} must be admin-only"
+
 
 class TestMainAppSecurity:
     def test_docs_disabled_in_production(self):

@@ -1,20 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { formatDistanceToNow, format } from "date-fns";
 import api from "@/lib/api";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -26,9 +18,11 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Search, Users as UsersIcon, TrendingUp, Activity, Mail, Phone, Calendar, Building2, Trash, ShieldAlert, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Activity, Building2, Check, Clock, RefreshCw, Search, ShieldAlert, Trash2, Users as UsersIcon, X } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api/admin";
+import { cn } from "@/lib/utils";
+import { Avatar, EmptyState, LoadingState, PageHeader, Panel, Pill, StatCard, type Tone } from "@/components/admin/AdminUI";
 
 interface User {
     id: string;
@@ -41,15 +35,41 @@ interface User {
     created_at: string;
     last_login?: string;
     active: boolean;
-    approval_status?: 'pending' | 'approved' | 'rejected';
+    approval_status?: "pending" | "approved" | "rejected";
     phone?: string;
 }
 
+type Filter = "all" | "pending" | "approved" | "rejected";
+const FILTERS: Filter[] = ["all", "pending", "approved", "rejected"];
+
+const APPROVAL: Record<string, { tone: Tone; label: string }> = {
+    pending: { tone: "amber", label: "Pending" },
+    rejected: { tone: "red", label: "Rejected" },
+    approved: { tone: "green", label: "Approved" },
+};
+
 export default function UsersAdminPage() {
+    // useSearchParams needs a Suspense boundary in the app router.
+    return (
+        <Suspense fallback={<LoadingState label="Loading accounts…" />}>
+            <UsersAdmin />
+        </Suspense>
+    );
+}
+
+function UsersAdmin() {
+    const searchParams = useSearchParams();
     const [search, setSearch] = useState("");
+    const [filter, setFilter] = useState<Filter>("all");
+
+    // The sidebar links to ?filter=pending; follow the URL whenever it changes.
+    useEffect(() => {
+        const requested = searchParams.get("filter") as Filter | null;
+        setFilter(requested && FILTERS.includes(requested) ? requested : "all");
+    }, [searchParams]);
 
     // Fetch all users
-    const { data: users = [], isLoading, refetch } = useQuery({
+    const { data: users = [], isLoading, refetch, isFetching } = useQuery({
         queryKey: ["admin-users"],
         queryFn: async () => {
             const response = await api.get("/admin/users");
@@ -57,296 +77,215 @@ export default function UsersAdminPage() {
         },
     });
 
-    // Filter by search
+    // Business names come from the tenants list.
+    const { data: tenantNames = {} } = useQuery({
+        queryKey: ["admin-tenants", "names"],
+        queryFn: async () => {
+            const response = await adminApi.getTenants(0, 500);
+            const list = Array.isArray(response) ? response : response.items;
+            return Object.fromEntries(list.map((t: any) => [t.id, t.settings?.business_name || t.name])) as Record<string, string>;
+        },
+    });
+
+    const statusOf = (u: User) => u.approval_status || "approved";
+    const counts = Object.fromEntries(FILTERS.map((f) => [f, f === "all" ? users.length : users.filter((u) => statusOf(u) === f).length]));
+
     const filteredUsers = users.filter((user) => {
+        if (filter !== "all" && statusOf(user) !== filter) return false;
         const searchLower = search.toLowerCase();
+        const business = (user.tenant_id && tenantNames[user.tenant_id]) || user.business_name || "";
         return (
             user.email?.toLowerCase().includes(searchLower) ||
             user.username?.toLowerCase().includes(searchLower) ||
             user.full_name?.toLowerCase().includes(searchLower) ||
-            user.business_name?.toLowerCase().includes(searchLower)
+            business.toLowerCase().includes(searchLower)
         );
     });
 
-    // Calculate stats
-    const totalUsers = users.length;
-    const activeUsers = users.filter((u) => u.active).length;
-    const businessOwners = users.filter((u) => u.role === "owner").length;
-    const pendingUsers = users.filter((u) => u.approval_status === "pending").length;
+    const decide = async (user: User, approve: boolean) => {
+        try {
+            await (approve ? adminApi.approveUser(user.id) : adminApi.rejectUser(user.id));
+            toast.success(approve ? "Account approved" : "Account rejected");
+            refetch();
+        } catch (error: any) {
+            toast.error(error?.message || "Failed to update the account");
+        }
+    };
+
+    if (isLoading) return <LoadingState label="Loading accounts…" />;
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div>
-                <h1 className="text-3xl font-bold mb-2">Users (Business Owners)</h1>
-                <p className="text-muted-foreground">
-                    Manage all business owners and their accounts across your platform
-                </p>
+        <>
+            <PageHeader
+                eyebrow="Clients"
+                title="Accounts"
+                description="People who can log in to a Calleem dashboard. Approve new sign-ups here."
+                actions={
+                    <Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-white/5" onClick={() => refetch()}>
+                        <RefreshCw className={cn("size-4", isFetching && "animate-spin")} /> Refresh
+                    </Button>
+                }
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <StatCard label="Accounts" value={users.length} hint="All registered" icon={UsersIcon} tone="lime" />
+                <StatCard label="Active" value={users.filter((u) => u.active).length} hint="Allowed to log in" icon={Activity} tone="green" />
+                <StatCard label="Business owners" value={users.filter((u) => u.role === "owner").length} hint="Your customers" icon={Building2} tone="blue" />
+                <StatCard
+                    label="Pending approval"
+                    value={counts.pending}
+                    hint={counts.pending ? "Waiting for your review" : "Nothing to review"}
+                    icon={Clock}
+                    tone={counts.pending ? "amber" : "slate"}
+                />
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid gap-4 md:grid-cols-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                        <UsersIcon className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{totalUsers}</div>
-                        <p className="text-xs text-muted-foreground">All registered accounts</p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-                        <Activity className="h-4 w-4 text-green-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-green-600">{activeUsers}</div>
-                        <p className="text-xs text-muted-foreground">Currently active</p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Business Owners</CardTitle>
-                        <Building2 className="h-4 w-4 text-blue-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-blue-600">{businessOwners}</div>
-                        <p className="text-xs text-muted-foreground">Your customers</p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Pending Approval</CardTitle>
-                        <Clock className="h-4 w-4 text-orange-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-orange-600">{pendingUsers}</div>
-                        <p className="text-xs text-muted-foreground">Awaiting review</p>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Search */}
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle>All Users</CardTitle>
-                            <CardDescription>
-                                {filteredUsers.length} users found
-                            </CardDescription>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search users..."
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    className="pl-9 w-[300px]"
-                                />
-                            </div>
-                            <Button onClick={() => refetch()}>Refresh</Button>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    {isLoading ? (
-                        <div className="text-center py-8">
-                            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
-                            <p className="text-muted-foreground mt-2">Loading users...</p>
-                        </div>
-                    ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>User</TableHead>
-                                    <TableHead>Business</TableHead>
-                                    <TableHead>Contact</TableHead>
-                                    <TableHead>Role</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Approval</TableHead>
-                                    <TableHead>Joined</TableHead>
-                                    <TableHead>Last Login</TableHead>
-                                    <TableHead>Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredUsers.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                                            No users found
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    filteredUsers.map((user) => (
-                                        <TableRow key={user.id}>
-                                            <TableCell>
-                                                <div>
-                                                    <div className="font-medium">{user.full_name || user.username}</div>
-                                                    <div className="text-sm text-muted-foreground">{user.email}</div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                                                    <span>{user.business_name || "N/A"}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col gap-1 text-sm">
-                                                    {user.phone && (
-                                                        <div className="flex items-center gap-1 text-muted-foreground">
-                                                            <Phone className="h-3 w-3" />
-                                                            {user.phone}
-                                                        </div>
-                                                    )}
-                                                    <div className="flex items-center gap-1 text-muted-foreground">
-                                                        <Mail className="h-3 w-3" />
-                                                        {user.email}
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant={user.role === "owner" ? "default" : "secondary"}>
-                                                    {user.role}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                {user.active ? (
-                                                    <Badge variant="default" className="bg-green-600">Active</Badge>
-                                                ) : (
-                                                    <Badge variant="destructive">Inactive</Badge>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                {user.approval_status === "pending" ? (
-                                                    <Badge variant="outline" className="border-orange-500 text-orange-600">
-                                                        <Clock className="h-3 w-3 mr-1" />
-                                                        Pending
-                                                    </Badge>
-                                                ) : user.approval_status === "rejected" ? (
-                                                    <Badge variant="destructive">
-                                                        <XCircle className="h-3 w-3 mr-1" />
-                                                        Rejected
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge variant="default" className="bg-green-600">
-                                                        <CheckCircle className="h-3 w-3 mr-1" />
-                                                        Approved
-                                                    </Badge>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                                    <Calendar className="h-3 w-3" />
-                                                    {new Date(user.created_at).toLocaleDateString()}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="text-sm text-muted-foreground">
-                                                    {user.last_login
-                                                        ? new Date(user.last_login).toLocaleDateString()
-                                                        : "Never"}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    {user.approval_status === "pending" && (
-                                                        <>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                                                onClick={async () => {
-                                                                    try {
-                                                                        await adminApi.approveUser(user.id);
-                                                                        toast.success("User approved successfully");
-                                                                        refetch();
-                                                                    } catch (error: any) {
-                                                                        toast.error(error?.message || "Failed to approve user");
-                                                                    }
-                                                                }}
-                                                            >
-                                                                <CheckCircle className="h-4 w-4 mr-1" />
-                                                                Approve
-                                                            </Button>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                                onClick={async () => {
-                                                                    try {
-                                                                        await adminApi.rejectUser(user.id);
-                                                                        toast.success("User rejected");
-                                                                        refetch();
-                                                                    } catch (error: any) {
-                                                                        toast.error(error?.message || "Failed to reject user");
-                                                                    }
-                                                                }}
-                                                            >
-                                                                <XCircle className="h-4 w-4 mr-1" />
-                                                                Reject
-                                                            </Button>
-                                                        </>
-                                                    )}
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger asChild>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                                disabled={user.role === 'super_admin'}
-                                                            >
-                                                                <Trash className="h-4 w-4" />
-                                                            </Button>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-                                                                    <ShieldAlert className="h-5 w-5" />
-                                                                    Delete User & Tenant Data?
-                                                                </AlertDialogTitle>
-                                                                <AlertDialogDescription>
-                                                                    This action cannot be undone. This will permanently delete
-                                                                    <strong> {user.email}</strong> and completely wipe their tenant data
-                                                                    (appointments, logs, settings).
-                                                                </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                <AlertDialogAction
-                                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                                    onClick={async () => {
-                                                                        try {
-                                                                            await api.delete(`/admin/users/${user.id}`);
-                                                                            toast.success("User deleted successfully");
-                                                                            refetch();
-                                                                        } catch (error: any) {
-                                                                            toast.error(error?.message || "Failed to delete user");
-                                                                        }
-                                                                    }}
-                                                                >
-                                                                    Delete Permanently
-                                                                </AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
+            <Panel
+                bodyClassName="p-0"
+                title={
+                    <div className="flex items-center gap-1 rounded-xl bg-white/[0.03] p-1 ring-1 ring-inset ring-border">
+                        {FILTERS.map((f) => (
+                            <button
+                                key={f}
+                                onClick={() => setFilter(f)}
+                                className={cn(
+                                    "rounded-lg px-3 py-1.5 text-[13px] font-medium capitalize transition-colors",
+                                    filter === f ? "bg-white/[0.08] text-white" : "text-muted-foreground hover:text-foreground",
                                 )}
-                            </TableBody>
-                        </Table>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
+                            >
+                                {f}
+                                <span className={cn("ml-1.5 text-xs", f === "pending" && counts.pending ? "text-amber-300" : "text-[#5f7368]")}>
+                                    {counts[f]}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                }
+                actions={
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            placeholder="Search name, email or business…"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="h-9 w-[300px] rounded-xl pl-9"
+                        />
+                    </div>
+                }
+            >
+                {filteredUsers.length === 0 ? (
+                    <EmptyState icon={UsersIcon} title="No accounts here" hint={filter === "pending" ? "Nobody is waiting for approval." : undefined} />
+                ) : (
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b border-border text-left text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+                                <th className="px-5 py-3 font-semibold">Account</th>
+                                <th className="px-5 py-3 font-semibold">Business</th>
+                                <th className="px-5 py-3 font-semibold">Role</th>
+                                <th className="px-5 py-3 font-semibold">Approval</th>
+                                <th className="px-5 py-3 font-semibold">Joined</th>
+                                <th className="px-5 py-3 font-semibold">Last active</th>
+                                <th className="px-5 py-3 text-right font-semibold">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                            {filteredUsers.map((user) => {
+                                const approval = APPROVAL[statusOf(user)];
+                                const business = (user.tenant_id && tenantNames[user.tenant_id]) || user.business_name;
+                                return (
+                                    <tr key={user.id} className="group transition-colors hover:bg-white/[0.02]">
+                                        <td className="px-5 py-3">
+                                            <div className="flex items-center gap-3">
+                                                <Avatar name={user.full_name || user.username} className="size-8" />
+                                                <div className="min-w-0">
+                                                    <p className="truncate font-medium text-foreground">{user.full_name || user.username}</p>
+                                                    <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-5 py-3 text-foreground">{business || <span className="text-muted-foreground">—</span>}</td>
+                                        <td className="px-5 py-3">
+                                            <Pill tone={user.role === "super_admin" ? "lime" : "slate"}>
+                                                {user.role === "super_admin" ? "Super admin" : user.role.replace(/^\w/, (c) => c.toUpperCase())}
+                                            </Pill>
+                                        </td>
+                                        <td className="px-5 py-3">
+                                            <Pill dot tone={approval.tone}>
+                                                {approval.label}
+                                            </Pill>
+                                        </td>
+                                        <td className="px-5 py-3 text-muted-foreground">{format(new Date(user.created_at), "MMM d, yyyy")}</td>
+                                        <td className="px-5 py-3 text-muted-foreground">
+                                            {user.last_login ? formatDistanceToNow(new Date(user.last_login), { addSuffix: true }) : "Never"}
+                                        </td>
+                                        <td className="px-5 py-3">
+                                            <div className="flex items-center justify-end gap-1.5">
+                                                {user.approval_status === "pending" && (
+                                                    <>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            className="text-muted-foreground hover:bg-rose-500/10 hover:text-rose-300"
+                                                            onClick={() => decide(user, false)}
+                                                        >
+                                                            <X className="size-4" /> Reject
+                                                        </Button>
+                                                        <Button size="sm" onClick={() => decide(user, true)}>
+                                                            <Check className="size-4" /> Approve
+                                                        </Button>
+                                                    </>
+                                                )}
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            title={user.role === "super_admin" ? "The super admin can't be deleted" : "Delete account"}
+                                                            className="size-8 text-muted-foreground opacity-60 hover:bg-rose-500/10 hover:text-rose-300 group-hover:opacity-100"
+                                                            disabled={user.role === "super_admin"}
+                                                        >
+                                                            <Trash2 className="size-4" />
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle className="flex items-center gap-2">
+                                                                <ShieldAlert className="size-5 text-rose-400" />
+                                                                Delete this account and its data?
+                                                            </AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                This permanently deletes <strong className="text-foreground">{user.email}</strong> and wipes their
+                                                                business data (appointments, logs, settings). It cannot be undone.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel className="border-border bg-transparent text-foreground hover:bg-white/5">Cancel</AlertDialogCancel>
+                                                            <AlertDialogAction
+                                                                className="bg-rose-600 text-white hover:bg-rose-700"
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        await api.delete(`/admin/users/${user.id}`);
+                                                                        toast.success("Account deleted");
+                                                                        refetch();
+                                                                    } catch (error: any) {
+                                                                        toast.error(error?.message || "Failed to delete account");
+                                                                    }
+                                                                }}
+                                                            >
+                                                                Delete permanently
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                )}
+            </Panel>
+        </>
     );
 }

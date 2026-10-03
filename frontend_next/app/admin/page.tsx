@@ -1,185 +1,239 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { adminApi } from '@/lib/api/admin';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Calendar, MessageSquare, Building2, DollarSign, Activity, CheckCircle2 } from 'lucide-react';
-import { toast } from 'sonner';
+import Link from "next/link";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
+import { ArrowUpRight, Building2, Check, CircleDollarSign, Clock, Inbox, PhoneCall, UserCheck, X } from "lucide-react";
+import { toast } from "sonner";
+import { adminApi } from "@/lib/api/admin";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Avatar, EmptyState, LoadingState, PageHeader, Panel, Pill, StatCard } from "@/components/admin/AdminUI";
 
-interface GlobalAnalytics {
-    tenants: {
-        total: number;
-        active: number;
-    };
-    users: number;
-    appointments: number;
-    conversations: number;
-    timestamp?: string;
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+interface Lead {
+    id: string;
+    full_name: string;
+    business_name: string;
+    business_type: string;
+    monthly_calls: string;
+    status: string;
+    created_at: string;
 }
 
-export default function AdminDashboard() {
-    const [stats, setStats] = useState<GlobalAnalytics | null>(null);
-    const [loading, setLoading] = useState(true);
+const money = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const data = await adminApi.getGlobalAnalytics();
-                setStats(data);
-            } catch (error: any) {
-                console.error("Failed to fetch analytics:", error);
-                toast.error("Failed to fetch analytics");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchStats();
-    }, []);
+function greeting() {
+    const h = new Date().getHours();
+    return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+}
 
-    const statCards = [
-        {
-            title: "Active Tenants",
-            value: stats?.tenants?.active || 0,
-            icon: Building2,
-            description: `out of ${stats?.tenants?.total || 0} total`,
-            color: "text-blue-600"
-        },
-        {
-            title: "Total Users",
-            value: stats?.users || 0,
-            icon: Users,
-            description: "across all tenants",
-            color: "text-purple-600"
-        },
-        {
-            title: "Total Appointments",
-            value: stats?.appointments || 0,
-            icon: Calendar,
-            description: "scheduled appointments",
-            color: "text-green-600"
-        },
-        {
-            title: "AI Conversations",
-            value: stats?.conversations || 0,
-            icon: MessageSquare,
-            description: "total conversations",
-            color: "text-cyan-600"
-        }
-    ];
+export default function AdminOverview() {
+    const { user } = useAuth();
+    const queryClient = useQueryClient();
 
-    if (loading) {
-        return (
-            <div className="p-8 flex items-center justify-center min-h-screen">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-muted-foreground">Loading dashboard...</p>
-                </div>
-            </div>
-        );
-    }
+    const billing = useQuery({ queryKey: ["admin-billing"], queryFn: () => adminApi.getBillingOverview() });
+    const pending = useQuery({ queryKey: ["admin-pending-users"], queryFn: () => adminApi.getPendingUsers() });
+    const leads = useQuery({
+        queryKey: ["admin-leads", "latest"],
+        queryFn: async (): Promise<Lead[]> => {
+            const token = localStorage.getItem("access_token");
+            const res = await fetch(`${API_BASE}/api/v1/contacts?limit=5`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+            if (!res.ok) throw new Error("Failed to load leads");
+            return res.json();
+        },
+    });
+
+    const decide = useMutation({
+        mutationFn: ({ id, approve }: { id: string; approve: boolean }) => (approve ? adminApi.approveUser(id) : adminApi.rejectUser(id)),
+        onSuccess: (_, { approve }) => {
+            toast.success(approve ? "Account approved" : "Account rejected");
+            queryClient.invalidateQueries({ queryKey: ["admin-pending-users"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-billing"] });
+        },
+        onError: () => toast.error("Could not update the account"),
+    });
+
+    if (billing.isLoading) return <LoadingState label="Loading your console…" />;
+
+    const summary = billing.data?.platform_summary;
+    const businesses = [...(billing.data?.tenants ?? [])].sort((a, b) => b.total_calls - a.total_calls);
+    const totalCalls = businesses.reduce((sum, t) => sum + t.total_calls, 0);
+    const pendingUsers = pending.data ?? [];
+    const firstName = (user?.full_name || "").split(" ")[0];
 
     return (
-        <div className="space-y-8">
-            {/* Header */}
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                        SaaS Admin Dashboard
-                    </h1>
-                    <p className="text-muted-foreground mt-2">
-                        Manage tenants, users, and system configuration
-                    </p>
-                </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-full text-sm font-medium">
-                    <CheckCircle2 className="w-4 h-4" />
-                    All Systems Operational
-                </div>
+        <>
+            <PageHeader
+                eyebrow="Super admin"
+                title={`${greeting()}${firstName ? `, ${firstName}` : ""}`}
+                description="Your clients, revenue and approvals at a glance."
+                actions={
+                    <Button asChild variant="outline" className="border-border bg-transparent text-foreground hover:bg-white/5">
+                        <Link href="/admin/billing">
+                            Billing <ArrowUpRight className="size-4" />
+                        </Link>
+                    </Button>
+                }
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <StatCard
+                    label="Active businesses"
+                    value={summary?.active_tenants ?? 0}
+                    hint={`${summary?.total_tenants ?? 0} registered in total`}
+                    icon={Building2}
+                    tone="lime"
+                />
+                <StatCard
+                    label="Monthly revenue"
+                    value={money(summary?.total_subscription_revenue_usd ?? 0)}
+                    hint={`Margin ${money(summary?.platform_margin_usd ?? 0)} after voice costs`}
+                    icon={CircleDollarSign}
+                    tone="green"
+                />
+                <StatCard
+                    label="Pending approvals"
+                    value={pendingUsers.length}
+                    hint={pendingUsers.length ? "Waiting for your review" : "You're all caught up"}
+                    icon={Clock}
+                    tone={pendingUsers.length ? "amber" : "slate"}
+                />
+                <StatCard label="Calls handled" value={totalCalls.toLocaleString()} hint="Across all clients" icon={PhoneCall} tone="blue" />
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                {statCards.map((stat, i) => (
-                    <Card key={i} className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">
-                                {stat.title}
-                            </CardTitle>
-                            <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-3xl font-bold">{stat.value.toLocaleString()}</div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                {stat.description}
-                            </p>
-                        </CardContent>
-                    </Card>
-                ))}
+            <div className="grid gap-6 xl:grid-cols-5">
+                <Panel
+                    className="xl:col-span-3"
+                    title="Pending approvals"
+                    description="New businesses that signed up and are waiting for access"
+                    bodyClassName="p-0"
+                    actions={
+                        <Link href="/admin/users?filter=pending" className="text-xs font-medium text-[#a8ff5c] hover:underline">
+                            View all
+                        </Link>
+                    }
+                >
+                    {pendingUsers.length === 0 ? (
+                        <EmptyState icon={UserCheck} title="No one is waiting" hint="New sign-ups will appear here." />
+                    ) : (
+                        <ul className="divide-y divide-border">
+                            {pendingUsers.slice(0, 5).map((u) => (
+                                <li key={u.id} className="flex items-center gap-3 px-5 py-3.5">
+                                    <Avatar name={u.full_name} />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate text-sm font-medium text-foreground">{u.full_name}</p>
+                                        <p className="truncate text-xs text-muted-foreground">
+                                            {u.email}
+                                            {u.created_at && ` · signed up ${formatDistanceToNow(new Date(u.created_at), { addSuffix: true })}`}
+                                        </p>
+                                    </div>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="text-muted-foreground hover:bg-rose-500/10 hover:text-rose-300"
+                                        disabled={decide.isPending}
+                                        onClick={() => decide.mutate({ id: u.id, approve: false })}
+                                    >
+                                        <X className="size-4" /> Reject
+                                    </Button>
+                                    <Button size="sm" disabled={decide.isPending} onClick={() => decide.mutate({ id: u.id, approve: true })}>
+                                        <Check className="size-4" /> Approve
+                                    </Button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Panel>
+
+                <Panel
+                    className="xl:col-span-2"
+                    title="Newest leads"
+                    description="From the contact form on calleem.tech"
+                    bodyClassName="p-0"
+                    actions={
+                        <Link href="/admin/contacts" className="text-xs font-medium text-[#a8ff5c] hover:underline">
+                            View all
+                        </Link>
+                    }
+                >
+                    {(leads.data ?? []).length === 0 ? (
+                        <EmptyState icon={Inbox} title="No leads yet" hint="Contact-form submissions will show up here." />
+                    ) : (
+                        <ul className="divide-y divide-border">
+                            {(leads.data ?? []).map((lead) => (
+                                <li key={lead.id} className="flex items-center gap-3 px-5 py-3.5">
+                                    <Avatar name={lead.business_name} className="from-sky-600 to-slate-800" />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate text-sm font-medium text-foreground">{lead.business_name}</p>
+                                        <p className="truncate text-xs text-muted-foreground">
+                                            {lead.full_name} · {lead.business_type} · {lead.monthly_calls} calls/mo
+                                        </p>
+                                    </div>
+                                    {lead.status === "new" && <Pill tone="lime" dot>New</Pill>}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Panel>
             </div>
 
-            {/* Quick Actions */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <a
-                            href="/admin/tenants"
-                            className="flex flex-col items-center gap-2 p-4 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
-                        >
-                            <Building2 className="w-8 h-8 text-blue-600" />
-                            <span className="text-sm font-medium">Manage Tenants</span>
-                        </a>
-                        <a
-                            href="/admin/users"
-                            className="flex flex-col items-center gap-2 p-4 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
-                        >
-                            <Users className="w-8 h-8 text-purple-600" />
-                            <span className="text-sm font-medium">Manage Users</span>
-                        </a>
-                        <a
-                            href="/admin/appointments"
-                            className="flex flex-col items-center gap-2 p-4 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
-                        >
-                            <Calendar className="w-8 h-8 text-green-600" />
-                            <span className="text-sm font-medium">View Appointments</span>
-                        </a>
-                        <a
-                            href="/admin/conversations"
-                            className="flex flex-col items-center gap-2 p-4 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
-                        >
-                            <MessageSquare className="w-8 h-8 text-cyan-600" />
-                            <span className="text-sm font-medium">View Conversations</span>
-                        </a>
-
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* System Info */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>System Information</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div>
-                            <p className="text-sm text-muted-foreground mb-1">Last Updated</p>
-                            <p className="font-semibold">
-                                {stats?.timestamp ? new Date(stats.timestamp).toLocaleString() : 'N/A'}
-                            </p>
-                        </div>
-                        <div>
-                            <p className="text-sm text-muted-foreground mb-1">Environment</p>
-                            <p className="font-semibold">Development</p>
-                        </div>
-                        <div>
-                            <p className="text-sm text-muted-foreground mb-1">Access Level</p>
-                            <p className="font-semibold text-blue-600">Public (Demo Mode)</p>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+            <Panel
+                title="Businesses"
+                description="Plans, usage and credit balance per client"
+                bodyClassName="p-0"
+                actions={
+                    <Link href="/admin/tenants" className="text-xs font-medium text-[#a8ff5c] hover:underline">
+                        Manage businesses
+                    </Link>
+                }
+            >
+                {businesses.length === 0 ? (
+                    <EmptyState icon={Building2} title="No businesses yet" />
+                ) : (
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b border-border text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                                <th className="px-5 py-3 font-semibold">Business</th>
+                                <th className="px-5 py-3 font-semibold">Plan</th>
+                                <th className="px-5 py-3 font-semibold">Status</th>
+                                <th className="px-5 py-3 text-right font-semibold">Calls</th>
+                                <th className="px-5 py-3 text-right font-semibold">Revenue / mo</th>
+                                <th className="px-5 py-3 text-right font-semibold">Credits</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                            {businesses.map((t) => (
+                                <tr key={t.tenant_id} className="transition-colors hover:bg-white/[0.02]">
+                                    <td className="px-5 py-3">
+                                        <div className="flex items-center gap-3">
+                                            <Avatar name={t.name} className="size-8" />
+                                            <div className="min-w-0">
+                                                <p className="truncate font-medium text-foreground">{t.name}</p>
+                                                <p className="truncate text-xs text-muted-foreground">{t.email}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-5 py-3 capitalize text-foreground">{t.plan}</td>
+                                    <td className="px-5 py-3">
+                                        <Pill dot tone={t.subscription_status === "active" ? "green" : t.subscription_status === "trialing" ? "blue" : "slate"}>
+                                            {t.subscription_status === "trialing" ? "Trial" : t.subscription_status.charAt(0).toUpperCase() + t.subscription_status.slice(1)}
+                                        </Pill>
+                                    </td>
+                                    <td className="px-5 py-3 text-right tabular-nums text-foreground">{t.total_calls.toLocaleString()}</td>
+                                    <td className="px-5 py-3 text-right tabular-nums text-foreground">{money(t.monthly_subscription_usd)}</td>
+                                    <td className="px-5 py-3 text-right tabular-nums">
+                                        <span className={t.credit_balance < 20 ? "text-amber-300" : "text-foreground"}>
+                                            {t.credit_balance.toLocaleString("en-US", { style: "currency", currency: "USD" })}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </Panel>
+        </>
     );
 }

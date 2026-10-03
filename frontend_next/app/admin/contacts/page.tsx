@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +37,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Avatar, EmptyState, LoadingState, PageHeader, Panel, Pill, StatCard, type Tone } from "@/components/admin/AdminUI";
 
 interface Contact {
     id: string;
@@ -69,6 +68,12 @@ interface ContactStats {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+// Lead management endpoints are super-admin only.
+const authHeaders = (): Record<string, string> => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 export default function ContactsPage() {
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [stats, setStats] = useState<ContactStats | null>(null);
@@ -85,7 +90,7 @@ export default function ContactsPage() {
             if (searchTerm) params.append("search", searchTerm);
             if (statusFilter !== "all") params.append("status", statusFilter);
 
-            const response = await fetch(`${API_BASE}/api/v1/contacts?${params}`);
+            const response = await fetch(`${API_BASE}/api/v1/contacts?${params}`, { headers: authHeaders() });
             if (!response.ok) throw new Error("Failed to fetch contacts");
             const data = await response.json();
             setContacts(data);
@@ -97,7 +102,7 @@ export default function ContactsPage() {
 
     const fetchStats = useCallback(async () => {
         try {
-            const response = await fetch(`${API_BASE}/api/v1/contacts/stats`);
+            const response = await fetch(`${API_BASE}/api/v1/contacts/stats`, { headers: authHeaders() });
             if (!response.ok) throw new Error("Failed to fetch stats");
             const data = await response.json();
             setStats(data);
@@ -123,7 +128,7 @@ export default function ContactsPage() {
         try {
             const response = await fetch(`${API_BASE}/api/v1/contacts/${contactId}`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", ...authHeaders() },
                 body: JSON.stringify({ status }),
             });
             if (!response.ok) throw new Error("Failed to update contact");
@@ -139,7 +144,7 @@ export default function ContactsPage() {
         try {
             const response = await fetch(`${API_BASE}/api/v1/contacts/${contactId}`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", ...authHeaders() },
                 body: JSON.stringify({ admin_notes: adminNotes }),
             });
             if (!response.ok) throw new Error("Failed to update notes");
@@ -157,6 +162,7 @@ export default function ContactsPage() {
         try {
             const response = await fetch(`${API_BASE}/api/v1/contacts/${contactId}`, {
                 method: "DELETE",
+                headers: authHeaders(),
             });
             if (!response.ok) throw new Error("Failed to delete contact");
             toast.success("Contact deleted");
@@ -178,21 +184,12 @@ export default function ContactsPage() {
         }
     };
 
-    const getStatusBadge = (status: string) => {
-        const variants: Record<string, { color: string; icon: React.ReactNode }> = {
-            new: { color: "bg-blue-500", icon: <Clock className="w-3 h-3" /> },
-            read: { color: "bg-yellow-500", icon: <Eye className="w-3 h-3" /> },
-            responded: { color: "bg-green-500", icon: <CheckCircle className="w-3 h-3" /> },
-            archived: { color: "bg-gray-500", icon: <Archive className="w-3 h-3" /> },
-        };
-        const variant = variants[status] || variants.new;
-        return (
-            <Badge className={`${variant.color} text-white flex items-center gap-1`}>
-                {variant.icon}
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-            </Badge>
-        );
-    };
+    const STATUS_TONE: Record<string, Tone> = { new: "lime", read: "blue", responded: "green", archived: "slate" };
+    const getStatusBadge = (status: string) => (
+        <Pill dot tone={STATUS_TONE[status] || "slate"}>
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+        </Pill>
+    );
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString("en-US", {
@@ -205,90 +202,47 @@ export default function ContactsPage() {
     };
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold">Contact Submissions</h1>
-                    <p className="text-muted-foreground">
-                        Manage contact form submissions from the landing page
-                    </p>
-                </div>
-                <Button onClick={loadData} disabled={loading}>
-                    <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-                    Refresh
-                </Button>
-            </div>
+        <>
+            <PageHeader
+                eyebrow="Clients"
+                title="Leads"
+                description="Businesses that filled in the contact form on calleem.tech. This is your sales pipeline."
+                actions={
+                    <Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-white/5" onClick={loadData} disabled={loading}>
+                        <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+                    </Button>
+                }
+            />
 
-            {/* Stats Cards */}
             {stats && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Total</p>
-                                    <p className="text-2xl font-bold">{stats.total}</p>
-                                </div>
-                                <Users className="w-8 h-8 text-primary opacity-50" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">New</p>
-                                    <p className="text-2xl font-bold text-blue-500">{stats.new}</p>
-                                </div>
-                                <Clock className="w-8 h-8 text-blue-500 opacity-50" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Today</p>
-                                    <p className="text-2xl font-bold text-green-500">{stats.today}</p>
-                                </div>
-                                <Calendar className="w-8 h-8 text-green-500 opacity-50" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">This Month</p>
-                                    <p className="text-2xl font-bold">{stats.this_month}</p>
-                                </div>
-                                <MessageSquare className="w-8 h-8 text-primary opacity-50" />
-                            </div>
-                        </CardContent>
-                    </Card>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <StatCard label="All leads" value={stats.total} hint="Since launch" icon={Users} tone="lime" />
+                    <StatCard label="New" value={stats.new} hint={stats.new ? "Not opened yet" : "All caught up"} icon={Clock} tone={stats.new ? "amber" : "slate"} />
+                    <StatCard label="Today" value={stats.today} hint="Submitted today" icon={Calendar} tone="blue" />
+                    <StatCard label="This month" value={stats.this_month} hint={`${stats.responded} responded so far`} icon={MessageSquare} tone="green" />
                 </div>
             )}
 
-            {/* Filters */}
-            <Card>
-                <CardContent className="pt-6">
-                    <div className="flex flex-col md:flex-row gap-4">
-                        <div className="flex-1 relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Panel
+                bodyClassName="p-0"
+                title={`${contacts.length} lead${contacts.length !== 1 ? "s" : ""}`}
+                actions={
+                    <div className="flex items-center gap-2">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
-                                placeholder="Search by name, email, or business..."
+                                placeholder="Search name, email or business…"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-10"
+                                className="h-9 w-[280px] rounded-xl pl-9"
                             />
                         </div>
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="w-[180px]">
+                            <SelectTrigger className="h-9 w-[150px] rounded-xl">
                                 <SelectValue placeholder="Filter by status" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Status</SelectItem>
+                                <SelectItem value="all">All statuses</SelectItem>
                                 <SelectItem value="new">New</SelectItem>
                                 <SelectItem value="read">Read</SelectItem>
                                 <SelectItem value="responded">Responded</SelectItem>
@@ -296,71 +250,48 @@ export default function ContactsPage() {
                             </SelectContent>
                         </Select>
                     </div>
-                </CardContent>
-            </Card>
-
-            {/* Contacts List */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>All Contacts</CardTitle>
-                    <CardDescription>
-                        {contacts.length} contact{contacts.length !== 1 ? "s" : ""} found
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {loading ? (
-                        <div className="flex items-center justify-center py-12">
-                            <RefreshCw className="w-8 h-8 animate-spin text-primary" />
-                        </div>
-                    ) : contacts.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground">
-                            <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                            <p>No contacts found</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {contacts.map((contact) => (
-                                <div
-                                    key={contact.id}
-                                    onClick={() => openContactDetail(contact)}
-                                    className="p-4 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                                >
-                                    <div className="flex items-start justify-between">
-                                        <div className="space-y-1">
-                                            <div className="flex items-center gap-2">
-                                                <h3 className="font-semibold">{contact.full_name}</h3>
-                                                {getStatusBadge(contact.status)}
-                                            </div>
-                                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                                <span className="flex items-center gap-1">
-                                                    <Building2 className="w-3 h-3" />
-                                                    {contact.business_name}
-                                                </span>
-                                                <span className="flex items-center gap-1">
-                                                    <Mail className="w-3 h-3" />
-                                                    {contact.email}
-                                                </span>
-                                                <span className="flex items-center gap-1">
-                                                    <Phone className="w-3 h-3" />
-                                                    {contact.phone_number}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">
-                                            {formatDate(contact.created_at)}
-                                        </div>
+                }
+            >
+                {loading ? (
+                    <LoadingState label="Loading leads…" />
+                ) : contacts.length === 0 ? (
+                    <EmptyState icon={MessageSquare} title="No leads found" hint="Contact-form submissions will show up here." />
+                ) : (
+                    <ul className="divide-y divide-border">
+                        {contacts.map((contact) => (
+                            <li
+                                key={contact.id}
+                                onClick={() => openContactDetail(contact)}
+                                className="flex cursor-pointer gap-4 px-5 py-4 transition-colors hover:bg-white/[0.02]"
+                            >
+                                <Avatar name={contact.business_name} className="mt-0.5 from-sky-600 to-slate-800" />
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <p className="font-medium text-foreground">{contact.business_name}</p>
+                                        {getStatusBadge(contact.status)}
+                                        <span className="text-xs text-muted-foreground">
+                                            {contact.business_type} · {contact.monthly_calls} calls/mo
+                                        </span>
                                     </div>
-                                    {contact.message && (
-                                        <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
-                                            {contact.message}
-                                        </p>
-                                    )}
+                                    <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                        <span>{contact.full_name}</span>
+                                        <span className="flex items-center gap-1">
+                                            <Mail className="size-3" />
+                                            {contact.email}
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            <Phone className="size-3" />
+                                            {contact.phone_number}
+                                        </span>
+                                    </p>
+                                    {contact.message && <p className="mt-2 line-clamp-2 text-sm text-[#b9c7bf]">“{contact.message}”</p>}
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                                <p className="shrink-0 text-xs text-muted-foreground">{formatDate(contact.created_at)}</p>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </Panel>
 
             {/* Contact Detail Modal */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
@@ -482,6 +413,6 @@ export default function ContactsPage() {
                     )}
                 </DialogContent>
             </Dialog>
-        </div>
+        </>
     );
 }

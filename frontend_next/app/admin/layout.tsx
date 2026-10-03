@@ -1,6 +1,7 @@
 "use client";
 
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AdminTopbar } from "@/components/admin/AdminTopbar";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,6 +16,12 @@ export default function AdminLayout({
     const { user, isLoading, isAuthenticated } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
+
+    // Dark console theme for the admin area, on <body> so dialogs and menus get it too.
+    useEffect(() => {
+        document.body.classList.add("admin-theme");
+        return () => document.body.classList.remove("admin-theme");
+    }, []);
 
     useEffect(() => {
         if (!isLoading) {
@@ -31,7 +38,7 @@ export default function AdminLayout({
     // Show simplified layout for login page
     if (pathname === "/admin/login") {
         return (
-            <div className="min-h-screen bg-slate-950">
+            <div className="min-h-screen bg-background">
                 {children}
                 <Toaster />
                 <Sonner />
@@ -41,9 +48,9 @@ export default function AdminLayout({
 
     if (isLoading) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+            <div className="flex min-h-screen items-center justify-center bg-background">
                 <div className="flex flex-col items-center gap-4">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#8cff2e] border-t-transparent" />
                     <p className="text-sm text-muted-foreground">Verifying access...</p>
                 </div>
             </div>
@@ -56,13 +63,14 @@ export default function AdminLayout({
     }
 
     return (
-        <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
+        <div className="min-h-screen bg-background">
             <AdminSidebar />
-            <main className="flex-1 ml-64 p-8 overflow-y-auto h-screen">
-                <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="ml-[264px] flex min-h-screen flex-col">
+                <AdminTopbar />
+                <main className="mx-auto w-full max-w-[1320px] flex-1 space-y-8 px-8 py-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
                     {children}
-                </div>
-            </main>
+                </main>
+            </div>
             <Toaster />
             <Sonner />
         </div>

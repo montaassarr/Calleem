@@ -10,10 +10,22 @@ import logging
 
 from models.contact import ContactCreate, ContactUpdate, ContactResponse, ContactStatus, ContactStats
 from services.contact_service import get_contact_service, ContactService
+from routers.users import get_super_admin
+from utils.config import settings
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _admin_console_enabled():
+    """Lead management belongs to the private admin console: absent on public deployments."""
+    if not settings.ADMIN_API_ENABLED:
+        raise HTTPException(status_code=404, detail="Not Found")
+
+
+# Everything except submitting the form: super admin only, and only where the admin API is enabled.
+ADMIN_ONLY = [Depends(_admin_console_enabled), Depends(get_super_admin)]
 
 
 # ==================== PUBLIC ENDPOINTS ====================
@@ -51,7 +63,7 @@ async def submit_contact(
 
 # ==================== ADMIN ENDPOINTS ====================
 
-@router.get("", response_model=List[ContactResponse])
+@router.get("", response_model=List[ContactResponse], dependencies=ADMIN_ONLY)
 async def list_contacts(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
@@ -81,7 +93,7 @@ async def list_contacts(
     ]
 
 
-@router.get("/stats", response_model=ContactStats)
+@router.get("/stats", response_model=ContactStats, dependencies=ADMIN_ONLY)
 async def get_contact_stats(
     service: ContactService = Depends(get_contact_service)
 ):
@@ -89,7 +101,7 @@ async def get_contact_stats(
     return await service.get_stats()
 
 
-@router.get("/{contact_id}", response_model=ContactResponse)
+@router.get("/{contact_id}", response_model=ContactResponse, dependencies=ADMIN_ONLY)
 async def get_contact(
     contact_id: str,
     service: ContactService = Depends(get_contact_service)
@@ -116,7 +128,7 @@ async def get_contact(
     )
 
 
-@router.put("/{contact_id}", response_model=ContactResponse)
+@router.put("/{contact_id}", response_model=ContactResponse, dependencies=ADMIN_ONLY)
 async def update_contact(
     contact_id: str,
     update: ContactUpdate,
@@ -144,7 +156,7 @@ async def update_contact(
     )
 
 
-@router.post("/{contact_id}/mark-read", response_model=ContactResponse)
+@router.post("/{contact_id}/mark-read", response_model=ContactResponse, dependencies=ADMIN_ONLY)
 async def mark_contact_read(
     contact_id: str,
     service: ContactService = Depends(get_contact_service)
@@ -171,7 +183,7 @@ async def mark_contact_read(
     )
 
 
-@router.delete("/{contact_id}", status_code=204)
+@router.delete("/{contact_id}", status_code=204, dependencies=ADMIN_ONLY)
 async def delete_contact(
     contact_id: str,
     service: ContactService = Depends(get_contact_service)

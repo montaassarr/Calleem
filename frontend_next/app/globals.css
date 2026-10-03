@@ -434,3 +434,81 @@ body {
 [data-sonner-toast] svg.absolute {
   display: block !important;
 }
+
+/* ── Super-admin console theme ─────────────────────────────────────────────
+   AdminLayout adds .admin-theme to <body> while /admin is open. The shared UI
+   components hard-code light colours for the client dashboard, so inside the
+   console they are re-skinned by data-slot here instead of being changed globally.
+   These rules are unlayered on purpose so they win over component utilities. */
+.admin-theme,
+.admin-theme .dark {
+  --background: #060b08;
+  --foreground: #e7eee9;
+  --card: #0c1410;
+  --card-foreground: #e7eee9;
+  --popover: #0f1813;
+  --popover-foreground: #e7eee9;
+  --primary: #2f9e57;
+  --primary-foreground: #ffffff;
+  --secondary: #141f19;
+  --secondary-foreground: #d7e3dc;
+  --muted: #111b15;
+  --muted-foreground: #8b9d93;
+  --accent: #16231b;
+  --accent-foreground: #e7eee9;
+  --destructive: #e5484d;
+  --destructive-foreground: #ffffff;
+  --border: #1b2821;
+  --input: #22322a;
+  --ring: #8cff2e;
+  --admin-lime: #8cff2e;
+  --admin-surface: #0f1914;
+  background: var(--background);
+  color: var(--foreground);
+}
+.admin-theme ::selection { background: rgb(140 255 46 / 0.25); }
+.admin-theme [data-slot="card"] {
+  background: var(--card);
+  color: var(--card-foreground);
+  border-color: var(--border);
+  border-radius: 20px;
+  box-shadow: none;
+}
+.admin-theme [data-slot="card-title"] { color: var(--foreground); }
+.admin-theme [data-slot="card-description"] { color: var(--muted-foreground); }
+.admin-theme [data-slot="dialog-content"],
+.admin-theme [data-slot="alert-dialog-content"] {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+}
+.admin-theme [data-slot="dialog-title"],
+.admin-theme [data-slot="alert-dialog-title"] { color: var(--foreground); }
+.admin-theme [data-slot="dialog-description"],
+.admin-theme [data-slot="alert-dialog-description"] { color: var(--muted-foreground); }
+.admin-theme [data-slot="dialog-close"] { background: var(--secondary); color: var(--muted-foreground); }
+.admin-theme [data-slot="table-head"] {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.admin-theme [data-slot="table-row"] { border-color: var(--border); }
+.admin-theme [data-slot="table-body"] [data-slot="table-row"]:hover { background: rgb(255 255 255 / 0.025); }
+.admin-theme [data-slot="input"],
+.admin-theme [data-slot="textarea"],
+.admin-theme [data-slot="select-trigger"] {
+  background: var(--admin-surface);
+  border-color: var(--input);
+  color: var(--foreground);
+}
+.admin-theme [data-slot="input"]::placeholder,
+.admin-theme [data-slot="textarea"]::placeholder { color: #5d7066; }
+.admin-theme [data-slot="select-content"],
+.admin-theme [data-slot="dropdown-menu-content"] {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border-color: var(--border);
+}
+

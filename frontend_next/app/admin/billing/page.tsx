@@ -18,6 +18,7 @@ import {
     Wifi,
     WifiOff,
 } from "lucide-react";
+import { PageHeader } from "@/components/admin/AdminUI";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -28,13 +29,13 @@ function fmt(n: number, decimals = 2) {
 function planColor(plan: string) {
     if (plan === "pro") return "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
     if (plan === "enterprise") return "bg-violet-500/20 text-violetald-400 border border-violet-500/30";
-    return "bg-slate-600/40 text-slate-400 border border-slate-600/40";
+    return "bg-white/[0.08] text-muted-foreground border border-white/10";
 }
 
 function statusDot(status: string) {
     return status === "active"
         ? <span className="flex items-center gap-1.5 text-emerald-400"><Wifi className="w-3 h-3" /> Active</span>
-        : <span className="flex items-center gap-1.5 text-slate-500"><WifiOff className="w-3 h-3" /> {status}</span>;
+        : <span className="flex items-center gap-1.5 text-[#6d8076]"><WifiOff className="w-3 h-3" /> {status}</span>;
 }
 
 function creditBar(balance: number, subscription: number) {
@@ -42,7 +43,7 @@ function creditBar(balance: number, subscription: number) {
     const pct = Math.max(0, Math.min(100, (balance / subscription) * 100));
     const color = pct > 50 ? "bg-emerald-500" : pct > 20 ? "bg-amber-500" : "bg-red-500";
     return (
-        <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden mt-1">
+        <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden mt-1">
             <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
         </div>
     );
@@ -94,14 +95,14 @@ function AddCreditsModal({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-            <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl">
                 <h3 className="text-lg font-bold text-white mb-1">Add Credits</h3>
-                <p className="text-slate-400 text-sm mb-5">{tenant.name} · current balance: <span className="text-white font-semibold">${fmt(tenant.credit_balance)}</span></p>
+                <p className="text-muted-foreground text-sm mb-5">{tenant.name} · current balance: <span className="text-white font-semibold">${fmt(tenant.credit_balance)}</span></p>
 
                 <div className="flex flex-wrap gap-2 mb-4">
                     {presets.map(p => (
                         <button key={p} onClick={() => setAmount(String(p))}
-                            className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${amount === String(p) ? "bg-emerald-500 border-emerald-500 text-white" : "bg-slate-700 border-slate-600 text-slate-300 hover:border-emerald-500/50"}`}>
+                            className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${amount === String(p) ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white/[0.06] border-white/10 text-[#c5d3cb] hover:border-emerald-500/50"}`}>
                             ${p}
                         </button>
                     ))}
@@ -112,18 +113,18 @@ function AddCreditsModal({
                     placeholder="Custom amount ($)"
                     value={amount}
                     onChange={e => setAmount(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2.5 text-white text-sm mb-3 focus:border-emerald-500 outline-none"
+                    className="w-full bg-[#0a120e] border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm mb-3 focus:border-emerald-500 outline-none"
                 />
                 <input
                     type="text"
                     placeholder="Note (optional)"
                     value={note}
                     onChange={e => setNote(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2.5 text-white text-sm mb-5 focus:border-emerald-500 outline-none"
+                    className="w-full bg-[#0a120e] border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm mb-5 focus:border-emerald-500 outline-none"
                 />
 
                 <div className="flex gap-3">
-                    <button onClick={onClose} className="flex-1 py-2.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 transition-colors text-sm font-medium">
+                    <button onClick={onClose} className="flex-1 py-2.5 rounded-lg border border-white/10 text-[#c5d3cb] hover:bg-white/[0.06] transition-colors text-sm font-medium">
                         Cancel
                     </button>
                     <button onClick={submit} disabled={loading}
@@ -145,53 +146,53 @@ function PricingCalc() {
     const f = calcPrice(calls, duration, 0.082, 0.10, 30, margin / 100);
 
     return (
-        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+        <div className="bg-card border border-border rounded-2xl p-6">
             <h3 className="text-base font-bold text-white mb-1">Dynamic Pricing Calculator</h3>
-            <p className="text-slate-400 text-xs mb-5">Same logic as the landing page — adjust to preview what tenants would pay.</p>
+            <p className="text-muted-foreground text-xs mb-5">Same logic as the landing page — adjust to preview what tenants would pay.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div>
                     <div className="flex justify-between mb-2">
-                        <label className="text-xs text-slate-400 uppercase tracking-wider">Monthly Calls</label>
+                        <label className="text-xs text-muted-foreground uppercase tracking-wider">Monthly Calls</label>
                         <span className="text-sm font-bold text-emerald-400">{calls.toLocaleString()}</span>
                     </div>
                     <input type="range" min="100" max="5000" step="100" value={calls}
                         onChange={e => setCalls(Number(e.target.value))}
-                        className="w-full accent-emerald-500 h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer" />
+                        className="w-full accent-emerald-500 h-1.5 bg-white/[0.06] rounded-full appearance-none cursor-pointer" />
                 </div>
                 <div>
                     <div className="flex justify-between mb-2">
-                        <label className="text-xs text-slate-400 uppercase tracking-wider">Avg Duration</label>
+                        <label className="text-xs text-muted-foreground uppercase tracking-wider">Avg Duration</label>
                         <span className="text-sm font-bold text-emerald-400">{duration} min</span>
                     </div>
                     <input type="range" min="1" max="15" step="0.5" value={duration}
                         onChange={e => setDuration(Number(e.target.value))}
-                        className="w-full accent-emerald-500 h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer" />
+                        className="w-full accent-emerald-500 h-1.5 bg-white/[0.06] rounded-full appearance-none cursor-pointer" />
                 </div>
                 <div>
                     <div className="flex justify-between mb-2">
-                        <label className="text-xs text-slate-400 uppercase tracking-wider">Target Margin</label>
+                        <label className="text-xs text-muted-foreground uppercase tracking-wider">Target Margin</label>
                         <span className="text-sm font-bold text-emerald-400">{margin}%</span>
                     </div>
                     <input type="range" min="10" max="80" step="5" value={margin}
                         onChange={e => setMargin(Number(e.target.value))}
-                        className="w-full accent-emerald-500 h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer" />
+                        className="w-full accent-emerald-500 h-1.5 bg-white/[0.06] rounded-full appearance-none cursor-pointer" />
                 </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-                <div className="bg-slate-900/60 rounded-xl p-4 text-center">
-                    <p className="text-xs text-slate-500 mb-1">Suggested Price</p>
-                    <p className="text-2xl font-bold text-white">${f.price}<span className="text-sm text-slate-500">/mo</span></p>
+                <div className="bg-white/[0.02] rounded-xl p-4 text-center">
+                    <p className="text-xs text-[#6d8076] mb-1">Suggested Price</p>
+                    <p className="text-2xl font-bold text-white">${f.price}<span className="text-sm text-[#6d8076]">/mo</span></p>
                 </div>
-                <div className="bg-slate-900/60 rounded-xl p-4 text-center">
-                    <p className="text-xs text-slate-500 mb-1">Total Cost</p>
+                <div className="bg-white/[0.02] rounded-xl p-4 text-center">
+                    <p className="text-xs text-[#6d8076] mb-1">Total Cost</p>
                     <p className="text-2xl font-bold text-red-400">${fmt(f.total)}</p>
                 </div>
-                <div className="bg-slate-900/60 rounded-xl p-4 text-center">
-                    <p className="text-xs text-slate-500 mb-1">Net Profit</p>
+                <div className="bg-white/[0.02] rounded-xl p-4 text-center">
+                    <p className="text-xs text-[#6d8076] mb-1">Net Profit</p>
                     <p className="text-2xl font-bold text-emerald-400">${fmt(f.profit)}</p>
-                    <p className="text-xs text-slate-500">{fmt(f.margin, 1)}% margin</p>
+                    <p className="text-xs text-[#6d8076]">{fmt(f.margin, 1)}% margin</p>
                 </div>
             </div>
         </div>
@@ -206,11 +207,11 @@ function TenantRow({ t, onAddCredits }: { t: TenantBillingSummary; onAddCredits:
 
     return (
         <>
-            <tr className="border-b border-slate-700/50 hover:bg-slate-800/50 transition-colors">
+            <tr className="border-b border-border hover:bg-white/[0.03] transition-colors">
                 <td className="py-3 px-4">
                     <div className="flex flex-col">
                         <span className="text-sm font-semibold text-white">{t.name || "—"}</span>
-                        <span className="text-xs text-slate-500">{t.email}</span>
+                        <span className="text-xs text-[#6d8076]">{t.email}</span>
                     </div>
                 </td>
                 <td className="py-3 px-4">
@@ -221,7 +222,7 @@ function TenantRow({ t, onAddCredits }: { t: TenantBillingSummary; onAddCredits:
                     <div>
                         <span className="text-sm font-bold text-white">${fmt(t.credit_balance)}</span>
                         {t.monthly_subscription_usd > 0 && (
-                            <span className="text-xs text-slate-500 ml-1">/ ${fmt(t.monthly_subscription_usd)}</span>
+                            <span className="text-xs text-[#6d8076] ml-1">/ ${fmt(t.monthly_subscription_usd)}</span>
                         )}
                         {creditBar(t.credit_balance, t.monthly_subscription_usd)}
                     </div>
@@ -232,8 +233,8 @@ function TenantRow({ t, onAddCredits }: { t: TenantBillingSummary; onAddCredits:
                         {t.profit_usd >= 0 ? "+" : ""}${fmt(t.profit_usd, 2)}
                     </span>
                 </td>
-                <td className="py-3 px-4 text-sm text-slate-300">{t.total_calls}</td>
-                <td className="py-3 px-4 text-sm text-slate-300">{fmt(t.total_minutes, 1)} min</td>
+                <td className="py-3 px-4 text-sm text-[#c5d3cb]">{t.total_calls}</td>
+                <td className="py-3 px-4 text-sm text-[#c5d3cb]">{fmt(t.total_minutes, 1)} min</td>
                 <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
                         <button onClick={onAddCredits}
@@ -242,7 +243,7 @@ function TenantRow({ t, onAddCredits }: { t: TenantBillingSummary; onAddCredits:
                         </button>
                         {hasAssistants && (
                             <button onClick={() => setExpanded(v => !v)}
-                                className="p-1.5 text-slate-400 hover:text-white transition-colors rounded">
+                                className="p-1.5 text-muted-foreground hover:text-white transition-colors rounded">
                                 {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                             </button>
                         )}
@@ -250,11 +251,11 @@ function TenantRow({ t, onAddCredits }: { t: TenantBillingSummary; onAddCredits:
                 </td>
             </tr>
             {expanded && t.assistants.map(a => (
-                <tr key={a.assistant_id} className="bg-slate-900/40 border-b border-slate-700/20">
-                    <td colSpan={2} className="py-2 pl-8 text-xs text-slate-500 font-mono">{a.assistant_id}</td>
-                    <td colSpan={2} className="py-2 text-xs text-slate-400">{a.total_calls} calls</td>
+                <tr key={a.assistant_id} className="bg-white/[0.02] border-b border-border">
+                    <td colSpan={2} className="py-2 pl-8 text-xs text-[#6d8076] font-mono">{a.assistant_id}</td>
+                    <td colSpan={2} className="py-2 text-xs text-muted-foreground">{a.total_calls} calls</td>
                     <td className="py-2 text-xs text-amber-400">${fmt(a.total_cost_usd, 4)}</td>
-                    <td colSpan={4} className="py-2 text-xs text-slate-400">{fmt(a.total_minutes, 1)} min</td>
+                    <td colSpan={4} className="py-2 text-xs text-muted-foreground">{fmt(a.total_minutes, 1)} min</td>
                 </tr>
             ))}
         </>
@@ -335,7 +336,7 @@ export default function AdminBillingPage() {
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="text-center">
                     <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                    <p className="text-slate-400 text-sm">Loading billing data…</p>
+                    <p className="text-muted-foreground text-sm">Loading billing data…</p>
                 </div>
             </div>
         );
@@ -343,24 +344,26 @@ export default function AdminBillingPage() {
 
     return (
         <div className="space-y-6 text-white">
-            {/* Header */}
-            <div className="flex items-start justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-white">Billing Overview</h1>
-                    <p className="text-slate-400 mt-1 text-sm">Platform revenue, Vapi costs, and per-tenant credit management.</p>
-                </div>
-                <button onClick={load}
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-xl text-sm font-medium transition-colors">
-                    <RefreshCw className="w-4 h-4" /> Refresh
-                </button>
-            </div>
+            <PageHeader
+                eyebrow="Revenue"
+                title="Billing"
+                description="Subscription revenue, voice costs and credit balance for every business."
+                actions={
+                    <button
+                        onClick={load}
+                        className="flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-white/5"
+                    >
+                        <RefreshCw className="size-4" /> Refresh
+                    </button>
+                }
+            />
 
             {/* Summary Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {summaryCards.map((c, i) => (
-                    <div key={i} className={`bg-slate-800 border rounded-2xl p-5 ${c.bg}`}>
+                    <div key={i} className={`bg-card border rounded-2xl p-5 ${c.bg}`}>
                         <div className="flex items-center justify-between mb-3">
-                            <p className="text-xs text-slate-400 uppercase tracking-wider font-medium">{c.label}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">{c.label}</p>
                             <c.icon className={`w-4 h-4 ${c.color}`} />
                         </div>
                         <p className={`text-2xl font-bold ${c.color}`}>{c.value}</p>
@@ -372,13 +375,13 @@ export default function AdminBillingPage() {
             <PricingCalc />
 
             {/* Tenants Table */}
-            <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
-                <div className="p-5 border-b border-slate-700 flex items-center justify-between">
+            <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                <div className="p-5 border-b border-border flex items-center justify-between">
                     <div>
                         <h2 className="text-base font-bold text-white">Tenant Billing</h2>
-                        <p className="text-slate-400 text-xs mt-0.5">{data?.tenants.length ?? 0} tenants</p>
+                        <p className="text-muted-foreground text-xs mt-0.5">{data?.tenants.length ?? 0} tenants</p>
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-slate-500">
+                    <div className="flex items-center gap-4 text-xs text-[#6d8076]">
                         <span className="flex items-center gap-1.5"><Phone className="w-3 h-3" /> Calls</span>
                         <span className="flex items-center gap-1.5"><Clock className="w-3 h-3" /> Minutes</span>
                         <span className="flex items-center gap-1.5"><CreditCard className="w-3 h-3" /> Credits</span>
@@ -387,7 +390,7 @@ export default function AdminBillingPage() {
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="border-b border-slate-700 text-xs text-slate-500 uppercase tracking-wider">
+                            <tr className="border-b border-border text-xs text-[#6d8076] uppercase tracking-wider">
                                 <th className="text-left py-3 px-4">Tenant</th>
                                 <th className="text-left py-3 px-4">Plan</th>
                                 <th className="text-left py-3 px-4">Status</th>
@@ -402,7 +405,7 @@ export default function AdminBillingPage() {
                         <tbody>
                             {data?.tenants.length === 0 ? (
                                 <tr>
-                                    <td colSpan={9} className="text-center text-slate-500 py-10">No tenants found.</td>
+                                    <td colSpan={9} className="text-center text-[#6d8076] py-10">No tenants found.</td>
                                 </tr>
                             ) : (
                                 data?.tenants.map(t => (
