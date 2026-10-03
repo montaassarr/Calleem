@@ -107,6 +107,16 @@ class TestAdminEndpointAuth:
             "Router must pass current_admin dict to impersonate_user"
         )
 
+    def test_admin_router_is_super_admin_only(self):
+        """The platform admin API is for the super admin only: business owners and their admins get 403."""
+        src = read_source("routers/admin.py")
+        assert "router = APIRouter(dependencies=[Depends(get_super_admin)])" in src, (
+            "Every /api/v1/admin route must require get_super_admin"
+        )
+        assert "get_current_admin" not in src, (
+            "get_current_admin lets owners in; admin.py must not use it"
+        )
+
 
 class TestMainAppSecurity:
     def test_docs_disabled_in_production(self):

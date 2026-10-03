@@ -17,14 +17,16 @@ from models.user import UserResponse, Token, UserCreate, UserUpdate
 from models.appointment import AppointmentStatus, AppointmentCreate, AppointmentUpdate, AppointmentResponse
 from models.service import ServiceCreate, ServiceUpdate, ServiceResponse
 from models.conversation import ConversationResponse
-from routers.users import get_current_admin, get_super_admin
+from routers.users import get_super_admin
 from services.admin_service import get_admin_service, AdminService
 from database.mongo_config import get_database
 
 logger = logging.getLogger(__name__)
 
 # Secure all endpoints in this router
-router = APIRouter(dependencies=[Depends(get_current_admin)])
+# Platform-wide admin API: only the platform super admin. Business owners/admins
+# manage their own tenant through the regular /api/v1 endpoints.
+router = APIRouter(dependencies=[Depends(get_super_admin)])
 
 
 # ==================== TENANT MANAGEMENT ====================
@@ -98,7 +100,7 @@ async def list_all_users(
 @router.post("/users", response_model=UserResponse, status_code=201)
 async def create_user(
     user: UserCreate,
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: dict = Depends(get_super_admin),
     service: AdminService = Depends(get_admin_service)
 ):
     """Create a new user"""
@@ -130,7 +132,7 @@ async def delete_user(
 @router.post("/users/{user_id}/impersonate", response_model=Token)
 async def impersonate_user(
     user_id: str,
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: dict = Depends(get_super_admin),
     service: AdminService = Depends(get_admin_service)
 ):
     """Generate a login token for a specific user (Impersonation)"""
@@ -141,7 +143,7 @@ async def impersonate_user(
 async def list_pending_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: dict = Depends(get_super_admin),
     service: AdminService = Depends(get_admin_service)
 ):
     """List pending user registrations. Super-admins see all; others see their tenant only."""
@@ -152,7 +154,7 @@ async def list_pending_users(
 @router.post("/users/{user_id}/approve", response_model=UserResponse)
 async def approve_user(
     user_id: str,
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: dict = Depends(get_super_admin),
     service: AdminService = Depends(get_admin_service)
 ):
     """Approve a pending user registration"""
@@ -166,7 +168,7 @@ async def approve_user(
 @router.post("/users/{user_id}/reject", response_model=UserResponse)
 async def reject_user(
     user_id: str,
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: dict = Depends(get_super_admin),
     service: AdminService = Depends(get_admin_service)
 ):
     """Reject a pending user registration"""
@@ -194,7 +196,7 @@ async def list_appointments(
 @router.post("/appointments", response_model=AppointmentResponse, status_code=201, response_model_by_alias=False)
 async def create_appointment(
     appointment: AppointmentCreate,
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: dict = Depends(get_super_admin),
     service: AdminService = Depends(get_admin_service)
 ):
     """Create a new appointment"""
@@ -239,7 +241,7 @@ async def list_services(
 @router.post("/services", response_model=ServiceResponse, status_code=201, response_model_by_alias=False)
 async def create_service(
     svc_data: ServiceCreate,
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: dict = Depends(get_super_admin),
     service: AdminService = Depends(get_admin_service)
 ):
     """Create a new service"""
@@ -295,7 +297,7 @@ async def delete_conversation(
 
 @router.get("/config")
 async def get_business_config(
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: dict = Depends(get_super_admin),
     service: AdminService = Depends(get_admin_service)
 ):
     """Get business configuration (tenant settings)"""
@@ -307,7 +309,7 @@ async def get_business_config(
 @router.put("/config")
 async def update_business_config(
     config: dict,
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: dict = Depends(get_super_admin),
     service: AdminService = Depends(get_admin_service)
 ):
     """Update business configuration (tenant settings)"""

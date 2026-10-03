@@ -22,7 +22,7 @@ export default function AdminLayout({
                 if (pathname !== "/admin/login") {
                     router.push("/admin/login");
                 }
-            } else if (!["super_admin", "owner", "admin"].includes(user?.role || "")) {
+            } else if (user?.role !== "super_admin") {
                 router.push("/dashboard");
             }
         }
@@ -51,7 +51,7 @@ export default function AdminLayout({
     }
 
     // Access denied state (handled by redirect usually, but prevent flash)
-    if (!isAuthenticated || !["super_admin", "owner", "admin"].includes(user?.role || "")) {
+    if (!isAuthenticated || user?.role !== "super_admin") {
         return null;
     }
 
