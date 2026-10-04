@@ -135,6 +135,18 @@ class TestAdminEndpointAuth:
             else:
                 assert "dependencies=ADMIN_ONLY" in args, f"{method.upper()} {args.split(',')[0]} must be admin-only"
 
+    def test_business_config_stays_available_to_clients(self):
+        """The client dashboard reads/writes its own config at /admin/config: owners keep access
+        and the route stays mounted when the platform admin API is switched off."""
+        router_src = read_source("routers/business_config.py")
+        assert "Depends(get_current_admin)" in router_src, "owners and their admins must keep access"
+        main_src = read_source("main.py")
+        mount = 'app.include_router(business_config.router, prefix=f"{settings.API_V1_PREFIX}/admin"'
+        assert mount in main_src, "business_config router must be mounted under /api/v1/admin"
+        line = next(l for l in main_src.splitlines() if mount in l)
+        assert not line.startswith(" "), "business_config must not be gated behind ADMIN_API_ENABLED"
+        assert '@router.get("/config")' not in read_source("routers/admin.py"), "config must not live in the super-admin router"
+
 
 class TestMainAppSecurity:
     def test_docs_disabled_in_production(self):

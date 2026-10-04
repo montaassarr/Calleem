@@ -293,31 +293,6 @@ async def delete_conversation(
     await service.delete_conversation(conversation_id)
 
 
-# ==================== BUSINESS CONFIG ====================
-
-@router.get("/config")
-async def get_business_config(
-    current_admin: dict = Depends(get_super_admin),
-    service: AdminService = Depends(get_admin_service)
-):
-    """Get business configuration (tenant settings)"""
-    tenant_id = current_admin.get("tenant_id") or current_admin.get("business_id")
-    config = await service.get_business_config(tenant_id)
-    return config
-
-
-@router.put("/config")
-async def update_business_config(
-    config: dict,
-    current_admin: dict = Depends(get_super_admin),
-    service: AdminService = Depends(get_admin_service)
-):
-    """Update business configuration (tenant settings)"""
-    tenant_id = current_admin.get("tenant_id") or current_admin.get("business_id")
-    updated = await service.update_business_config(tenant_id, config)
-    return updated
-
-
 # ==================== ANALYTICS ====================
 
 @router.get("/analytics/global")

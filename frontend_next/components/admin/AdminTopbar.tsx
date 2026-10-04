@@ -8,12 +8,7 @@ const SECTIONS: Record<string, string> = {
     tenants: "Businesses",
     users: "Accounts",
     contacts: "Leads",
-    appointments: "Appointments",
-    services: "Services",
     billing: "Billing",
-    system: "System health",
-    config: "Database",
-    settings: "Settings",
     "vapi-test": "Voice test",
 };
 

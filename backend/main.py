@@ -137,6 +137,7 @@ from routers import (
     whatsapp,
     websocket,
     admin,
+    business_config,
     monitoring,
     contacts,
     chat,
@@ -175,6 +176,10 @@ app.include_router(webhook.router, prefix=f"{settings.API_V1_PREFIX}/webhook", t
 
 # WebSocket
 app.include_router(websocket.router)
+
+# Business configuration of the signed-in tenant (client dashboard). It shares the
+# /admin prefix for backwards compatibility but is tenant-scoped, so it is always mounted.
+app.include_router(business_config.router, prefix=f"{settings.API_V1_PREFIX}/admin", tags=["Business config"])
 
 # Admin (Platform Owner - all admin endpoints including analytics).
 # Not mounted on the public deployment (ADMIN_API_ENABLED=false).
