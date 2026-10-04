@@ -14,8 +14,18 @@ logger = logging.getLogger(__name__)
 
 class AssistantService:
     def __init__(self, db=None):
-        self.db = db or get_database()
+        self.db = db if db is not None else get_database()
         self.tenant_repo = TenantRepository(self.db)
+
+    @staticmethod
+    def _business_name(tenant: Dict[str, Any]) -> str:
+        # Signup stores the name as tenant["name"]; "business_name" only exists on older records.
+        return (
+            tenant.get("business_name")
+            or (tenant.get("settings") or {}).get("business_name")
+            or tenant.get("name")
+            or "our business"
+        )
 
     async def _get_tenant(self, tenant_id: str):
         tenant = await self.tenant_repo.get_by_id(tenant_id)
@@ -71,7 +81,7 @@ class AssistantService:
 
     async def create_assistant(self, tenant_id: str, config: Any) -> Dict[str, Any]:
         tenant = await self._get_tenant(tenant_id)
-        company_name = config.company_name or tenant.get("business_name", "Valued Business")
+        company_name = config.company_name or self._business_name(tenant)
         
         try:
             result = await vapi_service.create_assistant(
@@ -130,7 +140,7 @@ class AssistantService:
             raise HTTPException(404, "Assistant not found")
         
         assistant_id = tenant.get("vapi_assistant_id")
-        company_name = config.company_name or tenant.get("business_name", "Valued Business")
+        company_name = config.company_name or self._business_name(tenant)
         
         try:
             result = await vapi_service.update_assistant(
@@ -309,14 +319,14 @@ Important:
             logger.info(f"Auto-provisioning assistant for {tenant_id} during personality update")
             assistant = await vapi_provisioning.provision_tenant_assistant(
                 tenant_id, 
-                tenant.get("business_name", "My Business")
+                self._business_name(tenant)
             )
             if not assistant:
                  raise HTTPException(500, "Failed to provision assistant")
             # Refresh tenant
             tenant = await self._get_tenant(tenant_id)
 
-        company_name = tenant.get("business_name", "Valued Business")
+        company_name = self._business_name(tenant)
         
         # Keep the stored prompt free of hardcoded current-date text
         enhanced_prompt = self._inject_current_date(personality.system_prompt)
@@ -363,7 +373,7 @@ Important:
         kb_data = await self.get_knowledge_base(tenant_id)
         faqs = kb_data.get("faqs", [])
         
-        company_name = tenant.get("business_name", "Valued Business")
+        company_name = self._business_name(tenant)
         base_prompt = tenant.get("ai_config", {}).get("system_prompt", "")
         
         await vapi_service.update_assistant(
@@ -478,7 +488,7 @@ Important:
             from services.provisioning import vapi_provisioning
             await vapi_provisioning.provision_tenant_assistant(
                 tenant_id, 
-                tenant.get("business_name", "My Business")
+                self._business_name(tenant)
             )
             tenant = await self._get_tenant(tenant_id)
 
