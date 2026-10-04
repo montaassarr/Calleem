@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Mail, Bell } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,7 +13,9 @@ export const DashboardHeader = () => {
 
     const displayName = user?.full_name?.trim() || user?.username?.trim() || "User";
     const displayEmail = user?.email || "";
-    const creditBalance = Number(billingSummary?.tenant_credit_balance ?? 0);
+    const wallet = billingSummary?.wallet;
+    const minutesLeft = Math.max(0, Math.floor(wallet?.minutes_balance ?? 0));
+    const minutesTone = wallet?.calls_paused ? "text-red-600" : wallet?.low_balance ? "text-amber-600" : "text-gray-900";
 
     useEffect(() => {
         let mounted = true;
@@ -46,17 +49,17 @@ export const DashboardHeader = () => {
     return (
         <header className="h-auto md:h-[88px] py-2 md:py-0 px-2 md:px-8 flex flex-col md:flex-row items-center justify-end shrink-0 gap-4 md:gap-0 bg-[#f3f5f4]">
             <div className="flex items-center justify-between w-full md:w-auto gap-2 md:gap-5">
-                {/* Plan & Credits badges */}
-                <div className="hidden md:flex items-center gap-2">
-                    <div className="flex items-center rounded-full border border-gray-200/50 bg-white px-3 py-1.5 text-xs shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
+                {/* Plan & minutes badges */}
+                <Link href="/dashboard/billing" className="hidden md:flex items-center gap-2">
+                    <div className="flex items-center rounded-full border border-gray-200/50 bg-white px-3 py-1.5 text-xs shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:bg-gray-50">
                         <span className="text-gray-500 mr-1">Plan:</span>
-                        <span className="font-bold text-gray-900">{billingSummary?.plan_price || "Free"}</span>
+                        <span className="font-bold text-gray-900">{wallet?.plan_name || "Free trial"}</span>
                     </div>
-                    <div className="flex items-center rounded-full border border-gray-200/50 bg-white px-3 py-1.5 text-xs shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
-                        <span className="text-gray-500 mr-1">Credits:</span>
-                        <span className="font-bold text-gray-900">${creditBalance.toFixed(2)}</span>
+                    <div className="flex items-center rounded-full border border-gray-200/50 bg-white px-3 py-1.5 text-xs shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:bg-gray-50">
+                        <span className="text-gray-500 mr-1">{wallet?.calls_paused ? "Paused:" : "Minutes:"}</span>
+                        <span className={`font-bold ${minutesTone}`}>{minutesLeft.toLocaleString()}</span>
                     </div>
-                </div>
+                </Link>
 
                 {/* Action buttons */}
                 <div className="flex items-center gap-2 md:gap-3">

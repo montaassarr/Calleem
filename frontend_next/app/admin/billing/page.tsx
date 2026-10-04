@@ -1,430 +1,487 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { adminApi, BillingOverview, TenantBillingSummary } from "@/lib/api/admin";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { toast } from "sonner";
-import {
-    DollarSign,
-    TrendingUp,
-    TrendingDown,
-    Building2,
-    Phone,
-    Clock,
-    CreditCard,
-    PlusCircle,
-    RefreshCw,
-    ChevronDown,
-    ChevronUp,
-    Wifi,
-    WifiOff,
-} from "lucide-react";
-import { PageHeader } from "@/components/admin/AdminUI";
+import { CircleDollarSign, Clock3, PlusCircle, RefreshCw, Settings2, ShieldAlert, ShieldCheck, TrendingDown, TrendingUp, Wallet } from "lucide-react";
+import { adminApi, TenantBillingSummary } from "@/lib/api/admin";
+import { PRICING, quotePrice } from "@/lib/pricing";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Avatar, CallsStatusPill, EmptyState, LoadingState, PageHeader, Panel, PlanPill, StatCard } from "@/components/admin/AdminUI";
 
-// ─── helpers ────────────────────────────────────────────────────────────────
+// Stripe Malaysia on a US card in USD: 3% + 1% international + 2% conversion (+ RM1, ignored here).
+const STRIPE_FEE_RATE = 0.06;
+// Usage levels shown in the pricing check panel.
+const EXAMPLE_USAGE: [number, number][] = [
+    [100, 3],
+    [300, 3],
+    [500, 3],
+    [1000, 4],
+    [2500, 5],
+];
 
-function fmt(n: number, decimals = 2) {
-    return n.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-}
+const usd = (n: number, digits = 0) =>
+    n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: digits, maximumFractionDigits: digits });
 
-function planColor(plan: string) {
-    if (plan === "pro") return "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
-    if (plan === "enterprise") return "bg-violet-500/20 text-violetald-400 border border-violet-500/30";
-    return "bg-white/[0.08] text-muted-foreground border border-white/10";
-}
+const PAYMENT_TYPES = [
+    { id: "monthly", label: "Monthly plan" },
+    { id: "minutes", label: "Extra minutes" },
+    { id: "custom", label: "Custom deal" },
+] as const;
 
-function statusDot(status: string) {
-    return status === "active"
-        ? <span className="flex items-center gap-1.5 text-emerald-400"><Wifi className="w-3 h-3" /> Active</span>
-        : <span className="flex items-center gap-1.5 text-[#6d8076]"><WifiOff className="w-3 h-3" /> {status}</span>;
-}
+type PaymentType = (typeof PAYMENT_TYPES)[number]["id"];
 
-function creditBar(balance: number, subscription: number) {
-    if (subscription <= 0) return null;
-    const pct = Math.max(0, Math.min(100, (balance / subscription) * 100));
-    const color = pct > 50 ? "bg-emerald-500" : pct > 20 ? "bg-amber-500" : "bg-red-500";
-    return (
-        <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden mt-1">
-            <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
-        </div>
-    );
-}
-
-// ─── pricing calc (mirrors landing page logic) ────────────────────────────────
-
-function calcPrice(calls: number, duration: number, costPerMin = 0.082, costPerCall = 0.10, infra = 30, margin = 0.40) {
-    const variable = calls * (costPerCall + duration * costPerMin);
-    const total = variable + infra;
-    const raw = total / (1 - Math.min(margin, 0.95));
-    let price = Math.ceil(raw / 10) * 10 - 1;
-    const floor = Math.ceil((infra * 1.5) / 10) * 10 - 1;
-    if (price < floor) price = floor;
-    const profit = price - total;
-    return { price, total, profit, margin: (profit / price) * 100 };
-}
-
-// ─── AddCredits modal ────────────────────────────────────────────────────────
-
-function AddCreditsModal({
+function RecordPaymentDialog({
     tenant,
+    topupRate,
     onClose,
-    onSuccess,
 }: {
-    tenant: TenantBillingSummary;
+    tenant: TenantBillingSummary | null;
+    topupRate: number;
     onClose: () => void;
-    onSuccess: (newBalance: number) => void;
 }) {
+    const queryClient = useQueryClient();
+    const [type, setType] = useState<PaymentType>("monthly");
+    const [calls, setCalls] = useState("300");
+    const [avgMinutes, setAvgMinutes] = useState("3");
+    const [minutes, setMinutes] = useState("");
     const [amount, setAmount] = useState("");
+    const [currency, setCurrency] = useState("USD");
+    const [reference, setReference] = useState("");
     const [note, setNote] = useState("");
-    const [loading, setLoading] = useState(false);
-    const presets = [10, 25, 50, 100, 200, 500];
 
-    const submit = async () => {
-        const n = parseFloat(amount);
-        if (!n || n <= 0) { toast.error("Enter a valid amount"); return; }
-        setLoading(true);
-        try {
-            const res = await adminApi.addCredits(tenant.tenant_id, n, note || undefined);
-            toast.success(`Added $${fmt(n)} to ${tenant.name}`);
-            onSuccess(res.new_balance);
-        } catch {
-            toast.error("Failed to add credits");
-        } finally {
-            setLoading(false);
+    // Monthly plans are priced by the same usage model clients see (lib/pricing.ts).
+    const fillFromUsage = (nextCalls: string, nextAvg: string) => {
+        const quote = quotePrice(Number(nextCalls) || 0, Number(nextAvg) || 0);
+        setMinutes(String(quote.minutes));
+        setAmount(String(quote.price));
+    };
+
+    const choose = (next: PaymentType) => {
+        setType(next);
+        if (next === "monthly") fillFromUsage(calls, avgMinutes);
+        else if (next === "minutes") {
+            setMinutes("100");
+            setAmount(String(100 * topupRate));
+        } else {
+            setMinutes("");
+            setAmount("");
         }
     };
 
+    useEffect(() => {
+        if (!tenant) return;
+        setCalls("300");
+        setAvgMinutes("3");
+        setType("monthly");
+        fillFromUsage("300", "3");
+        setCurrency("USD");
+        setReference("");
+        setNote("");
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tenant]);
+
+    const save = useMutation({
+        mutationFn: () =>
+            adminApi.addMinutes(tenant!.tenant_id, {
+                plan: type === "minutes" ? undefined : type,
+                ...(type === "monthly" ? { calls: Number(calls), avg_minutes: Number(avgMinutes) } : {}),
+                minutes: Number(minutes),
+                amount_paid: amount ? Number(amount) : undefined,
+                currency: currency || "USD",
+                reference: reference || undefined,
+                note: note || undefined,
+            }),
+        onSuccess: () => {
+            toast.success(`Added ${Number(minutes).toLocaleString()} minutes to ${tenant?.name}`);
+            queryClient.invalidateQueries({ queryKey: ["admin-billing"] });
+            onClose();
+        },
+        onError: (error: Error) => toast.error(error.message || "Could not record the payment"),
+    });
+
+    const valid = Number(minutes) > 0;
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-            <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl">
-                <h3 className="text-lg font-bold text-white mb-1">Add Credits</h3>
-                <p className="text-muted-foreground text-sm mb-5">{tenant.name} · current balance: <span className="text-white font-semibold">${fmt(tenant.credit_balance)}</span></p>
+        <Dialog open={!!tenant} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Record a payment</DialogTitle>
+                    <DialogDescription>
+                        {tenant?.name} has {Math.round(tenant?.minutes_balance ?? 0).toLocaleString()} minutes left. Use this for payments
+                        received outside Stripe, such as a bank transfer for an invoice.
+                    </DialogDescription>
+                </DialogHeader>
 
-                <div className="flex flex-wrap gap-2 mb-4">
-                    {presets.map(p => (
-                        <button key={p} onClick={() => setAmount(String(p))}
-                            className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${amount === String(p) ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white/[0.06] border-white/10 text-[#c5d3cb] hover:border-emerald-500/50"}`}>
-                            ${p}
-                        </button>
-                    ))}
+                <div className="grid gap-4">
+                    <div className="grid grid-cols-3 gap-2">
+                        {PAYMENT_TYPES.map((option) => (
+                            <button
+                                key={option.id}
+                                type="button"
+                                onClick={() => choose(option.id)}
+                                className={`rounded-xl border px-3 py-2 text-left text-sm transition-colors ${
+                                    type === option.id
+                                        ? "border-[#8cff2e]/50 bg-[#8cff2e]/10 text-foreground"
+                                        : "border-border text-muted-foreground hover:bg-white/[0.03]"
+                                }`}
+                            >
+                                {option.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {type === "monthly" && (
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="calls">Calls per month</Label>
+                                <Input
+                                    id="calls"
+                                    type="number"
+                                    min="100"
+                                    step="100"
+                                    value={calls}
+                                    onChange={(e) => {
+                                        setCalls(e.target.value);
+                                        fillFromUsage(e.target.value, avgMinutes);
+                                    }}
+                                />
+                            </div>
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="avg">Average call (min)</Label>
+                                <Input
+                                    id="avg"
+                                    type="number"
+                                    min="1"
+                                    step="0.5"
+                                    value={avgMinutes}
+                                    onChange={(e) => {
+                                        setAvgMinutes(e.target.value);
+                                        fillFromUsage(calls, e.target.value);
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="minutes">Minutes to add</Label>
+                            <Input id="minutes" type="number" min="1" value={minutes} onChange={(e) => setMinutes(e.target.value)} />
+                        </div>
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="amount">Amount received</Label>
+                            <div className="flex gap-2">
+                                <Input id="amount" type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                                <Input
+                                    aria-label="Currency"
+                                    value={currency}
+                                    maxLength={3}
+                                    onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+                                    className="w-[70px] uppercase"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid gap-1.5">
+                        <Label htmlFor="reference">Invoice or payment reference</Label>
+                        <Input id="reference" placeholder="e.g. INV-0012 or bank transfer ref" value={reference} onChange={(e) => setReference(e.target.value)} />
+                        <p className="text-xs text-muted-foreground">The same reference can't be recorded twice, so a payment is never counted double.</p>
+                    </div>
+
+                    <div className="grid gap-1.5">
+                        <Label htmlFor="note">Note (optional)</Label>
+                        <Input id="note" value={note} onChange={(e) => setNote(e.target.value)} />
+                    </div>
+
+                    {type !== "minutes" && (
+                        <p className="text-xs text-muted-foreground">Starts a new 30-day period for this business.</p>
+                    )}
                 </div>
 
-                <input
-                    type="number"
-                    placeholder="Custom amount ($)"
-                    value={amount}
-                    onChange={e => setAmount(e.target.value)}
-                    className="w-full bg-[#0a120e] border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm mb-3 focus:border-emerald-500 outline-none"
-                />
-                <input
-                    type="text"
-                    placeholder="Note (optional)"
-                    value={note}
-                    onChange={e => setNote(e.target.value)}
-                    className="w-full bg-[#0a120e] border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm mb-5 focus:border-emerald-500 outline-none"
-                />
-
-                <div className="flex gap-3">
-                    <button onClick={onClose} className="flex-1 py-2.5 rounded-lg border border-white/10 text-[#c5d3cb] hover:bg-white/[0.06] transition-colors text-sm font-medium">
-                        Cancel
-                    </button>
-                    <button onClick={submit} disabled={loading}
-                        className="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">
-                        {loading ? "Adding…" : "Add Credits"}
-                    </button>
-                </div>
-            </div>
-        </div>
+                <DialogFooter>
+                    <Button variant="ghost" onClick={onClose}>Cancel</Button>
+                    <Button disabled={!valid || save.isPending} onClick={() => save.mutate()}>
+                        {save.isPending ? "Saving…" : `Add ${valid ? Number(minutes).toLocaleString() : ""} minutes`}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }
 
-// ─── Pricing Calculator ───────────────────────────────────────────────────────
+function BillingSettingsDialog({ tenant, onClose }: { tenant: TenantBillingSummary | null; onClose: () => void }) {
+    const queryClient = useQueryClient();
+    const [fallback, setFallback] = useState("");
+    const [exempt, setExempt] = useState(false);
 
-function PricingCalc() {
-    const [calls, setCalls] = useState(500);
-    const [duration, setDuration] = useState(3);
-    const [margin, setMargin] = useState(40);
-    const f = calcPrice(calls, duration, 0.082, 0.10, 30, margin / 100);
+    useEffect(() => {
+        if (!tenant) return;
+        setFallback(tenant.fallback_number ?? "");
+        setExempt(tenant.billing_exempt);
+    }, [tenant]);
+
+    const save = useMutation({
+        mutationFn: () => adminApi.updateBillingSettings(tenant!.tenant_id, { fallback_number: fallback.trim(), billing_exempt: exempt }),
+        onSuccess: () => {
+            toast.success("Billing settings saved");
+            queryClient.invalidateQueries({ queryKey: ["admin-billing"] });
+            onClose();
+        },
+        onError: (error: Error) => toast.error(error.message || "Could not save the settings"),
+    });
 
     return (
-        <div className="bg-card border border-border rounded-2xl p-6">
-            <h3 className="text-base font-bold text-white mb-1">Dynamic Pricing Calculator</h3>
-            <p className="text-muted-foreground text-xs mb-5">Same logic as the landing page — adjust to preview what tenants would pay.</p>
+        <Dialog open={!!tenant} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Billing settings</DialogTitle>
+                    <DialogDescription>{tenant?.name}</DialogDescription>
+                </DialogHeader>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div>
-                    <div className="flex justify-between mb-2">
-                        <label className="text-xs text-muted-foreground uppercase tracking-wider">Monthly Calls</label>
-                        <span className="text-sm font-bold text-emerald-400">{calls.toLocaleString()}</span>
+                <div className="grid gap-5">
+                    <div className="grid gap-1.5">
+                        <Label htmlFor="fallback">Backup number while paused</Label>
+                        <Input id="fallback" placeholder="+14155550123" value={fallback} onChange={(e) => setFallback(e.target.value)} />
+                        <p className="text-xs text-muted-foreground">
+                            When this business runs out of minutes, its callers are forwarded here instead of hearing nothing. Use a mobile number
+                            that does <strong>not</strong> forward back to its Calleem number. Leave empty to remove.
+                        </p>
                     </div>
-                    <input type="range" min="100" max="5000" step="100" value={calls}
-                        onChange={e => setCalls(Number(e.target.value))}
-                        className="w-full accent-emerald-500 h-1.5 bg-white/[0.06] rounded-full appearance-none cursor-pointer" />
-                </div>
-                <div>
-                    <div className="flex justify-between mb-2">
-                        <label className="text-xs text-muted-foreground uppercase tracking-wider">Avg Duration</label>
-                        <span className="text-sm font-bold text-emerald-400">{duration} min</span>
-                    </div>
-                    <input type="range" min="1" max="15" step="0.5" value={duration}
-                        onChange={e => setDuration(Number(e.target.value))}
-                        className="w-full accent-emerald-500 h-1.5 bg-white/[0.06] rounded-full appearance-none cursor-pointer" />
-                </div>
-                <div>
-                    <div className="flex justify-between mb-2">
-                        <label className="text-xs text-muted-foreground uppercase tracking-wider">Target Margin</label>
-                        <span className="text-sm font-bold text-emerald-400">{margin}%</span>
-                    </div>
-                    <input type="range" min="10" max="80" step="5" value={margin}
-                        onChange={e => setMargin(Number(e.target.value))}
-                        className="w-full accent-emerald-500 h-1.5 bg-white/[0.06] rounded-full appearance-none cursor-pointer" />
-                </div>
-            </div>
 
-            <div className="grid grid-cols-3 gap-3">
-                <div className="bg-white/[0.02] rounded-xl p-4 text-center">
-                    <p className="text-xs text-[#6d8076] mb-1">Suggested Price</p>
-                    <p className="text-2xl font-bold text-white">${f.price}<span className="text-sm text-[#6d8076]">/mo</span></p>
+                    <div className="flex items-start justify-between gap-4 rounded-xl border border-border p-4">
+                        <div>
+                            <p className="text-sm font-medium text-foreground">Never pause this business</p>
+                            <p className="mt-1 text-xs text-muted-foreground">For your own demo business or a client on a special deal. Minutes are still counted.</p>
+                        </div>
+                        <Switch checked={exempt} onCheckedChange={setExempt} />
+                    </div>
                 </div>
-                <div className="bg-white/[0.02] rounded-xl p-4 text-center">
-                    <p className="text-xs text-[#6d8076] mb-1">Total Cost</p>
-                    <p className="text-2xl font-bold text-red-400">${fmt(f.total)}</p>
-                </div>
-                <div className="bg-white/[0.02] rounded-xl p-4 text-center">
-                    <p className="text-xs text-[#6d8076] mb-1">Net Profit</p>
-                    <p className="text-2xl font-bold text-emerald-400">${fmt(f.profit)}</p>
-                    <p className="text-xs text-[#6d8076]">{fmt(f.margin, 1)}% margin</p>
-                </div>
-            </div>
-        </div>
+
+                <DialogFooter>
+                    <Button variant="ghost" onClick={onClose}>Cancel</Button>
+                    <Button disabled={save.isPending} onClick={() => save.mutate()}>
+                        {save.isPending ? "Saving…" : "Save"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }
 
-// ─── Tenant Row ───────────────────────────────────────────────────────────────
+export default function AdminBillingPage() {
+    const queryClient = useQueryClient();
+    const [paymentTenant, setPaymentTenant] = useState<TenantBillingSummary | null>(null);
+    const [settingsTenant, setSettingsTenant] = useState<TenantBillingSummary | null>(null);
 
-function TenantRow({ t, onAddCredits }: { t: TenantBillingSummary; onAddCredits: () => void }) {
-    const [expanded, setExpanded] = useState(false);
-    const hasAssistants = t.assistants && t.assistants.length > 0;
+    const { data, isLoading, refetch, isFetching } = useQuery({
+        queryKey: ["admin-billing"],
+        queryFn: () => adminApi.getBillingOverview(),
+    });
+
+    const sync = useMutation({
+        mutationFn: () => adminApi.syncBilling(),
+        onSuccess: (res) => {
+            toast.success(`Checked ${res.tenants} businesses: ${res.paused} paused, ${res.resumed} turned back on`);
+            queryClient.invalidateQueries({ queryKey: ["admin-billing"] });
+        },
+        onError: (error: Error) => toast.error(error.message || "Sync failed"),
+    });
+
+    if (isLoading) return <LoadingState label="Loading billing…" />;
+
+    const ps = data?.platform_summary;
+    const marginPct = ps && ps.revenue_30d_usd > 0 ? Math.round((ps.margin_30d_usd / ps.revenue_30d_usd) * 100) : null;
+    const tenants = data?.tenants ?? [];
 
     return (
         <>
-            <tr className="border-b border-border hover:bg-white/[0.03] transition-colors">
-                <td className="py-3 px-4">
-                    <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-white">{t.name || "—"}</span>
-                        <span className="text-xs text-[#6d8076]">{t.email}</span>
-                    </div>
-                </td>
-                <td className="py-3 px-4">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${planColor(t.plan)}`}>{t.plan || "free"}</span>
-                </td>
-                <td className="py-3 px-4">{statusDot(t.subscription_status)}</td>
-                <td className="py-3 px-4">
-                    <div>
-                        <span className="text-sm font-bold text-white">${fmt(t.credit_balance)}</span>
-                        {t.monthly_subscription_usd > 0 && (
-                            <span className="text-xs text-[#6d8076] ml-1">/ ${fmt(t.monthly_subscription_usd)}</span>
-                        )}
-                        {creditBar(t.credit_balance, t.monthly_subscription_usd)}
-                    </div>
-                </td>
-                <td className="py-3 px-4 text-sm text-amber-400">${fmt(t.total_vapi_cost_usd, 4)}</td>
-                <td className="py-3 px-4">
-                    <span className={`text-sm font-semibold ${t.profit_usd >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                        {t.profit_usd >= 0 ? "+" : ""}${fmt(t.profit_usd, 2)}
-                    </span>
-                </td>
-                <td className="py-3 px-4 text-sm text-[#c5d3cb]">{t.total_calls}</td>
-                <td className="py-3 px-4 text-sm text-[#c5d3cb]">{fmt(t.total_minutes, 1)} min</td>
-                <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                        <button onClick={onAddCredits}
-                            className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 rounded-lg text-xs font-medium transition-colors border border-emerald-600/30">
-                            <PlusCircle className="w-3 h-3" /> Credits
-                        </button>
-                        {hasAssistants && (
-                            <button onClick={() => setExpanded(v => !v)}
-                                className="p-1.5 text-muted-foreground hover:text-white transition-colors rounded">
-                                {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                            </button>
-                        )}
-                    </div>
-                </td>
-            </tr>
-            {expanded && t.assistants.map(a => (
-                <tr key={a.assistant_id} className="bg-white/[0.02] border-b border-border">
-                    <td colSpan={2} className="py-2 pl-8 text-xs text-[#6d8076] font-mono">{a.assistant_id}</td>
-                    <td colSpan={2} className="py-2 text-xs text-muted-foreground">{a.total_calls} calls</td>
-                    <td className="py-2 text-xs text-amber-400">${fmt(a.total_cost_usd, 4)}</td>
-                    <td colSpan={4} className="py-2 text-xs text-muted-foreground">{fmt(a.total_minutes, 1)} min</td>
-                </tr>
-            ))}
-        </>
-    );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
-export default function AdminBillingPage() {
-    const [data, setData] = useState<BillingOverview | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [modalTenant, setModalTenant] = useState<TenantBillingSummary | null>(null);
-
-    const load = async () => {
-        setLoading(true);
-        try {
-            const res = await adminApi.getBillingOverview();
-            setData(res);
-        } catch {
-            toast.error("Failed to load billing overview");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => { load(); }, []);
-
-    const handleCreditsAdded = (tenantId: string, newBalance: number) => {
-        setData(prev => {
-            if (!prev) return prev;
-            return {
-                ...prev,
-                tenants: prev.tenants.map(t =>
-                    t.tenant_id === tenantId ? { ...t, credit_balance: newBalance } : t
-                ),
-            };
-        });
-        setModalTenant(null);
-    };
-
-    const ps = data?.platform_summary;
-    const marginPct = ps && ps.total_subscription_revenue_usd > 0
-        ? (ps.platform_margin_usd / ps.total_subscription_revenue_usd) * 100 : 0;
-
-    const summaryCards = ps ? [
-        {
-            label: "Monthly Revenue",
-            value: `$${fmt(ps.total_subscription_revenue_usd)}`,
-            icon: DollarSign,
-            color: "text-emerald-400",
-            bg: "bg-emerald-500/10 border-emerald-500/20",
-        },
-        {
-            label: "Vapi Cost",
-            value: `$${fmt(ps.total_vapi_cost_usd, 4)}`,
-            icon: TrendingDown,
-            color: "text-amber-400",
-            bg: "bg-amber-500/10 border-amber-500/20",
-        },
-        {
-            label: "Gross Margin",
-            value: `$${fmt(ps.platform_margin_usd)} (${fmt(marginPct, 1)}%)`,
-            icon: TrendingUp,
-            color: marginPct >= 0 ? "text-emerald-400" : "text-red-400",
-            bg: marginPct >= 0 ? "bg-emerald-500/10 border-emerald-500/20" : "bg-red-500/10 border-red-500/20",
-        },
-        {
-            label: "Active Tenants",
-            value: `${ps.active_tenants} / ${ps.total_tenants}`,
-            icon: Building2,
-            color: "text-blue-400",
-            bg: "bg-blue-500/10 border-blue-500/20",
-        },
-    ] : [];
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <div className="text-center">
-                    <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                    <p className="text-muted-foreground text-sm">Loading billing data…</p>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="space-y-6 text-white">
             <PageHeader
                 eyebrow="Revenue"
                 title="Billing"
-                description="Subscription revenue, voice costs and credit balance for every business."
+                description="Minutes, payments and voice costs for every business. Record invoice payments here."
                 actions={
-                    <button
-                        onClick={load}
-                        className="flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-white/5"
-                    >
-                        <RefreshCw className="size-4" /> Refresh
-                    </button>
+                    <>
+                        <Button
+                            variant="outline"
+                            className="border-border bg-transparent text-foreground hover:bg-white/5"
+                            disabled={sync.isPending}
+                            onClick={() => sync.mutate()}
+                            title="Pause businesses with no minutes and turn paid ones back on"
+                        >
+                            <ShieldCheck className="size-4" /> {sync.isPending ? "Checking…" : "Re-check numbers"}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="border-border bg-transparent text-foreground hover:bg-white/5"
+                            onClick={() => refetch()}
+                        >
+                            <RefreshCw className={`size-4 ${isFetching ? "animate-spin" : ""}`} /> Refresh
+                        </Button>
+                    </>
                 }
             />
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {summaryCards.map((c, i) => (
-                    <div key={i} className={`bg-card border rounded-2xl p-5 ${c.bg}`}>
-                        <div className="flex items-center justify-between mb-3">
-                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">{c.label}</p>
-                            <c.icon className={`w-4 h-4 ${c.color}`} />
-                        </div>
-                        <p className={`text-2xl font-bold ${c.color}`}>{c.value}</p>
-                    </div>
-                ))}
-            </div>
-
-            {/* Pricing Calculator */}
-            <PricingCalc />
-
-            {/* Tenants Table */}
-            <div className="bg-card border border-border rounded-2xl overflow-hidden">
-                <div className="p-5 border-b border-border flex items-center justify-between">
+            {ps && !ps.enforcement_enabled && (
+                <div className="flex items-start gap-3 rounded-2xl border border-amber-400/25 bg-amber-400/[0.06] px-5 py-4 text-sm">
+                    <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-300" />
                     <div>
-                        <h2 className="text-base font-bold text-white">Tenant Billing</h2>
-                        <p className="text-muted-foreground text-xs mt-0.5">{data?.tenants.length ?? 0} tenants</p>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-[#6d8076]">
-                        <span className="flex items-center gap-1.5"><Phone className="w-3 h-3" /> Calls</span>
-                        <span className="flex items-center gap-1.5"><Clock className="w-3 h-3" /> Minutes</span>
-                        <span className="flex items-center gap-1.5"><CreditCard className="w-3 h-3" /> Credits</span>
+                        <p className="font-medium text-amber-200">Call cut-off is off</p>
+                        <p className="mt-0.5 text-amber-100/70">
+                            Minutes are counted for every call, but no business is paused when it runs out. Switch it on by deploying with{" "}
+                            <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs">BILLING_ENFORCEMENT_ENABLED=true</code>, then press Re-check numbers.
+                        </p>
                     </div>
                 </div>
+            )}
+
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <StatCard label="Revenue · 30 days" value={usd(ps?.revenue_30d_usd ?? 0)} hint={`${ps?.paying_tenants ?? 0} paying ${ps?.paying_tenants === 1 ? "business" : "businesses"}`} icon={CircleDollarSign} tone="green" />
+                <StatCard label="Voice cost · 30 days" value={usd(ps?.vapi_cost_30d_usd ?? 0, 2)} hint="What Vapi charged for those calls" icon={TrendingDown} tone="amber" />
+                <StatCard
+                    label="Margin · 30 days"
+                    value={usd(ps?.margin_30d_usd ?? 0)}
+                    hint={marginPct === null ? "No payments yet" : `${marginPct}% of revenue`}
+                    icon={TrendingUp}
+                    tone={(ps?.margin_30d_usd ?? 0) >= 0 ? "lime" : "red"}
+                />
+                <StatCard
+                    label="Minutes owed"
+                    value={Math.round(ps?.minutes_owed ?? 0).toLocaleString()}
+                    hint={`Prepaid, not used yet · ${ps?.paused_tenants ?? 0} paused`}
+                    icon={Clock3}
+                    tone="blue"
+                />
+            </div>
+
+            <Panel title={`Businesses (${tenants.length})`} description="Minutes left and the last 30 days of calls, payments and voice costs" bodyClassName="p-0">
+                {tenants.length === 0 ? (
+                    <EmptyState icon={Wallet} title="No businesses yet" />
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[980px] text-sm [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
+                            <thead>
+                                <tr className="border-b border-border text-left text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+                                    <th className="px-5 py-3 font-semibold">Business</th>
+                                    <th className="px-5 py-3 font-semibold">Plan</th>
+                                    <th className="px-5 py-3 font-semibold">Calls</th>
+                                    <th className="px-5 py-3 text-right font-semibold">Minutes left</th>
+                                    <th className="px-5 py-3 text-right font-semibold">Used · 30d</th>
+                                    <th className="px-5 py-3 text-right font-semibold">Paid · 30d</th>
+                                    <th className="px-5 py-3 text-right font-semibold">Voice cost</th>
+                                    <th className="px-5 py-3 text-right font-semibold">Margin</th>
+                                    <th className="px-5 py-3" />
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {tenants.map((t) => (
+                                    <tr key={t.tenant_id} className="transition-colors hover:bg-white/[0.02]">
+                                        <td className="px-5 py-3">
+                                            <div className="flex items-center gap-3">
+                                                <Avatar name={t.name} className="size-8" />
+                                                <div className="min-w-0">
+                                                    <p className="truncate font-medium text-foreground">{t.name || "—"}</p>
+                                                    <p className="truncate text-xs text-muted-foreground">
+                                                        {t.billing_period_end ? `Period ends ${format(new Date(t.billing_period_end), "MMM d")}` : t.email}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-5 py-3"><PlanPill plan={t.billing_plan} /></td>
+                                        <td className="px-5 py-3">
+                                            <CallsStatusPill paused={t.calls_paused} exempt={t.billing_exempt} minutes={t.minutes_balance} />
+                                        </td>
+                                        <td className="px-5 py-3 text-right tabular-nums">
+                                            <span className={t.minutes_balance <= 0 ? "text-rose-300" : t.minutes_balance <= 30 ? "text-amber-300" : "text-foreground"}>
+                                                {Math.round(t.minutes_balance).toLocaleString()}
+                                            </span>
+                                        </td>
+                                        <td className="px-5 py-3 text-right tabular-nums text-muted-foreground">
+                                            {Math.round(t.minutes_30d).toLocaleString()} min · {t.calls_30d} calls
+                                        </td>
+                                        <td className="px-5 py-3 text-right tabular-nums text-foreground">{usd(t.revenue_30d_usd)}</td>
+                                        <td className="px-5 py-3 text-right tabular-nums text-amber-200/80">{usd(t.vapi_cost_30d_usd, 2)}</td>
+                                        <td className={`px-5 py-3 text-right tabular-nums ${t.margin_30d_usd >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                                            {usd(t.margin_30d_usd)}
+                                        </td>
+                                        <td className="px-5 py-3">
+                                            <div className="flex items-center justify-end gap-1">
+                                                <Button size="sm" onClick={() => setPaymentTenant(t)}>
+                                                    <PlusCircle className="size-4" /> Payment
+                                                </Button>
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    title="Billing settings"
+                                                    className="size-8 text-muted-foreground hover:text-foreground"
+                                                    onClick={() => setSettingsTenant(t)}
+                                                >
+                                                    <Settings2 className="size-4" />
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </Panel>
+
+            <Panel
+                title="Pricing check"
+                description={`What clients pay at different usage levels (same model as the landing page), and what you keep after the cost model and ~${STRIPE_FEE_RATE * 100}% Stripe fees. Compare the cost per minute with the real Vapi cost above once calls come in.`}
+                bodyClassName="p-0"
+            >
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full min-w-[760px] text-sm [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
                         <thead>
-                            <tr className="border-b border-border text-xs text-[#6d8076] uppercase tracking-wider">
-                                <th className="text-left py-3 px-4">Tenant</th>
-                                <th className="text-left py-3 px-4">Plan</th>
-                                <th className="text-left py-3 px-4">Status</th>
-                                <th className="text-left py-3 px-4">Credits</th>
-                                <th className="text-left py-3 px-4">Vapi Cost</th>
-                                <th className="text-left py-3 px-4">Profit</th>
-                                <th className="text-left py-3 px-4">Calls</th>
-                                <th className="text-left py-3 px-4">Minutes</th>
-                                <th className="text-left py-3 px-4">Actions</th>
+                            <tr className="border-b border-border text-left text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+                                <th className="px-5 py-3 font-semibold">Usage</th>
+                                <th className="px-5 py-3 text-right font-semibold">Minutes</th>
+                                <th className="px-5 py-3 text-right font-semibold">Client pays</th>
+                                <th className="px-5 py-3 text-right font-semibold">Cost model</th>
+                                <th className="px-5 py-3 text-right font-semibold">Stripe</th>
+                                <th className="px-5 py-3 text-right font-semibold">You keep</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {data?.tenants.length === 0 ? (
-                                <tr>
-                                    <td colSpan={9} className="text-center text-[#6d8076] py-10">No tenants found.</td>
-                                </tr>
-                            ) : (
-                                data?.tenants.map(t => (
-                                    <TenantRow key={t.tenant_id} t={t} onAddCredits={() => setModalTenant(t)} />
-                                ))
-                            )}
+                        <tbody className="divide-y divide-border">
+                            {EXAMPLE_USAGE.map(([calls, avg]) => {
+                                const quote = quotePrice(calls, avg);
+                                const fee = quote.price * STRIPE_FEE_RATE;
+                                const keep = quote.price - quote.totalCost - fee;
+                                const keepPct = Math.round((keep / quote.price) * 100);
+                                return (
+                                    <tr key={`${calls}-${avg}`}>
+                                        <td className="px-5 py-3 text-foreground">{calls.toLocaleString()} calls × {avg} min</td>
+                                        <td className="px-5 py-3 text-right tabular-nums text-muted-foreground">{quote.minutes.toLocaleString()}</td>
+                                        <td className="px-5 py-3 text-right tabular-nums text-foreground">{usd(quote.price)}/mo</td>
+                                        <td className="px-5 py-3 text-right tabular-nums text-amber-200/80">{usd(quote.totalCost)}</td>
+                                        <td className="px-5 py-3 text-right tabular-nums text-amber-200/80">{usd(fee)}</td>
+                                        <td className={`px-5 py-3 text-right tabular-nums ${keepPct >= 40 ? "text-emerald-300" : "text-amber-200"}`}>
+                                            {usd(keep)} · {keepPct}%
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
-            </div>
+                <p className="border-t border-border px-5 py-3 text-xs text-muted-foreground">
+                    Cost model: {usd(PRICING.costPerMinute, 3)}/min + {usd(PRICING.costPerCall, 2)}/call + {usd(PRICING.infraPerMonth)}/month per business,
+                    target margin {Math.round(PRICING.margin * 100)}%. Extra minutes: {usd(data?.topup_price_per_minute_usd ?? 0, 2)} each. Change these in
+                    lib/pricing.ts and backend/services/usage_billing.py together.
+                </p>
+            </Panel>
 
-            {/* Add Credits Modal */}
-            {modalTenant && (
-                <AddCreditsModal
-                    tenant={modalTenant}
-                    onClose={() => setModalTenant(null)}
-                    onSuccess={(newBalance) => handleCreditsAdded(modalTenant.tenant_id, newBalance)}
-                />
-            )}
-        </div>
+            <RecordPaymentDialog tenant={paymentTenant} topupRate={data?.topup_price_per_minute_usd ?? 0.2} onClose={() => setPaymentTenant(null)} />
+            <BillingSettingsDialog tenant={settingsTenant} onClose={() => setSettingsTenant(null)} />
+        </>
     );
 }

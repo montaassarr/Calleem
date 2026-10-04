@@ -9,8 +9,11 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 from bson import ObjectId
+from pymongo import ReturnDocument
 import logging
 import os
+import re
+import uuid
 
 from models.tenant import TenantResponse, TenantCreate, TenantUpdate
 from models.user import UserResponse, Token, UserCreate, UserUpdate
@@ -18,8 +21,10 @@ from models.appointment import AppointmentStatus, AppointmentCreate, Appointment
 from models.service import ServiceCreate, ServiceUpdate, ServiceResponse
 from models.conversation import ConversationResponse
 from routers.users import get_super_admin
+from services import industry_templates, usage_billing
 from services.admin_service import get_admin_service, AdminService
 from database.mongo_config import get_database
+from utils.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -387,144 +392,256 @@ async def refresh_assistant_date(tenant_id: str):
         return {"error": f"Failed to update assistant: {str(e)}"}
 
 
-# ==================== BILLING OVERVIEW ====================
+# ==================== BILLING ====================
 
 @router.get("/billing/overview")
 async def admin_billing_overview(db=Depends(get_database)):
     """
-    Platform-level billing overview.
-
-    For each tenant: subscription revenue, Vapi usage cost, credit balance,
-    and per-assistant breakdown.  Also returns platform-wide totals so the
-    platform owner can see gross margin in one call.
+    Platform billing for the super admin: every business's minutes wallet plus its calls,
+    Vapi cost and payments over the last 30 days, and platform totals (margin, minutes owed).
     """
+    since = datetime.utcnow() - timedelta(days=30)
     tenants = await db.tenants.find({}).to_list(length=2000)
 
-    # Aggregate billing_ledger by tenant_id and assistant_id in one pass
-    pipeline = [
-        {"$match": {"type": "call_debit"}},
-        {
-            "$group": {
-                "_id": {
-                    "tenant_id": "$tenant_id",
-                    "assistant_id": "$assistant_id",
-                },
-                "total_calls": {"$sum": 1},
-                "total_cost_usd": {"$sum": "$amount_usd"},
-                "total_duration_seconds": {"$sum": "$duration_seconds"},
-            }
-        },
-    ]
-    ledger_rows = await db.billing_ledger.aggregate(pipeline).to_list(length=10000)
+    usage_rows = await db.billing_ledger.aggregate([
+        {"$match": {"type": "call_debit", "created_at": {"$gte": since}}},
+        {"$group": {
+            "_id": "$tenant_id",
+            "calls": {"$sum": 1},
+            "seconds": {"$sum": "$duration_seconds"},
+            "cost": {"$sum": "$amount_usd"},
+        }},
+    ]).to_list(length=10000)
+    revenue_rows = await db.billing_ledger.aggregate([
+        {"$match": {"type": "minutes_credit", "created_at": {"$gte": since}, "currency": "USD", "amount_paid": {"$gt": 0}}},
+        {"$group": {"_id": "$tenant_id", "revenue": {"$sum": "$amount_paid"}}},
+    ]).to_list(length=10000)
+    usage_by_tenant = {row["_id"]: row for row in usage_rows}
+    revenue_by_tenant = {row["_id"]: row["revenue"] for row in revenue_rows}
 
-    # Index ledger rows by tenant_id
-    usage_by_tenant: Dict[str, Dict[str, Any]] = {}
-    for row in ledger_rows:
-        tid = row["_id"]["tenant_id"]
-        aid = row["_id"]["assistant_id"]
-        if tid not in usage_by_tenant:
-            usage_by_tenant[tid] = {"assistants": {}, "total_calls": 0, "total_cost_usd": 0.0, "total_duration_seconds": 0}
-
-        usage_by_tenant[tid]["assistants"][aid] = {
-            "assistant_id": aid,
-            "total_calls": row["total_calls"],
-            "total_cost_usd": round(row["total_cost_usd"], 4),
-            "total_minutes": round((row["total_duration_seconds"] or 0) / 60, 2),
-        }
-        usage_by_tenant[tid]["total_calls"] += row["total_calls"]
-        usage_by_tenant[tid]["total_cost_usd"] += row["total_cost_usd"]
-        usage_by_tenant[tid]["total_duration_seconds"] += row.get("total_duration_seconds") or 0
-
-    tenant_summaries: List[Dict[str, Any]] = []
+    rows: List[Dict[str, Any]] = []
     for tenant in tenants:
         tid = str(tenant.get("_id"))
         usage = usage_by_tenant.get(tid, {})
-        monthly_sub = float(tenant.get("monthly_subscription_amount_usd") or 0)
-        credit_balance = float(tenant.get("credit_balance") or tenant.get("vapi_credit_balance") or 0)
-        total_cost = round(float(usage.get("total_cost_usd") or 0), 4)
-        total_minutes = round((usage.get("total_duration_seconds") or 0) / 60, 2)
-
-        tenant_summaries.append({
+        cost = round(float(usage.get("cost") or 0), 2)
+        revenue = round(float(revenue_by_tenant.get(tid) or 0), 2)
+        period_end = tenant.get("billing_period_end")
+        rows.append({
             "tenant_id": tid,
             "name": tenant.get("name"),
             "email": tenant.get("email"),
-            "plan": tenant.get("plan", "free"),
-            "subscription_status": tenant.get("subscription_status", "inactive"),
-            "monthly_subscription_usd": round(monthly_sub, 2),
-            "credit_balance": round(credit_balance, 2),
-            "total_calls": usage.get("total_calls", 0),
-            "total_minutes": total_minutes,
-            "total_vapi_cost_usd": total_cost,
-            "profit_usd": round(monthly_sub - total_cost, 4),
-            "assistants": list(usage.get("assistants", {}).values()),
+            "billing_plan": tenant.get("billing_plan") or "trial",
+            "subscription_status": tenant.get("subscription_status") or "inactive",
+            "minutes_balance": round(float(tenant.get("minutes_balance") or 0), 1),
+            "billing_period_end": period_end.isoformat() if isinstance(period_end, datetime) else period_end,
+            "calls_paused": bool(tenant.get("calls_paused")),
+            "billing_exempt": bool(tenant.get("billing_exempt")),
+            "fallback_number": tenant.get("billing_fallback_number"),
+            "has_phone_number": bool((tenant.get("phone_config") or {}).get("is_active")),
+            "calls_30d": usage.get("calls", 0),
+            "minutes_30d": usage_billing.minutes_for_seconds(usage.get("seconds")),
+            "vapi_cost_30d_usd": cost,
+            "revenue_30d_usd": revenue,
+            "margin_30d_usd": round(revenue - cost, 2),
         })
+    rows.sort(key=lambda r: (-r["revenue_30d_usd"], -r["calls_30d"]))
 
-    # Platform-wide totals
-    platform_revenue = sum(t["monthly_subscription_usd"] for t in tenant_summaries)
-    platform_cost = sum(t["total_vapi_cost_usd"] for t in tenant_summaries)
-
+    revenue_total = round(sum(r["revenue_30d_usd"] for r in rows), 2)
+    cost_total = round(sum(r["vapi_cost_30d_usd"] for r in rows), 2)
     return {
-        "tenants": tenant_summaries,
+        "tenants": rows,
         "platform_summary": {
-            "total_tenants": len(tenant_summaries),
-            "active_tenants": sum(1 for t in tenant_summaries if t["subscription_status"] == "active"),
-            "total_subscription_revenue_usd": round(platform_revenue, 2),
-            "total_vapi_cost_usd": round(platform_cost, 4),
-            "platform_margin_usd": round(platform_revenue - platform_cost, 4),
+            "total_tenants": len(rows),
+            "paying_tenants": sum(1 for r in rows if r["billing_plan"] != "trial"),
+            "paused_tenants": sum(1 for r in rows if r["calls_paused"]),
+            "revenue_30d_usd": revenue_total,
+            "vapi_cost_30d_usd": cost_total,
+            "margin_30d_usd": round(revenue_total - cost_total, 2),
+            "minutes_owed": round(sum(max(r["minutes_balance"], 0) for r in rows), 1),
+            "enforcement_enabled": settings.BILLING_ENFORCEMENT_ENABLED,
         },
+        "pricing": usage_billing.PRICING,
+        "topup_price_per_minute_usd": usage_billing.topup_price_per_minute(),
     }
 
 
-class AddCreditsRequest(BaseModel):
-    amount_usd: float
+class AddMinutesRequest(BaseModel):
+    plan: Optional[str] = None  # monthly | custom; also starts a 30-day billing period
+    calls: Optional[int] = None  # monthly plan usage level; minutes default to calls x avg_minutes
+    avg_minutes: Optional[float] = None
+    minutes: Optional[float] = None
+    amount_paid: Optional[float] = None
+    currency: str = "USD"
+    reference: Optional[str] = None  # invoice or bank transfer reference; the same one can't be recorded twice
     note: Optional[str] = None
 
 
-@router.post("/billing/add-credits/{tenant_id}")
-async def admin_add_credits(
+@router.post("/billing/tenants/{tenant_id}/minutes")
+async def admin_add_minutes(
     tenant_id: str,
-    body: AddCreditsRequest,
+    body: AddMinutesRequest,
     current_super_admin: dict = Depends(get_super_admin),
     db=Depends(get_database),
 ):
-    """Add credits to a tenant's balance (manual top-up by admin)."""
-    from datetime import datetime as dt
-    from bson import ObjectId
+    """Record a payment received outside Stripe (e.g. a bank transfer) and add its minutes."""
+    if body.plan is not None and body.plan not in ("monthly", "custom"):
+        raise HTTPException(status_code=400, detail="Unknown plan")
+    plan_fields: Dict[str, Any] = {}
+    if body.plan == "monthly" and body.calls is not None and body.avg_minutes is not None:
+        try:
+            calls, avg_minutes = usage_billing.validate_usage(body.calls, body.avg_minutes)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        quote = usage_billing.quote(calls, avg_minutes)
+        plan_fields = usage_billing.plan_fields(calls, avg_minutes, body.amount_paid or quote["price_usd"])
+    minutes = body.minutes if body.minutes is not None else plan_fields.get("plan_minutes")
+    if not minutes or minutes <= 0 or minutes > 100000:
+        raise HTTPException(status_code=400, detail="minutes must be between 0 and 100000")
+    if body.amount_paid is not None and body.amount_paid < 0:
+        raise HTTPException(status_code=400, detail="amount_paid cannot be negative")
 
-    if body.amount_usd <= 0:
-        raise HTTPException(status_code=400, detail="amount_usd must be positive")
-
-    tenant_query = (
-        {"_id": ObjectId(tenant_id)} if ObjectId.is_valid(tenant_id)
-        else {"_id": tenant_id}
+    reference = (body.reference or "").strip() or None
+    key = f"manual:{tenant_id}:{reference}" if reference else f"manual:{uuid.uuid4().hex}"
+    tenant = await usage_billing.credit_minutes(
+        db,
+        tenant_id,
+        minutes,
+        source="manual",
+        key=key,
+        plan=body.plan,
+        amount_paid=body.amount_paid,
+        currency=body.currency.strip().upper() or "USD",
+        reference=reference,
+        note=body.note or f"Added by {current_super_admin.get('email')}",
+        period_end=datetime.utcnow() + usage_billing.BILLING_PERIOD if body.plan else None,
     )
-    tenant = await db.tenants.find_one(tenant_query)
+    if tenant is None:
+        if not await db.tenants.find_one(usage_billing.tenant_query(tenant_id), {"_id": 1}):
+            raise HTTPException(status_code=404, detail="Tenant not found")
+        raise HTTPException(status_code=409, detail="This payment reference was already recorded")
+    if plan_fields:
+        await db.tenants.update_one({"_id": tenant["_id"]}, {"$set": plan_fields})
+        tenant.update(plan_fields)
+    return {"success": True, "wallet": usage_billing.wallet_summary(tenant)}
+
+
+class BillingSettingsRequest(BaseModel):
+    billing_exempt: Optional[bool] = None  # never pause this business (e.g. your own demo)
+    fallback_number: Optional[str] = None  # E.164 number that takes calls while paused; "" clears it
+
+
+@router.patch("/billing/tenants/{tenant_id}")
+async def admin_update_billing_settings(
+    tenant_id: str,
+    body: BillingSettingsRequest,
+    db=Depends(get_database),
+):
+    fields: Dict[str, Any] = {}
+    if body.billing_exempt is not None:
+        fields["billing_exempt"] = body.billing_exempt
+    if body.fallback_number is not None:
+        try:
+            fields["billing_fallback_number"] = usage_billing.normalize_fallback_number(body.fallback_number)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    if not fields:
+        raise HTTPException(status_code=400, detail="Nothing to update")
+
+    tenant = await db.tenants.find_one_and_update(
+        usage_billing.tenant_query(tenant_id),
+        {"$set": fields},
+        return_document=ReturnDocument.AFTER,
+    )
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
+    if "billing_fallback_number" in fields:
+        await usage_billing.apply_fallback_number(tenant)
+    await usage_billing.sync_call_access(db, tenant)
+    tenant = await db.tenants.find_one({"_id": tenant["_id"]})
+    return {"success": True, "wallet": usage_billing.wallet_summary(tenant)}
 
-    await db.tenants.update_one(
-        tenant_query,
-        {
-            "$inc": {"credit_balance": body.amount_usd},
-            "$set": {"updated_at": dt.utcnow()},
-        },
-    )
 
-    new_balance = float(tenant.get("credit_balance") or 0) + body.amount_usd
-
-    await db.billing_ledger.insert_one({
-        "key": f"admin_topup:{tenant_id}:{dt.utcnow().isoformat()}",
-        "type": "admin_topup",
-        "tenant_id": tenant_id,
-        "amount_usd": body.amount_usd,
-        "note": body.note or "Manual admin top-up",
-        "created_at": dt.utcnow(),
-    })
-
+@router.post("/billing/sync")
+async def admin_sync_billing(db=Depends(get_database)):
+    """Re-apply pause/resume and call caps to every business, e.g. after switching enforcement on."""
+    tenants = await db.tenants.find({}).to_list(length=2000)
+    paused = resumed = 0
+    for tenant in tenants:
+        tenant = await usage_billing.ensure_wallet(db, tenant)
+        changes = await usage_billing.sync_call_access(db, tenant)
+        if changes.get("calls_paused") is True:
+            paused += 1
+        elif changes.get("calls_paused") is False:
+            resumed += 1
     return {
-        "success": True,
-        "tenant_id": tenant_id,
-        "added_usd": round(body.amount_usd, 2),
-        "new_balance": round(new_balance, 2),
+        "tenants": len(tenants),
+        "paused": paused,
+        "resumed": resumed,
+        "enforcement_enabled": settings.BILLING_ENFORCEMENT_ENABLED,
     }
 
+
+# ==================== INDUSTRY TEMPLATES ====================
+
+@router.get("/templates")
+async def admin_list_templates():
+    return [
+        {"id": template_id, "label": t["label"], "description": t["description"], "services": [s["name"] for s in t["services"]]}
+        for template_id, t in industry_templates.TEMPLATES.items()
+    ]
+
+
+class ApplyTemplateRequest(BaseModel):
+    template: str
+
+
+@router.post("/tenants/{tenant_id}/template")
+async def admin_apply_template(tenant_id: str, body: ApplyTemplateRequest, db=Depends(get_database)):
+    """
+    Set up a business for its niche: the template becomes its AI instructions and greeting
+    (pushed to its Vapi assistant, still editable by the owner) and missing starter services are added.
+    """
+    from routers.assistants import PersonalityConfig
+    from services.assistant_service import AssistantService
+
+    if body.template not in industry_templates.TEMPLATES:
+        raise HTTPException(status_code=400, detail="Unknown template")
+    tenant = await db.tenants.find_one(usage_billing.tenant_query(tenant_id))
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    tenant_id = str(tenant["_id"])
+
+    business_name = (
+        tenant.get("business_name")
+        or (tenant.get("settings") or {}).get("business_name")
+        or tenant.get("name")
+        or "our office"
+    )
+    template = industry_templates.render(body.template, business_name)
+    await AssistantService(db).update_personality_settings(
+        tenant_id,
+        PersonalityConfig(
+            system_prompt=template["system_prompt"],
+            first_message=template["first_message"],
+            temperature=template["temperature"],
+        ),
+    )
+
+    added = 0
+    now = datetime.utcnow()
+    for service in template["services"]:
+        if await db.services.find_one({"tenant_id": tenant_id, "name": service["name"]}):
+            continue
+        await db.services.insert_one({
+            **service,
+            "price": None,
+            "active": True,
+            "tenant_id": tenant_id,
+            "business_id": tenant_id,
+            "created_at": now,
+            "updated_at": now,
+        })
+        added += 1
+
+    await db.tenants.update_one({"_id": tenant["_id"]}, {"$set": {"industry": body.template, "updated_at": now}})
+    return {"success": True, "template": body.template, "services_added": added}

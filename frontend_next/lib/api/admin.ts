@@ -38,26 +38,58 @@ export interface TenantBillingSummary {
     tenant_id: string;
     name: string;
     email: string;
-    plan: string;
+    billing_plan: string;
     subscription_status: string;
-    monthly_subscription_usd: number;
-    credit_balance: number;
-    total_calls: number;
-    total_minutes: number;
-    total_vapi_cost_usd: number;
-    profit_usd: number;
-    assistants: { assistant_id: string; total_calls: number; total_cost_usd: number; total_minutes: number }[];
+    minutes_balance: number;
+    billing_period_end: string | null;
+    calls_paused: boolean;
+    billing_exempt: boolean;
+    fallback_number: string | null;
+    has_phone_number: boolean;
+    calls_30d: number;
+    minutes_30d: number;
+    vapi_cost_30d_usd: number;
+    revenue_30d_usd: number;
+    margin_30d_usd: number;
 }
 
 export interface BillingOverview {
     tenants: TenantBillingSummary[];
     platform_summary: {
         total_tenants: number;
-        active_tenants: number;
-        total_subscription_revenue_usd: number;
-        total_vapi_cost_usd: number;
-        platform_margin_usd: number;
+        paying_tenants: number;
+        paused_tenants: number;
+        revenue_30d_usd: number;
+        vapi_cost_30d_usd: number;
+        margin_30d_usd: number;
+        minutes_owed: number;
+        enforcement_enabled: boolean;
     };
+    topup_price_per_minute_usd: number;
+}
+
+export interface AddMinutesPayload {
+    /** "monthly" (with calls + avg_minutes) or "custom"; leave out for extra minutes. */
+    plan?: string;
+    calls?: number;
+    avg_minutes?: number;
+    minutes?: number;
+    amount_paid?: number;
+    currency?: string;
+    reference?: string;
+    note?: string;
+}
+
+export interface IndustryTemplate {
+    id: string;
+    label: string;
+    description: string;
+    services: string[];
+}
+
+export interface BillingSettingsPayload {
+    billing_exempt?: boolean;
+    fallback_number?: string;
 }
 
 interface GlobalAnalytics {
@@ -212,12 +244,26 @@ export const adminApi = {
         return response;
     },
 
+    // Industry templates (plumber, law firm...)
+    getTemplates: async (): Promise<IndustryTemplate[]> => {
+        return api.get<IndustryTemplate[]>('/admin/templates');
+    },
+    applyTemplate: async (tenantId: string, template: string): Promise<{ success: boolean; services_added: number }> => {
+        return api.post(`/admin/tenants/${tenantId}/template`, { template });
+    },
+
     // Billing Overview
     getBillingOverview: async (): Promise<BillingOverview> => {
         return api.get<BillingOverview>('/admin/billing/overview');
     },
-    addCredits: async (tenantId: string, amountUsd: number, note?: string): Promise<{ success: boolean; new_balance: number }> => {
-        return api.post(`/admin/billing/add-credits/${tenantId}`, { amount_usd: amountUsd, note });
+    addMinutes: async (tenantId: string, payload: AddMinutesPayload): Promise<{ success: boolean }> => {
+        return api.post(`/admin/billing/tenants/${tenantId}/minutes`, payload);
+    },
+    updateBillingSettings: async (tenantId: string, payload: BillingSettingsPayload): Promise<{ success: boolean }> => {
+        return api.patch(`/admin/billing/tenants/${tenantId}`, payload);
+    },
+    syncBilling: async (): Promise<{ tenants: number; paused: number; resumed: number; enforcement_enabled: boolean }> => {
+        return api.post('/admin/billing/sync');
     },
 
     // CrewAI

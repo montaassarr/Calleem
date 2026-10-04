@@ -253,7 +253,7 @@ const ContactForm: React.FC = () => {
                             </div>
                         </div>
                         <span className="text-[12px] font-medium text-white/60">
-                            I agree to the <a href="#" className="underline hover:text-white">privacy policy.</a>
+                            I agree to the <a href="/privacy" target="_blank" rel="noopener" className="underline hover:text-white">privacy policy.</a>
                         </span>
                     </label>
                 </div>

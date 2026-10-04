@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, CalendarCheck, Layers, PhoneCall, Bot, Calendar, Settings, HelpCircle, LogOut, Plus, ChevronUp } from "lucide-react";
+import { LayoutDashboard, CalendarCheck, Layers, PhoneCall, Bot, Calendar, Settings, HelpCircle, LogOut, Plus, ChevronUp, Wallet } from "lucide-react";
 
 const scheduleLinks = [
     { href: "/dashboard/appointments", label: "Appointments", icon: CalendarCheck },
@@ -13,6 +13,7 @@ const scheduleLinks = [
 
 const moreLinks = [
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
+    { href: "/dashboard/billing", label: "Billing", icon: Wallet },
     { href: "/dashboard/help", label: "Help", icon: HelpCircle },
 ];
 

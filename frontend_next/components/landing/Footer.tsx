@@ -50,6 +50,9 @@ const Footer: React.FC = () => {
                         <div className="flex flex-col gap-4 text-white/70 text-sm">
                             <a href="/contact" className="hover:text-white transition-colors">Contact Us</a>
                             <a href="/contact" className="hover:text-white transition-colors">Request Access</a>
+                            <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+                            <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+                            <Link href="/refund" className="hover:text-white transition-colors">Refund Policy</Link>
                         </div>
                     </div>
                 </div>

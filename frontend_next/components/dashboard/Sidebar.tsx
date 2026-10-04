@@ -26,6 +26,7 @@ import {
     Waves,
     Zap,
     MessageCircle,
+    Wallet,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
@@ -64,6 +65,7 @@ const generalItems = [
             { icon: Building2, label: "Business", path: "/dashboard/settings/business" },
         ]
     },
+    { icon: Wallet, label: "Billing", path: "/dashboard/billing" },
     { icon: HelpCircle, label: "Help", path: "/dashboard/help" },
 ];
 

@@ -99,7 +99,7 @@ export function Panel({
 
 export function Pill({ tone = "slate", dot, children }: { tone?: Tone; dot?: boolean; children: React.ReactNode }) {
     return (
-        <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset", TONES[tone])}>
+        <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset", TONES[tone])}>
             {dot && <span className="size-1.5 rounded-full bg-current" />}
             {children}
         </span>
@@ -144,4 +144,18 @@ export function LoadingState({ label = "Loading…" }: { label?: string }) {
             <p className="text-sm text-muted-foreground">{label}</p>
         </div>
     );
+}
+
+const PLAN_LABELS: Record<string, string> = { trial: "Free trial", monthly: "Monthly", custom: "Custom" };
+
+export function PlanPill({ plan }: { plan: string }) {
+    return <Pill tone={plan === "trial" ? "slate" : "lime"}>{PLAN_LABELS[plan] ?? plan}</Pill>;
+}
+
+/** Whether a business's AI receptionist is answering, paused for lack of minutes, or never paused. */
+export function CallsStatusPill({ paused, exempt, minutes }: { paused: boolean; exempt: boolean; minutes: number }) {
+    if (paused) return <Pill dot tone="red">Paused</Pill>;
+    if (exempt) return <Pill dot tone="blue">Exempt</Pill>;
+    if (minutes <= 30) return <Pill dot tone="amber">Low</Pill>;
+    return <Pill dot tone="green">Answering</Pill>;
 }

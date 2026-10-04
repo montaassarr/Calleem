@@ -15,7 +15,8 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Activity, Building2, Clock3, PhoneCall, Search, Trash2 } from "lucide-react";
+import { Activity, Building2, Clock3, PhoneCall, Search, Trash2, Wand2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Avatar, EmptyState, LoadingState, PageHeader, Panel, Pill, StatCard } from "@/components/admin/AdminUI";
@@ -35,9 +36,62 @@ interface Tenant {
     };
 }
 
+function TemplateDialog({ tenant, onClose }: { tenant: Tenant | null; onClose: () => void }) {
+    const [choice, setChoice] = useState<string | null>(null);
+    const templates = useQuery({ queryKey: ["admin-templates"], queryFn: () => adminApi.getTemplates(), enabled: !!tenant });
+
+    const apply = useMutation({
+        mutationFn: () => adminApi.applyTemplate(tenant!.id, choice!),
+        onSuccess: (res) => {
+            toast.success(`Assistant set up${res.services_added ? ` · ${res.services_added} services added` : ""}`);
+            setChoice(null);
+            onClose();
+        },
+        onError: (error: Error) => toast.error(error.message || "Could not apply the template"),
+    });
+
+    return (
+        <Dialog open={!!tenant} onOpenChange={(open) => !open && (setChoice(null), onClose())}>
+            <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Set up for a niche</DialogTitle>
+                    <DialogDescription>
+                        Replaces the AI instructions and greeting of {tenant?.settings?.business_name || tenant?.name} and adds starter services.
+                        The owner can still edit everything in their dashboard.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-3">
+                    {(templates.data ?? []).map((t) => (
+                        <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => setChoice(t.id)}
+                            className={`rounded-2xl border p-4 text-left transition-colors ${
+                                choice === t.id ? "border-[#8cff2e]/50 bg-[#8cff2e]/10" : "border-border hover:bg-white/[0.03]"
+                            }`}
+                        >
+                            <p className="font-medium text-foreground">{t.label}</p>
+                            <p className="mt-1 text-sm text-muted-foreground">{t.description}</p>
+                            <p className="mt-2 text-xs text-muted-foreground">Services: {t.services.join(" · ")}</p>
+                        </button>
+                    ))}
+                    {templates.isLoading && <p className="text-sm text-muted-foreground">Loading templates…</p>}
+                </div>
+                <DialogFooter>
+                    <Button variant="ghost" onClick={onClose}>Cancel</Button>
+                    <Button disabled={!choice || apply.isPending} onClick={() => apply.mutate()}>
+                        {apply.isPending ? "Setting up…" : "Apply template"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export default function TenantsAdminPage() {
     const [search, setSearch] = useState("");
     const [tenantToDelete, setTenantToDelete] = useState<Tenant | null>(null);
+    const [tenantToSetUp, setTenantToSetUp] = useState<Tenant | null>(null);
     const queryClient = useQueryClient();
 
     // Fetch all tenants
@@ -124,7 +178,7 @@ export default function TenantsAdminPage() {
                                 <th className="px-5 py-3 text-right font-semibold">Calls</th>
                                 <th className="px-5 py-3 text-right font-semibold">Minutes</th>
                                 <th className="px-5 py-3 font-semibold">Joined</th>
-                                <th className="w-12 px-5 py-3" />
+                                <th className="w-24 px-5 py-3" />
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -154,7 +208,16 @@ export default function TenantsAdminPage() {
                                     <td className="px-5 py-3 text-muted-foreground">
                                         {tenant.created_at ? format(new Date(tenant.created_at), "MMM d, yyyy") : "—"}
                                     </td>
-                                    <td className="px-5 py-3 text-right">
+                                    <td className="whitespace-nowrap px-5 py-3 text-right">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            title="Set up for a niche (plumber, law firm)"
+                                            onClick={() => setTenantToSetUp(tenant)}
+                                            className="size-8 text-muted-foreground opacity-60 hover:bg-white/5 hover:text-foreground group-hover:opacity-100"
+                                        >
+                                            <Wand2 className="size-4" />
+                                        </Button>
                                         <Button
                                             variant="ghost"
                                             size="icon"
@@ -171,6 +234,8 @@ export default function TenantsAdminPage() {
                     </table>
                 )}
             </Panel>
+
+            <TemplateDialog tenant={tenantToSetUp} onClose={() => setTenantToSetUp(null)} />
 
             {/* Delete Confirmation Dialog */}
             <AlertDialog open={!!tenantToDelete} onOpenChange={() => setTenantToDelete(null)}>

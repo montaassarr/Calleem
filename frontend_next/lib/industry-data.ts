@@ -44,7 +44,7 @@ export const INDUSTRIES: IndustryData[] = [
         ],
         benefits: [
             "Instant lead qualification and intake",
-            "Integration with Clio, MyCase, and other legal CRMs",
+            "Call summary and transcript in your dashboard after every call",
             "Professional, discrete handling of sensitive calls",
             "Capture leads nights and weekends"
         ],
@@ -105,7 +105,7 @@ export const INDUSTRIES: IndustryData[] = [
         benefits: [
             "Immediate response to emergency calls",
             "Service area and capability screening",
-            "Direct integration with ServiceTitan/Housecall Pro",
+            "Booked jobs land straight in your calendar, with a summary of every call",
             "Stop paying for per-minute live answering services"
         ],
         schemaType: "HomeAndConstructionBusiness"

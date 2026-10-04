@@ -1,6 +1,7 @@
 "use client";
 
 import { Phone } from "lucide-react";
+import { LEGAL } from "@/lib/legal";
 
 export default function BuyPhoneNumberPage() {
   return (
@@ -23,7 +24,7 @@ export default function BuyPhoneNumberPage() {
             Please contact support to provision a number manually for now.
           </p>
           <button
-            onClick={() => window.open('mailto:support@callflow.ai')}
+            onClick={() => window.open(LEGAL.contactUrl, "_self")}
             className="px-6 py-2.5 bg-gradient-to-b from-[#187848] via-[#0a4c2f] to-[#052b19] text-white rounded-xl font-semibold transition-all shadow-[0_4px_16px_rgba(10,76,47,0.3)] relative overflow-hidden"
           >
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/20 via-transparent to-transparent opacity-50"></div>

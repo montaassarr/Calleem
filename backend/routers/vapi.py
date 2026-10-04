@@ -11,6 +11,7 @@ from datetime import datetime
 import pytz
 from bson import ObjectId
 
+from services import usage_billing
 from services.vapi_service import vapi_service
 from services.socket_manager import socket_manager
 from services.appointments_service import AppointmentsService
@@ -558,28 +559,20 @@ async def store_call_log(data: dict):
             upsert=True
         )
 
-        if call_cost_usd > 0:
-            ledger_key = f"call:{call_id}"
-            existing_entry = await db.billing_ledger.find_one({"key": ledger_key})
-            if not existing_entry:
-                await db.billing_ledger.insert_one({
-                    "key": ledger_key,
-                    "type": "call_debit",
-                    "tenant_id": tenant_id,
-                    "assistant_id": assistant_id,
-                    "vapi_call_id": call_id,
-                    "amount_usd": call_cost_usd,
-                    "duration_seconds": report.get("durationSeconds"),
-                    "created_at": datetime.utcnow()
-                })
-
-                await db.tenants.update_one(
-                    {"_id": ObjectId(tenant_id)} if ObjectId.is_valid(tenant_id) else {"_id": tenant_id},
-                    {
-                        "$inc": {"credit_balance": -call_cost_usd},
-                        "$set": {"updated_at": datetime.utcnow()}
-                    }
-                )
+        # Takes the call's minutes from this business's wallet only (once per call id).
+        # A billing failure must not cost the caller their SMS confirmation below;
+        # /billing/sync-vapi can re-bill a missed call later.
+        try:
+            await usage_billing.record_call_usage(
+                db,
+                tenant_id,
+                call_id,
+                assistant_id=assistant_id,
+                duration_seconds=report.get("durationSeconds"),
+                vapi_cost_usd=call_cost_usd,
+            )
+        except Exception as e:
+            logger.error(f"Usage billing failed for call {call_id} (tenant {tenant_id}): {e}")
 
         logger.info(f"Stored call log for tenant {tenant_id}: {call_id}")
         

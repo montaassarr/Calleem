@@ -60,7 +60,17 @@ class Settings(BaseSettings):
     # Platform admin API (/api/v1/admin). Set to false on public deployments; the
     # super admin runs it locally with scripts/admin_console.py.
     ADMIN_API_ENABLED: bool = True
-    
+
+    # Usage billing (prepaid call minutes per business). See services/usage_billing.py.
+    # When enforcement is off, minutes are still counted but no number is ever paused.
+    BILLING_ENFORCEMENT_ENABLED: bool = False
+    TRIAL_MINUTES: int = 30
+    MAX_CALL_SECONDS: int = 600
+    MIN_CALL_SECONDS: int = 60
+    LOW_BALANCE_MINUTES: int = 30
+    # Public website, where Stripe sends clients back after checkout or the billing portal.
+    FRONTEND_URL: str = "https://calleem.tech"
+
     # CORS - Can be overridden via environment variable
     # Format: comma-separated list of origins
     # Example: "https://calleem.tech,https://www.calleem.tech,https://aireceptionist-lake.vercel.app"

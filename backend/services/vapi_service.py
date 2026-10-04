@@ -208,6 +208,8 @@ Important Guidelines:
             # Ensure webhook events are delivered to our server per Vapi docs
             # https://docs.vapi.ai/api-reference/webhooks/server-message
             "serverMessages": valid_server_messages,
+            # Hard cap per call; usage billing lowers it when a business is low on minutes.
+            "maxDurationSeconds": int(os.getenv("MAX_CALL_SECONDS", "600")),
             "metadata": {
                 "tenant_id": tenant_id,
                 "company_name": company_name
@@ -790,7 +792,39 @@ Important Guidelines:
         except httpx.HTTPError as e:
             logger.error(f"Failed to assign phone number: {e}")
             raise
-    
+
+    async def update_phone_number(self, phone_number_id: str, fields: Dict[str, Any]) -> Dict[str, Any]:
+        """Patch a phone number, e.g. {"assistantId": None} to stop answering with the AI."""
+        if not self.is_configured():
+            raise ValueError("Vapi not configured")
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.patch(
+                f"{self.base_url}/phone-number/{phone_number_id}",
+                headers=self.headers,
+                json=fields
+            )
+            if response.is_error:
+                logger.error(f"Failed to update phone number {phone_number_id}: {response.text}")
+            response.raise_for_status()
+            return response.json()
+
+    async def patch_assistant(self, assistant_id: str, fields: Dict[str, Any]) -> Dict[str, Any]:
+        """Patch raw assistant fields (e.g. maxDurationSeconds) without rebuilding the prompt."""
+        if not self.is_configured():
+            raise ValueError("Vapi not configured")
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.patch(
+                f"{self.base_url}/assistant/{assistant_id}",
+                headers=self.headers,
+                json=fields
+            )
+            if response.is_error:
+                logger.error(f"Failed to patch assistant {assistant_id}: {response.text}")
+            response.raise_for_status()
+            return response.json()
+
     async def list_phone_numbers(self) -> List[Dict[str, Any]]:
         """List all phone numbers in the organization"""
         if not self.is_configured():

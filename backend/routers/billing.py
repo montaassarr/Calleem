@@ -9,14 +9,18 @@ from slowapi.util import get_remote_address
 
 limiter = Limiter(key_func=get_remote_address)
 from fastapi.responses import JSONResponse
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Literal, Optional
 from datetime import datetime
 import logging
 from bson import ObjectId
+from pymongo import ReturnDocument
+from pymongo.errors import DuplicateKeyError
 
 from database.mongo_config import get_database
-from routers.users import get_current_user
+from routers.users import get_current_admin, get_current_user
+from services import stripe_events, usage_billing
 from services.stripe_service import get_stripe_service, is_mock_mode
+from utils.config import settings
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -24,9 +28,20 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+ACTIVE_SUBSCRIPTION_STATUSES = ("active", "trialing", "past_due")
+
+
 class CheckoutRequest(BaseModel):
-    """Request to create checkout session"""
-    pass  # No fields needed, uses current user
+    """A monthly plan sized by usage (calls + avg_minutes), or a one-time pack of minutes."""
+    kind: Literal["plan", "minutes"]
+    calls: Optional[int] = None
+    avg_minutes: Optional[float] = None
+    minutes: Optional[int] = None
+
+
+class ChangePlanRequest(BaseModel):
+    calls: int
+    avg_minutes: float
 
 
 class SubscriptionResponse(BaseModel):
@@ -35,7 +50,7 @@ class SubscriptionResponse(BaseModel):
     plan_name: str
     plan_price: str
     trial_end: str | None
-    current_period_end: str
+    current_period_end: str | None
     cancel_at_period_end: bool
     is_mock: bool
 
@@ -44,21 +59,7 @@ def _extract_plan_amount_cents(subscription: Dict[str, Any]) -> int | None:
     """Extract recurring plan amount in cents from Stripe or mock subscription payload."""
     if not subscription:
         return None
-
-    plan = subscription.get("plan") or {}
-    plan_amount = plan.get("amount")
-    if isinstance(plan_amount, (int, float)):
-        return int(plan_amount)
-
-    items = subscription.get("items", {}).get("data", [])
-    if items and isinstance(items, list):
-        first_item = items[0] or {}
-        price = first_item.get("price") or {}
-        unit_amount = price.get("unit_amount")
-        if isinstance(unit_amount, (int, float)):
-            return int(unit_amount)
-
-    return None
+    return stripe_events.subscription_amount_cents(subscription)
 
 
 def _extract_plan_interval(subscription: Dict[str, Any]) -> str:
@@ -88,133 +89,119 @@ def _format_plan_price(amount_cents: int | None, interval: str = "month") -> str
     return f"${amount_dollars:.0f}/{interval}"
 
 
+def _frontend_url(path: str) -> str:
+    return f"{settings.FRONTEND_URL.rstrip('/')}{path}"
+
+
+def online_checkout_ready() -> bool:
+    """Stripe is live (not mock mode): clients can pay by card from the billing page."""
+    return not is_mock_mode()
+
+
+def _plan_metadata(plan: Dict[str, Any]) -> Dict[str, str]:
+    """Stripe metadata is strings; every renewal invoice carries it, so minutes follow the plan."""
+    return {
+        "kind": "plan",
+        "calls": str(plan["calls"]),
+        "avg_minutes": str(plan["avg_minutes"]),
+        "minutes": str(plan["minutes"]),
+        "price_usd": str(plan["price_usd"]),
+    }
+
+
+def _usage_quote(calls: Any, avg_minutes: Any) -> Dict[str, Any]:
+    try:
+        calls, avg_minutes = usage_billing.validate_usage(calls, avg_minutes)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return usage_billing.quote(calls, avg_minutes)
+
+
 @router.post("/checkout")
 async def create_checkout_session(
-    request: Request,
-    current_user: dict = Depends(get_current_user)
+    body: CheckoutRequest,
+    current_admin: dict = Depends(get_current_admin),
 ):
-    """
-    Create Stripe checkout session for $499/month subscription
-    In mock mode: instant success, no real charge
-    """
-    stripe_service = get_stripe_service()
+    """Start Stripe Checkout for a monthly plan or a minutes pack; returns the page to redirect to."""
+    if is_mock_mode():
+        raise HTTPException(status_code=503, detail="Online payment is not set up yet")
+    if body.kind == "plan":
+        plan = _usage_quote(body.calls, body.avg_minutes)
+        mode, amount_cents, metadata = "subscription", plan["price_usd"] * 100, _plan_metadata(plan)
+    else:
+        if body.minutes not in usage_billing.TOPUP_PACKS:
+            raise HTTPException(status_code=400, detail="Unknown minutes pack")
+        pack = usage_billing.topup_quote(body.minutes)
+        mode, amount_cents = "payment", int(round(pack["price_usd"] * 100))
+        metadata = {"kind": "minutes", "minutes": str(pack["minutes"])}
+
     db = get_database()
-    
+    tenant_id = _current_tenant_id(current_admin)
+    tenant = await db.tenants.find_one(usage_billing.tenant_query(tenant_id))
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    if (
+        mode == "subscription"
+        and tenant.get("stripe_subscription_id")
+        and tenant.get("subscription_status") in ACTIVE_SUBSCRIPTION_STATUSES
+    ):
+        raise HTTPException(status_code=409, detail="You already have a plan. Use Change plan instead.")
+
+    stripe_service = get_stripe_service()
     try:
-        tenant_id = current_user.get("tenant_id")
-        if not tenant_id:
-            raise HTTPException(status_code=400, detail="User has no tenant_id")
-        
-        # Check if tenant already has a subscription
-        tenant_query = {"_id": ObjectId(tenant_id)} if ObjectId.is_valid(tenant_id) else {"$or": [{"_id": tenant_id}, {"tenant_id": tenant_id}]}
-        tenant = await db.tenants.find_one(tenant_query)
-        if tenant and tenant.get("stripe_subscription_id"):
-            raise HTTPException(
-                status_code=400,
-                detail="You already have an active subscription"
-            )
-        
-        # Get or create Stripe customer
-        stripe_customer_id = tenant.get("stripe_customer_id") if tenant else None
-        
-        if not stripe_customer_id:
-            # Create new customer
-            email = current_user.get("email") or ""
+        customer_id = tenant.get("stripe_customer_id")
+        if not customer_id:
             customer = await stripe_service.create_customer(
-                email=email,
-                name=current_user.get("full_name", ""),
-                tenant_id=tenant_id
+                email=tenant.get("email") or current_admin.get("email") or "",
+                name=tenant.get("name") or current_admin.get("full_name") or "",
+                tenant_id=tenant_id,
             )
-            stripe_customer_id = customer["id"]
-            
-            # Save customer ID to tenant
-            await db.tenants.update_one(
-                {"_id": ObjectId(tenant_id)} if ObjectId.is_valid(tenant_id) else {"$or": [{"_id": tenant_id}, {"tenant_id": tenant_id}]},
-                {"$set": {"stripe_customer_id": stripe_customer_id}}
-            )
-        
-        # Create checkout session
-        base_url = str(request.base_url).rstrip("/")
-        success_url = f"{base_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}"
-        cancel_url = f"{base_url}/payment/cancel"
-        
-        # Replace {CHECKOUT_SESSION_ID} with actual placeholder for Stripe
-        if not is_mock_mode():
-            success_url = success_url.replace("{CHECKOUT_SESSION_ID}", "{CHECKOUT_SESSION_ID}")
-        
+            customer_id = customer["id"]
+            # Saved before payment so invoice webhooks can find this business by customer id.
+            await db.tenants.update_one({"_id": tenant["_id"]}, {"$set": {"stripe_customer_id": customer_id}})
+
         session = await stripe_service.create_checkout_session(
-            customer_id=stripe_customer_id,
+            customer_id=customer_id,
             tenant_id=tenant_id,
-            success_url=success_url,
-            cancel_url=cancel_url
+            mode=mode,
+            amount_cents=amount_cents,
+            metadata=metadata,
+            success_url=_frontend_url("/dashboard/billing?paid=1"),
+            cancel_url=_frontend_url("/dashboard/billing"),
         )
-        
-        logger.info(f"{'🧪 Mock' if is_mock_mode() else '💳'} Checkout session created: {session['id']}")
-        
-        return {
-            "checkout_url": session["url"],
-            "session_id": session["id"],
-            "is_mock": is_mock_mode()
-        }
-        
     except Exception as e:
-        logger.error(f"Failed to create checkout session: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Failed to create checkout session for tenant {tenant_id}: {e}")
+        raise HTTPException(status_code=502, detail="Could not start the checkout. Please try again.")
+
+    return {"checkout_url": session["url"]}
 
 
-@router.post("/mock-complete-checkout")
-async def mock_complete_checkout(
-    session_id: str,
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Complete mock checkout (TEST MODE ONLY)
-    Simulates successful payment without real charges
-    """
-    if not is_mock_mode():
-        raise HTTPException(status_code=400, detail="This endpoint is only for mock mode")
-    
-    stripe_service = get_stripe_service()
+@router.post("/change-plan")
+async def change_plan(body: ChangePlanRequest, current_admin: dict = Depends(get_current_admin)):
+    """New usage level for an active monthly plan; the new price and minutes start at the next renewal."""
+    if is_mock_mode():
+        raise HTTPException(status_code=503, detail="Online payment is not set up yet")
+    plan = _usage_quote(body.calls, body.avg_minutes)
     db = get_database()
-    
+    tenant_id = _current_tenant_id(current_admin)
+    tenant = await db.tenants.find_one(usage_billing.tenant_query(tenant_id))
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    subscription_id = tenant.get("stripe_subscription_id")
+    if not subscription_id or tenant.get("subscription_status") not in ACTIVE_SUBSCRIPTION_STATUSES:
+        raise HTTPException(status_code=400, detail="You don't have an active monthly plan")
+
     try:
-        # Complete the checkout
-        result = await stripe_service.complete_checkout(session_id)
-        subscription = result["subscription"]
-        
-        # Get tenant_id from subscription metadata
-        tenant_id = subscription["metadata"].get("tenant_id")
-        if not tenant_id:
-            raise HTTPException(status_code=400, detail="No tenant_id in subscription")
-        
-        # Update tenant with subscription info
-        await db.tenants.update_one(
-            {"_id": tenant_id},
-            {
-                "$set": {
-                    "stripe_subscription_id": subscription["id"],
-                    "subscription_status": subscription["status"],
-                    "trial_start_date": datetime.fromtimestamp(subscription["trial_start"]),
-                    "trial_end_date": datetime.fromtimestamp(subscription["trial_end"]),
-                    "current_period_end": datetime.fromtimestamp(subscription["current_period_end"]),
-                    "plan": "pro",
-                    "updated_at": datetime.utcnow()
-                }
-            }
+        await get_stripe_service().change_subscription_price(
+            subscription_id, plan["price_usd"] * 100, {**_plan_metadata(plan), "tenant_id": tenant_id}
         )
-        
-        logger.info(f"🧪 Mock subscription activated for tenant {tenant_id}")
-        
-        return {
-            "success": True,
-            "subscription_id": subscription["id"],
-            "status": subscription["status"],
-            "message": "🧪 Mock payment successful! No real charges made."
-        }
-        
     except Exception as e:
-        logger.error(f"Failed to complete mock checkout: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Failed to change plan for tenant {tenant_id}: {e}")
+        raise HTTPException(status_code=502, detail="Could not change the plan. Please try again.")
+
+    await db.tenants.update_one({"_id": tenant["_id"]}, {"$set": {"plan_next": plan, "updated_at": datetime.utcnow()}})
+    return {"success": True, "next_plan": plan}
 
 
 @router.get("/subscription", response_model=SubscriptionResponse)
@@ -223,103 +210,54 @@ async def get_subscription_status(current_user: dict = Depends(get_current_user)
     Get current subscription status
     """
     db = get_database()
-    
-    try:
-        tenant_id = current_user.get("tenant_id")
-        if not tenant_id:
-            raise HTTPException(status_code=400, detail="User has no tenant_id")
-        
-        tenant = await db.tenants.find_one({"_id": ObjectId(tenant_id)} if ObjectId.is_valid(tenant_id) else {"$or": [{"_id": tenant_id}, {"tenant_id": tenant_id}]})
-        if not tenant:
-            raise HTTPException(status_code=404, detail="Tenant not found")
-        
-        subscription_id = tenant.get("stripe_subscription_id")
-        if not subscription_id:
-            raise HTTPException(
-                status_code=404,
-                detail="No active subscription"
-            )
-        
-        # Get subscription from Stripe (or mock)
-        stripe_service = get_stripe_service()
-        subscription = await stripe_service.get_subscription(subscription_id)
-        
-        if not subscription:
-            raise HTTPException(status_code=404, detail="Subscription not found")
-        
-        # Format response
-        trial_end = None
-        if subscription.get("trial_end"):
-            trial_end = datetime.fromtimestamp(subscription["trial_end"]).isoformat()
-        
-        current_period_end = datetime.fromtimestamp(subscription["current_period_end"]).isoformat()
-        
-        amount_cents = _extract_plan_amount_cents(subscription)
-        interval = _extract_plan_interval(subscription)
-        plan_price = _format_plan_price(amount_cents, interval)
+    tenant_id = _current_tenant_id(current_user)
+    tenant = await db.tenants.find_one(usage_billing.tenant_query(tenant_id))
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
 
-        return SubscriptionResponse(
-            status=subscription["status"],
-            plan_name="AI Receptionist Pro",
-            plan_price=plan_price,
-            trial_end=trial_end,
-            current_period_end=current_period_end,
-            cancel_at_period_end=subscription.get("cancel_at_period_end", False),
-            is_mock=is_mock_mode()
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to get subscription status: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    subscription_id = tenant.get("stripe_subscription_id")
+    if not subscription_id:
+        raise HTTPException(status_code=404, detail="No active subscription")
+
+    subscription = await get_stripe_service().get_subscription(subscription_id)
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+    trial_end = subscription.get("trial_end")
+    period_end = stripe_events.subscription_period_end(subscription)
+    return SubscriptionResponse(
+        status=subscription.get("status", "unknown"),
+        plan_name=usage_billing.PLANS.get(tenant.get("billing_plan") or "", {}).get("name", "Monthly plan"),
+        plan_price=_format_plan_price(_extract_plan_amount_cents(subscription), _extract_plan_interval(subscription)),
+        trial_end=datetime.utcfromtimestamp(trial_end).isoformat() if trial_end else None,
+        current_period_end=period_end.isoformat() if period_end else None,
+        cancel_at_period_end=bool(subscription.get("cancel_at_period_end")),
+        is_mock=is_mock_mode(),
+    )
 
 
 @router.post("/portal")
-async def create_portal_session(
-    request: Request,
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Create Stripe customer portal session
-    Allows users to manage subscription, payment methods, invoices
-    """
-    stripe_service = get_stripe_service()
+async def create_portal_session(current_admin: dict = Depends(get_current_admin)):
+    """Stripe customer portal: change plan, update the card, cancel, download invoices."""
+    if is_mock_mode():
+        raise HTTPException(status_code=503, detail="Online payment is not set up yet")
     db = get_database()
-    
+    tenant_id = _current_tenant_id(current_admin)
+    tenant = await db.tenants.find_one(usage_billing.tenant_query(tenant_id))
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    if not tenant.get("stripe_customer_id"):
+        raise HTTPException(status_code=400, detail="No payments yet")
+
     try:
-        tenant_id = current_user.get("tenant_id")
-        if not tenant_id:
-            raise HTTPException(status_code=400, detail="User has no tenant_id")
-        
-        tenant = await db.tenants.find_one({"_id": ObjectId(tenant_id)} if ObjectId.is_valid(tenant_id) else {"$or": [{"_id": tenant_id}, {"tenant_id": tenant_id}]})
-        if not tenant:
-            raise HTTPException(status_code=404, detail="Tenant not found")
-        
-        stripe_customer_id = tenant.get("stripe_customer_id")
-        if not stripe_customer_id:
-            raise HTTPException(
-                status_code=400,
-                detail="No Stripe customer ID found"
-            )
-        
-        # Create portal session
-        base_url = str(request.base_url).rstrip("/")
-        return_url = f"{base_url}/dashboard/settings/billing"
-        
-        session = await stripe_service.create_portal_session(
-            customer_id=stripe_customer_id,
-            return_url=return_url
+        session = await get_stripe_service().create_portal_session(
+            customer_id=tenant["stripe_customer_id"],
+            return_url=_frontend_url("/dashboard/billing"),
         )
-        
-        return {
-            "portal_url": session["url"],
-            "is_mock": is_mock_mode()
-        }
-        
     except Exception as e:
-        logger.error(f"Failed to create portal session: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Failed to create portal session for tenant {tenant_id}: {e}")
+        raise HTTPException(status_code=502, detail="Could not open the billing portal. Please try again.")
+    return {"portal_url": session["url"]}
 
 
 @router.get("/dashboard-summary")
@@ -388,7 +326,10 @@ async def get_dashboard_billing_summary(current_user: dict = Depends(get_current
             except (TypeError, ValueError):
                 tenant_credit_balance = None
 
+        tenant = await usage_billing.ensure_wallet(db, tenant)
+
         return {
+            "wallet": usage_billing.wallet_summary(tenant),
             "plan": tenant.get("plan", "free"),
             "plan_price": plan_price,
             "subscription_status": subscription_status,
@@ -414,162 +355,216 @@ async def get_dashboard_billing_summary(current_user: dict = Depends(get_current
 @router.post("/webhook")
 async def stripe_webhook(request: Request):
     """
-    Handle Stripe webhooks
-    Events: checkout.session.completed, invoice.paid, customer.subscription.deleted, etc.
-    
-    In mock mode: simulates webhook processing
-    In live mode: verifies signature and processes real events
+    Stripe notifications (signature-checked). Paid invoices (first month, renewals) and paid
+    one-time checkouts add the minutes recorded in their metadata when the checkout was created.
     """
-    stripe_service = get_stripe_service()
-    db = get_database()
-    
+    if is_mock_mode():
+        # Mock events are unsigned JSON; accepting them would let anyone grant themselves minutes.
+        raise HTTPException(status_code=404, detail="Not found")
+
+    payload = await request.body()
     try:
-        # Get raw body and signature
-        payload = await request.body()
-        sig_header = request.headers.get("stripe-signature", "")
-        
-        # Construct and verify event
-        event = await stripe_service.construct_webhook_event(payload, sig_header)
-        
-        event_type = event["type"]
-        logger.info(f"{'🧪' if is_mock_mode() else '💳'} Webhook received: {event_type}")
-        
-        # Handle different event types
-        if event_type == "checkout.session.completed":
-            await handle_checkout_completed(event["data"]["object"], db)
-        
-        elif event_type == "invoice.paid":
-            await handle_invoice_paid(event["data"]["object"], db)
-        
-        elif event_type == "customer.subscription.updated":
-            await handle_subscription_updated(event["data"]["object"], db)
-        
-        elif event_type == "customer.subscription.deleted":
-            await handle_subscription_deleted(event["data"]["object"], db)
-        
-        return {"status": "success"}
-        
+        event = await get_stripe_service().construct_webhook_event(payload, request.headers.get("stripe-signature", ""))
     except Exception as e:
-        logger.error(f"Webhook error: {e}")
-        return JSONResponse(
-            status_code=400,
-            content={"error": str(e)}
-        )
+        logger.warning(f"Rejected Stripe webhook: {e}")
+        raise HTTPException(status_code=400, detail="invalid_signature")
 
+    db = get_database()
+    event_type = event.get("type", "")
+    obj = (event.get("data") or {}).get("object") or {}
+    logger.info(f"💳 Stripe webhook received: {event_type} {obj.get('id')}")
 
-async def handle_checkout_completed(session: Dict[str, Any], db):
-    """Handle successful checkout"""
-    subscription_id = session.get("subscription")
-    tenant_id = session.get("metadata", {}).get("tenant_id")
-    
-    if not tenant_id or not subscription_id:
-        logger.error("Missing tenant_id or subscription_id in checkout session")
-        return
-    
-    # Get subscription details
-    stripe_service = get_stripe_service()
-    subscription = await stripe_service.get_subscription(subscription_id)
-    
-    if not subscription:
-        logger.error(f"Subscription {subscription_id} not found")
-        return
+    # Stripe retries until it gets a 2xx. A retry of an event that failed halfway is processed
+    # again; adding minutes is idempotent per payment id, so nothing is counted twice.
+    event_key = f"stripe:{event.get('id')}"
+    seen = await db.payment_events.find_one({"_id": event_key})
+    if seen and seen.get("status") in ("processed", "unmatched"):
+        return {"success": True, "duplicate": True}
+    if not seen:
+        try:
+            await db.payment_events.insert_one({
+                "_id": event_key,
+                "provider": "stripe",
+                "type": event_type,
+                "object_id": obj.get("id"),
+                "status": "received",
+                "created_at": datetime.utcnow(),
+            })
+        except DuplicateKeyError:
+            pass
 
-    amount_cents = _extract_plan_amount_cents(subscription)
-    plan_amount_usd = round((amount_cents or 0) / 100, 2)
-    
-    # Update tenant
-    await db.tenants.update_one(
-        {"_id": tenant_id},
-        {
-            "$set": {
-                "stripe_subscription_id": subscription_id,
-                "subscription_status": subscription["status"],
-                "trial_start_date": datetime.fromtimestamp(subscription.get("trial_start", 0)) if subscription.get("trial_start") else None,
-                "trial_end_date": datetime.fromtimestamp(subscription.get("trial_end", 0)) if subscription.get("trial_end") else None,
-                "current_period_end": datetime.fromtimestamp(subscription["current_period_end"]),
-                "plan": "pro",
-                "monthly_subscription_amount_usd": plan_amount_usd,
-                "credit_balance": plan_amount_usd,
-                "updated_at": datetime.utcnow()
-            }
-        }
+    handlers = {
+        "checkout.session.completed": handle_checkout_completed,
+        "invoice.paid": handle_invoice_paid,
+        "customer.subscription.created": handle_subscription_updated,
+        "customer.subscription.updated": handle_subscription_updated,
+        "customer.subscription.deleted": handle_subscription_deleted,
+    }
+    handler = handlers.get(event_type)
+    matched = await handler(obj, db) if handler else True
+    await db.payment_events.update_one(
+        {"_id": event_key}, {"$set": {"status": "processed" if matched else "unmatched"}}
     )
-    
-    logger.info(f"Subscription {subscription_id} activated for tenant {tenant_id}")
+    return {"success": True}
 
 
-async def handle_invoice_paid(invoice: Dict[str, Any], db):
-    """Handle successful payment"""
-    subscription_id = invoice.get("subscription")
-    if not subscription_id:
-        return
-    
-    # Update tenant's current period
-    tenant = await db.tenants.find_one({"stripe_subscription_id": subscription_id})
+async def _find_stripe_tenant(db, *, metadata: Optional[Dict[str, Any]] = None,
+                              subscription_id: Optional[str] = None,
+                              customer_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    tenant_id = (metadata or {}).get("tenant_id")
+    if tenant_id:
+        tenant = await db.tenants.find_one(usage_billing.tenant_query(str(tenant_id)))
+        if tenant:
+            return tenant
+    if subscription_id:
+        tenant = await db.tenants.find_one({"stripe_subscription_id": subscription_id})
+        if tenant:
+            return tenant
+    if customer_id:
+        return await db.tenants.find_one({"stripe_customer_id": customer_id})
+    return None
+
+
+def _metadata_int(metadata: Optional[Dict[str, Any]], key: str) -> Optional[int]:
+    try:
+        value = int(float((metadata or {}).get(key) or 0))
+    except (TypeError, ValueError):
+        return None
+    return value if value > 0 else None
+
+
+def _unmatched(kind: str, object_id: Optional[str]) -> bool:
+    logger.error(f"Stripe {kind} {object_id}: no matching business; review payment_events")
+    return False
+
+
+async def handle_checkout_completed(session: Dict[str, Any], db) -> bool:
+    """Link the subscription to the business; a paid one-time checkout adds its minutes here."""
+    customer_id = stripe_events.object_id(session.get("customer"))
+    subscription_id = stripe_events.object_id(session.get("subscription"))
+    tenant = await _find_stripe_tenant(db, metadata=session.get("metadata"), customer_id=customer_id)
+    if not tenant:
+        return _unmatched("checkout", session.get("id"))
+
+    links: Dict[str, Any] = {"updated_at": datetime.utcnow()}
+    if customer_id:
+        links["stripe_customer_id"] = customer_id
+    if subscription_id:
+        links["stripe_subscription_id"] = subscription_id
+        links["subscription_status"] = "active"
+        metadata = session.get("metadata") or {}
+        if metadata.get("calls") and metadata.get("avg_minutes"):
+            links.update(usage_billing.plan_fields(
+                int(metadata["calls"]), float(metadata["avg_minutes"]), float(metadata.get("price_usd") or 0)
+            ))
+    await db.tenants.update_one({"_id": tenant["_id"]}, {"$set": links})
+
+    # Subscriptions get their minutes from invoice.paid; one-time packs only come through here.
+    if session.get("mode") == "payment" and session.get("payment_status") == "paid":
+        minutes = _metadata_int(session.get("metadata"), "minutes")
+        if minutes:
+            amount = session.get("amount_total")
+            await usage_billing.credit_minutes(
+                db,
+                str(tenant["_id"]),
+                minutes,
+                source="stripe",
+                key=f"stripe:{session.get('id')}",
+                amount_paid=round(amount / 100, 2) if isinstance(amount, (int, float)) else None,
+                currency=(session.get("currency") or "usd").upper(),
+                reference=session.get("id"),
+                note="Minutes pack",
+            )
+        else:
+            logger.error(f"Paid checkout {session.get('id')} has no minutes in its metadata")
+    return True
+
+
+async def handle_invoice_paid(invoice: Dict[str, Any], db) -> bool:
+    """Each paid invoice (first month and every renewal) adds the plan's minutes."""
+    subscription_id = stripe_events.invoice_subscription_id(invoice)
+    customer_id = stripe_events.object_id(invoice.get("customer"))
+    tenant = await _find_stripe_tenant(
+        db, metadata=stripe_events.invoice_metadata(invoice),
+        subscription_id=subscription_id, customer_id=customer_id,
+    )
+    if not tenant:
+        return _unmatched("invoice", invoice.get("id"))
+
+    # The subscription's metadata says which usage level this invoice pays for (it changes after Change plan).
+    metadata = stripe_events.invoice_metadata(invoice)
+    fields: Dict[str, Any] = {"subscription_status": "active", "updated_at": datetime.utcnow()}
+    if subscription_id:
+        fields["stripe_subscription_id"] = subscription_id
+    if customer_id:
+        fields["stripe_customer_id"] = customer_id
+    if metadata.get("calls") and metadata.get("avg_minutes"):
+        fields.update(usage_billing.plan_fields(
+            int(metadata["calls"]), float(metadata["avg_minutes"]), float(metadata.get("price_usd") or 0)
+        ))
+        fields["plan_next"] = None
+    await db.tenants.update_one({"_id": tenant["_id"]}, {"$set": fields})
+
+    minutes = _metadata_int(metadata, "minutes") or tenant.get("plan_minutes")
+    if not minutes:
+        logger.error(f"Invoice {invoice.get('id')} paid but no plan minutes are known for tenant {tenant['_id']}")
+        return True
+
+    amount_paid = invoice.get("amount_paid")
+    await usage_billing.credit_minutes(
+        db,
+        str(tenant["_id"]),
+        minutes,
+        source="stripe",
+        key=f"stripe:{invoice.get('id')}",
+        plan="monthly",
+        amount_paid=round(amount_paid / 100, 2) if isinstance(amount_paid, (int, float)) else None,
+        currency=(invoice.get("currency") or "usd").upper(),
+        reference=invoice.get("id"),
+        note="Monthly plan",
+        period_end=stripe_events.invoice_period_end(invoice) or datetime.utcnow() + usage_billing.BILLING_PERIOD,
+    )
+    logger.info(f"Invoice {invoice.get('id')} paid for tenant {tenant['_id']}")
+    return True
+
+
+async def handle_subscription_updated(subscription: Dict[str, Any], db) -> bool:
+    """Keep status, renewal date and cancel-at-period-end in sync."""
+    tenant = await _find_stripe_tenant(
+        db, metadata=subscription.get("metadata"),
+        subscription_id=subscription.get("id"),
+        customer_id=stripe_events.object_id(subscription.get("customer")),
+    )
+    if not tenant:
+        return _unmatched("subscription", subscription.get("id"))
+
+    fields: Dict[str, Any] = {
+        "stripe_subscription_id": subscription.get("id"),
+        "subscription_status": subscription.get("status"),
+        "cancel_at_period_end": bool(subscription.get("cancel_at_period_end")),
+        "updated_at": datetime.utcnow(),
+    }
+    period_end = stripe_events.subscription_period_end(subscription)
+    if period_end:
+        fields["billing_period_end"] = period_end
+    amount_cents = _extract_plan_amount_cents(subscription)
+    if amount_cents is not None:
+        fields["monthly_subscription_amount_usd"] = round(amount_cents / 100, 2)
+    await db.tenants.update_one({"_id": tenant["_id"]}, {"$set": fields})
+    logger.info(f"Subscription {subscription.get('id')} updated: {subscription.get('status')}")
+    return True
+
+
+async def handle_subscription_deleted(subscription: Dict[str, Any], db) -> bool:
+    """Cancelled: no more renewals. Minutes already bought stay usable."""
+    tenant = await db.tenants.find_one({"stripe_subscription_id": subscription.get("id")})
     if tenant:
-        amount_paid_cents = invoice.get("amount_paid")
-        recharge_amount = None
-        if isinstance(amount_paid_cents, (int, float)):
-            recharge_amount = round(float(amount_paid_cents) / 100, 2)
-        elif tenant.get("monthly_subscription_amount_usd") is not None:
-            recharge_amount = float(tenant.get("monthly_subscription_amount_usd"))
-
-        update_doc: Dict[str, Any] = {
-            "$set": {
-                "subscription_status": "active",
-                "updated_at": datetime.utcnow()
-            }
-        }
-        if recharge_amount and recharge_amount > 0:
-            update_doc["$inc"] = {"credit_balance": recharge_amount}
-
         await db.tenants.update_one(
             {"_id": tenant["_id"]},
-            update_doc
+            {"$set": {"subscription_status": "canceled", "updated_at": datetime.utcnow()}}
         )
-        logger.info(f"Invoice paid for subscription {subscription_id}")
-
-
-async def handle_subscription_updated(subscription: Dict[str, Any], db):
-    """Handle subscription updates"""
-    subscription_id = subscription["id"]
-    
-    tenant = await db.tenants.find_one({"stripe_subscription_id": subscription_id})
-    if tenant:
-        amount_cents = _extract_plan_amount_cents(subscription)
-        plan_amount_usd = round((amount_cents or 0) / 100, 2)
-
-        await db.tenants.update_one(
-            {"_id": tenant["_id"]},
-            {
-                "$set": {
-                    "subscription_status": subscription["status"],
-                    "current_period_end": datetime.fromtimestamp(subscription["current_period_end"]),
-                    "cancel_at_period_end": subscription.get("cancel_at_period_end", False),
-                    "monthly_subscription_amount_usd": plan_amount_usd,
-                    "updated_at": datetime.utcnow()
-                }
-            }
-        )
-        logger.info(f"Subscription {subscription_id} updated: {subscription['status']}")
-
-
-async def handle_subscription_deleted(subscription: Dict[str, Any], db):
-    """Handle subscription cancellation"""
-    subscription_id = subscription["id"]
-
-    tenant = await db.tenants.find_one({"stripe_subscription_id": subscription_id})
-    if tenant:
-        await db.tenants.update_one(
-            {"_id": tenant["_id"]},
-            {
-                "$set": {
-                    "subscription_status": "canceled",
-                    "updated_at": datetime.utcnow()
-                }
-            }
-        )
-        logger.info(f"Subscription {subscription_id} canceled")
+        logger.info(f"Subscription {subscription.get('id')} canceled")
+    return True
 
 
 # ==================== USAGE & LEDGER ====================
@@ -738,35 +733,19 @@ async def sync_vapi_usage(request: Request, current_user: dict = Depends(get_cur
             except (TypeError, ValueError):
                 call_cost = 0.0
 
-        if call_cost <= 0:
-            continue
-
-        ledger_key = f"call:{call_id}"
-        existing = await db.billing_ledger.find_one({"key": ledger_key})
-        if existing:
-            continue
-
         duration_s = call.get("durationSeconds") or 0
 
-        await db.billing_ledger.insert_one({
-            "key": ledger_key,
-            "type": "call_debit",
-            "tenant_id": tenant_id,
-            "assistant_id": assistant_id,
-            "vapi_call_id": call_id,
-            "amount_usd": call_cost,
-            "duration_seconds": duration_s,
-            "created_at": datetime.utcnow(),
-            "synced_from_vapi": True,
-        })
-
-        await db.tenants.update_one(
-            tenant_query,
-            {
-                "$inc": {"credit_balance": -call_cost},
-                "$set": {"updated_at": datetime.utcnow()},
-            },
+        billed = await usage_billing.record_call_usage(
+            db,
+            tenant_id,
+            call_id,
+            assistant_id=assistant_id,
+            duration_seconds=duration_s,
+            vapi_cost_usd=call_cost,
+            synced_from_vapi=True,
         )
+        if not billed:
+            continue
 
         # Upsert a minimal call_log entry so the calls page shows it
         await db.call_logs.update_one(
@@ -801,3 +780,111 @@ async def sync_vapi_usage(request: Request, current_user: dict = Depends(get_cur
         "reconciled_usd": round(reconciled_usd, 4),
         "message": f"Created {created_count} missing ledger entries totalling ${reconciled_usd:.4f}",
     }
+
+
+# ==================== MINUTES WALLET ====================
+
+def _current_tenant_id(current_user: dict) -> str:
+    tenant_id = current_user.get("tenant_id")
+    if not tenant_id:
+        raise HTTPException(status_code=400, detail="User has no tenant_id")
+    return tenant_id
+
+
+@router.get("/wallet")
+async def get_wallet(current_user: dict = Depends(get_current_user)):
+    """Minutes left, plan, this month's usage and how this business can buy more minutes."""
+    db = get_database()
+    tenant_id = _current_tenant_id(current_user)
+    tenant = await db.tenants.find_one(usage_billing.tenant_query(tenant_id))
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    tenant = await usage_billing.ensure_wallet(db, tenant)
+
+    month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    usage = await db.billing_ledger.aggregate([
+        {"$match": {"tenant_id": tenant_id, "type": "call_debit", "created_at": {"$gte": month_start}}},
+        {"$group": {"_id": None, "calls": {"$sum": 1}, "seconds": {"$sum": "$duration_seconds"}}},
+    ]).to_list(length=1)
+    month = usage[0] if usage else {}
+
+    return {
+        **usage_billing.wallet_summary(tenant),
+        "this_month": {
+            "calls": month.get("calls", 0),
+            "minutes": usage_billing.minutes_for_seconds(month.get("seconds")),
+        },
+        "checkout": usage_billing.checkout_options(online_checkout_ready()),
+        "has_subscription": bool(tenant.get("stripe_subscription_id"))
+        and tenant.get("subscription_status") in ACTIVE_SUBSCRIPTION_STATUSES,
+        "tenant_id": tenant_id,
+    }
+
+
+class FallbackNumberRequest(BaseModel):
+    fallback_number: str = ""
+
+
+@router.put("/fallback-number")
+async def set_fallback_number(
+    body: FallbackNumberRequest,
+    current_admin: dict = Depends(get_current_admin),
+):
+    """The business owner's own number that takes calls while the AI is paused for lack of minutes."""
+    db = get_database()
+    tenant_id = _current_tenant_id(current_admin)
+    try:
+        number = usage_billing.normalize_fallback_number(body.fallback_number)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    tenant = await db.tenants.find_one_and_update(
+        usage_billing.tenant_query(tenant_id),
+        {"$set": {"billing_fallback_number": number, "updated_at": datetime.utcnow()}},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    await usage_billing.apply_fallback_number(tenant)
+    return usage_billing.wallet_summary(tenant)
+
+
+@router.get("/history")
+async def get_wallet_history(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    current_user: dict = Depends(get_current_user),
+):
+    """Minutes added (payments, trial) and minutes used (calls), newest first."""
+    db = get_database()
+    tenant_id = _current_tenant_id(current_user)
+    match = {"tenant_id": tenant_id, "type": {"$in": ["minutes_credit", "call_debit"]}}
+    skip = (page - 1) * limit
+    total = await db.billing_ledger.count_documents(match)
+    rows = await (
+        db.billing_ledger.find(match, {"_id": 0, "key": 0})
+        .sort("created_at", -1)
+        .skip(skip)
+        .limit(limit)
+        .to_list(length=limit)
+    )
+
+    entries = []
+    for row in rows:
+        is_credit = row.get("type") == "minutes_credit"
+        minutes = row.get("minutes")
+        if minutes is None:
+            minutes = usage_billing.minutes_for_seconds(row.get("duration_seconds"))
+        created_at = row.get("created_at")
+        entries.append({
+            "type": "credit" if is_credit else "call",
+            "minutes": round(float(minutes or 0), 2) * (1 if is_credit else -1),
+            "source": row.get("source") if is_credit else "call",
+            "plan": row.get("plan"),
+            "reference": row.get("reference"),
+            "note": row.get("note"),
+            "duration_seconds": row.get("duration_seconds"),
+            "created_at": created_at.isoformat() if isinstance(created_at, datetime) else created_at,
+        })
+
+    return {"entries": entries, "page": page, "limit": limit, "total": total, "has_more": (skip + limit) < total}

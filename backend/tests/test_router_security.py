@@ -86,19 +86,19 @@ class TestRateLimitDecorators:
 
 
 class TestAdminEndpointAuth:
-    def test_add_credits_requires_super_admin(self):
-        """admin_add_credits must have get_super_admin dependency after fix."""
+    def test_add_minutes_requires_super_admin(self):
+        """admin_add_minutes must have get_super_admin dependency."""
         src = read_source("routers/admin.py")
         lines = src.splitlines()
         for i, line in enumerate(lines):
-            if "async def admin_add_credits" in line:
+            if "async def admin_add_minutes" in line:
                 # Look at the function signature (next ~10 lines)
                 window = "\n".join(lines[i:i+10])
                 assert "get_super_admin" in window, (
-                    "admin_add_credits must have Depends(get_super_admin)"
+                    "admin_add_minutes must have Depends(get_super_admin)"
                 )
                 return
-        pytest.fail("admin_add_credits function not found in admin.py")
+        pytest.fail("admin_add_minutes function not found in admin.py")
 
     def test_impersonate_passes_admin_dict(self):
         """impersonate_user must pass the full admin dict for tenant isolation."""

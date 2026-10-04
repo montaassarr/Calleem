@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { adminApi } from "@/lib/api/admin";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Avatar, EmptyState, LoadingState, PageHeader, Panel, Pill, StatCard } from "@/components/admin/AdminUI";
+import { Avatar, CallsStatusPill, EmptyState, LoadingState, PageHeader, Panel, Pill, PlanPill, StatCard } from "@/components/admin/AdminUI";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -58,8 +58,8 @@ export default function AdminOverview() {
     if (billing.isLoading) return <LoadingState label="Loading your console…" />;
 
     const summary = billing.data?.platform_summary;
-    const businesses = [...(billing.data?.tenants ?? [])].sort((a, b) => b.total_calls - a.total_calls);
-    const totalCalls = businesses.reduce((sum, t) => sum + t.total_calls, 0);
+    const businesses = [...(billing.data?.tenants ?? [])].sort((a, b) => b.calls_30d - a.calls_30d);
+    const totalCalls = businesses.reduce((sum, t) => sum + t.calls_30d, 0);
     const pendingUsers = pending.data ?? [];
     const firstName = (user?.full_name || "").split(" ")[0];
 
@@ -80,16 +80,16 @@ export default function AdminOverview() {
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard
-                    label="Active businesses"
-                    value={summary?.active_tenants ?? 0}
+                    label="Paying businesses"
+                    value={summary?.paying_tenants ?? 0}
                     hint={`${summary?.total_tenants ?? 0} registered in total`}
                     icon={Building2}
                     tone="lime"
                 />
                 <StatCard
-                    label="Monthly revenue"
-                    value={money(summary?.total_subscription_revenue_usd ?? 0)}
-                    hint={`Margin ${money(summary?.platform_margin_usd ?? 0)} after voice costs`}
+                    label="Revenue · 30 days"
+                    value={money(summary?.revenue_30d_usd ?? 0)}
+                    hint={`Margin ${money(summary?.margin_30d_usd ?? 0)} after voice costs`}
                     icon={CircleDollarSign}
                     tone="green"
                 />
@@ -100,7 +100,7 @@ export default function AdminOverview() {
                     icon={Clock}
                     tone={pendingUsers.length ? "amber" : "slate"}
                 />
-                <StatCard label="Calls handled" value={totalCalls.toLocaleString()} hint="Across all clients" icon={PhoneCall} tone="blue" />
+                <StatCard label="Calls · 30 days" value={totalCalls.toLocaleString()} hint="Across all clients" icon={PhoneCall} tone="blue" />
             </div>
 
             <div className="grid gap-6 xl:grid-cols-5">
@@ -181,7 +181,7 @@ export default function AdminOverview() {
 
             <Panel
                 title="Businesses"
-                description="Plans, usage and credit balance per client"
+                description="Plan, usage and minutes left per client"
                 bodyClassName="p-0"
                 actions={
                     <Link href="/admin/tenants" className="text-xs font-medium text-[#a8ff5c] hover:underline">
@@ -198,9 +198,9 @@ export default function AdminOverview() {
                                 <th className="px-5 py-3 font-semibold">Business</th>
                                 <th className="px-5 py-3 font-semibold">Plan</th>
                                 <th className="px-5 py-3 font-semibold">Status</th>
-                                <th className="px-5 py-3 text-right font-semibold">Calls</th>
-                                <th className="px-5 py-3 text-right font-semibold">Revenue / mo</th>
-                                <th className="px-5 py-3 text-right font-semibold">Credits</th>
+                                <th className="px-5 py-3 text-right font-semibold">Calls · 30d</th>
+                                <th className="px-5 py-3 text-right font-semibold">Revenue · 30d</th>
+                                <th className="px-5 py-3 text-right font-semibold">Minutes left</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -215,17 +215,15 @@ export default function AdminOverview() {
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-5 py-3 capitalize text-foreground">{t.plan}</td>
+                                    <td className="px-5 py-3"><PlanPill plan={t.billing_plan} /></td>
                                     <td className="px-5 py-3">
-                                        <Pill dot tone={t.subscription_status === "active" ? "green" : t.subscription_status === "trialing" ? "blue" : "slate"}>
-                                            {t.subscription_status === "trialing" ? "Trial" : t.subscription_status.charAt(0).toUpperCase() + t.subscription_status.slice(1)}
-                                        </Pill>
+                                        <CallsStatusPill paused={t.calls_paused} exempt={t.billing_exempt} minutes={t.minutes_balance} />
                                     </td>
-                                    <td className="px-5 py-3 text-right tabular-nums text-foreground">{t.total_calls.toLocaleString()}</td>
-                                    <td className="px-5 py-3 text-right tabular-nums text-foreground">{money(t.monthly_subscription_usd)}</td>
+                                    <td className="px-5 py-3 text-right tabular-nums text-foreground">{t.calls_30d.toLocaleString()}</td>
+                                    <td className="px-5 py-3 text-right tabular-nums text-foreground">{money(t.revenue_30d_usd)}</td>
                                     <td className="px-5 py-3 text-right tabular-nums">
-                                        <span className={t.credit_balance < 20 ? "text-amber-300" : "text-foreground"}>
-                                            {t.credit_balance.toLocaleString("en-US", { style: "currency", currency: "USD" })}
+                                        <span className={t.minutes_balance <= 30 ? "text-amber-300" : "text-foreground"}>
+                                            {Math.round(t.minutes_balance).toLocaleString()} min
                                         </span>
                                     </td>
                                 </tr>

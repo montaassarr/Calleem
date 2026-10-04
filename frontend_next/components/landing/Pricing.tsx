@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Check, ChevronDown, ChevronUp, Settings2, Info } from 'lucide-react';
+import { PRICING, quotePrice, USAGE_LIMITS } from '@/lib/pricing';
 
 const Pricing: React.FC = () => {
     // Usage State
@@ -13,11 +14,11 @@ const Pricing: React.FC = () => {
         return null;
     };
 
-    // Cost Assumptions State
-    const [costPerMinute, setCostPerMinute] = useState(0.082); // Combined var cost
-    const [costPerCallFixed, setCostPerCallFixed] = useState(0.10); // Fixed per call overhead
-    const [fixedInfraCost, setFixedInfraCost] = useState(30); // Monthly infra
-    const [targetMargin, setTargetMargin] = useState(40); // Target Margin %
+    // Cost Assumptions State (defaults are the real pricing model in lib/pricing.ts)
+    const [costPerMinute, setCostPerMinute] = useState(PRICING.costPerMinute); // Combined var cost
+    const [costPerCallFixed, setCostPerCallFixed] = useState(PRICING.costPerCall); // Fixed per call overhead
+    const [fixedInfraCost, setFixedInfraCost] = useState(PRICING.infraPerMonth); // Monthly infra
+    const [targetMargin, setTargetMargin] = useState(PRICING.margin * 100); // Target Margin %
 
     const [showAnalysis, setShowAnalysis] = useState(false);
 
@@ -30,38 +31,23 @@ const Pricing: React.FC = () => {
     });
 
     useEffect(() => {
-        // 1. Calculate Costs
-        const variableCost = calls * (costPerCallFixed + (duration * costPerMinute));
-        const totalCost = variableCost + fixedInfraCost;
-
-        // 2. Calculate Revenue based on Target Margin
-        let marginDecimal = targetMargin / 100;
-        if (marginDecimal >= 0.95) marginDecimal = 0.95; // Cap at 95% to prevent infinity
-
-        let rawRevenue = totalCost / (1 - marginDecimal);
-
-        // 3. Round to "Nice" Price
-        let displayPrice = Math.ceil(rawRevenue / 10) * 10 - 1;
-
-        // Floor price safety
-        const minPrice = Math.ceil((fixedInfraCost * 1.5) / 10) * 10 - 1;
-        if (displayPrice < minPrice) displayPrice = minPrice;
-
-        // 4. Recalculate Actuals based on rounded price
-        const profit = displayPrice - totalCost;
-        const margin = (profit / displayPrice) * 100;
-
-        setFinancials({
-            revenue: displayPrice,
-            totalCost,
-            variableCost,
-            profit,
-            margin
+        // Same quote clients are charged on the billing page (lib/pricing.ts).
+        const quote = quotePrice(calls, duration, {
+            costPerMinute,
+            costPerCall: costPerCallFixed,
+            infraPerMonth: fixedInfraCost,
+            margin: targetMargin / 100,
         });
-
+        setFinancials({
+            revenue: quote.price,
+            totalCost: quote.totalCost,
+            variableCost: quote.variableCost,
+            profit: quote.profit,
+            margin: quote.marginPct
+        });
     }, [calls, duration, costPerMinute, costPerCallFixed, fixedInfraCost, targetMargin]);
 
-    const isEnterprise = calls > 4500;
+    const isEnterprise = calls > USAGE_LIMITS.maxCalls;
 
     return (
         <section id="pricing" className="py-24 px-5 bg-sage relative overflow-hidden">

@@ -23,6 +23,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
             changeFrequency: 'monthly' as const,
             priority: 0.9,
         },
+        ...['terms', 'privacy', 'refund'].map((page) => ({
+            url: `${baseUrl}/${page}`,
+            lastModified: new Date(),
+            changeFrequency: 'yearly' as const,
+            priority: 0.3,
+        })),
     ]
 
     const industryRoutes = INDUSTRIES.map((industry) => ({
