@@ -155,6 +155,7 @@ class TenantResponse(BaseModel):
     created_at: datetime
     total_calls: int
     total_minutes: float
+    transfer_phone_number: Optional[str] = None  # where urgent calls are transferred (services/call_transfer.py)
     
     model_config = ConfigDict(
         json_schema_extra={

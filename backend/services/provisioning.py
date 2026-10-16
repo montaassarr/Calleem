@@ -8,15 +8,72 @@ import os
 from typing import Dict, Any, Optional
 from datetime import datetime
 
+from services import voice_languages
 from services.vapi_service import vapi_service
 from database.mongo_config import get_database
 from bson import ObjectId
 
 logger = logging.getLogger(__name__)
 
+BOOKING_PHONE_DESCRIPTION = (
+    "Customer phone number, digits only, including the country code if the customer gives one "
+    "(e.g. '55123456', '4155550123' or '+14155550123')"
+)
+BOOKING_SERVICE_DESCRIPTION = "The service the customer wants to book"
+BOOKING_TOOLS_MIGRATION = "booking_phone_any_country_v1"
+
+
+async def update_booking_tools() -> None:
+    """
+    One-time update of existing assistants' bookAppointment tool: accept phone numbers from any
+    country (it used to demand exactly 8 digits) and take the service. Runs at startup until every
+    assistant was updated, then records itself in the `migrations` collection.
+    """
+    db = get_database()
+    if not vapi_service.is_configured() or await db.migrations.find_one({"_id": BOOKING_TOOLS_MIGRATION}):
+        return
+
+    def fix(tools) -> bool:
+        changed = False
+        for tool in tools or []:
+            tool = (tool or {}).get("config", tool) or {}
+            function = tool.get("function") or {}
+            if function.get("name") != "bookAppointment":
+                continue
+            properties = (function.get("parameters") or {}).setdefault("properties", {})
+            if (properties.get("phone") or {}).get("description") != BOOKING_PHONE_DESCRIPTION:
+                properties["phone"] = {"type": "string", "description": BOOKING_PHONE_DESCRIPTION}
+                changed = True
+            if "service" not in properties:
+                properties["service"] = {"type": "string", "description": BOOKING_SERVICE_DESCRIPTION}
+                changed = True
+        return changed
+
+    failures = 0
+    tenants = await db.tenants.find(
+        {"vapi_assistant_id": {"$nin": [None, ""]}}, {"vapi_assistant_id": 1, "enabled_tools": 1}
+    ).to_list(5000)
+    for tenant in tenants:
+        assistant_id = tenant["vapi_assistant_id"]
+        try:
+            assistant = await vapi_service.get_assistant(assistant_id)
+            model = (assistant or {}).get("model") or {}
+            if fix(model.get("tools")):
+                await vapi_service.patch_assistant(assistant_id, {"model": model})
+                logger.info(f"Updated bookAppointment tool of assistant {assistant_id}")
+            enabled_tools = tenant.get("enabled_tools") or []
+            if fix(enabled_tools):
+                await db.tenants.update_one({"_id": tenant["_id"]}, {"$set": {"enabled_tools": enabled_tools}})
+        except Exception as e:
+            failures += 1
+            logger.error(f"Could not update the booking tool of assistant {assistant_id}: {e}")
+    if not failures:
+        await db.migrations.insert_one({"_id": BOOKING_TOOLS_MIGRATION, "done_at": datetime.utcnow(), "assistants": len(tenants)})
+
+
 class VapiProvisioningService:
     @staticmethod
-    async def provision_tenant_assistant(tenant_id: str, business_name: str) -> Dict[str, Any]:
+    async def provision_tenant_assistant(tenant_id: str, business_name: str, language: Optional[str] = None) -> Dict[str, Any]:
         """
         Create and configure a Vapi assistant for a new tenant.
         
@@ -24,70 +81,19 @@ class VapiProvisioningService:
         1. Create Assistant with default "Professional Receptionist" config
         2. Enable core tools (checkAvailability, bookAppointment)
         3. Update Tenant record with Vapi ID
+
+        language: "en" or "ar-TN" (services/voice_languages.py); defaults to the tenant's
+        ai_config.language, else English.
         """
         logger.info(f"🤖 Starting Vapi provisioning for tenant {tenant_id} ({business_name})")
+
+        if language is None:
+            tenant = await get_database().tenants.find_one({"_id": ObjectId(tenant_id)}, {"ai_config.language": 1}) or {}
+            language = (tenant.get("ai_config") or {}).get("language")
+        language = voice_languages.normalize(language)
         
         # Default Configuration (Bella-style)
-        default_instructions = f"""You are an AI receptionist for {business_name}. You are the friendly and professional AI receptionist at {business_name}.
-
-You are a warm, helpful, and slightly casual young guy. Speak naturally like a real friendly receptionist — clear, relaxed, upbeat, and human. Never sound robotic.
-
-Core Rules (always follow):
-- Use short, natural sentences. Keep responses brief and easy to speak (ideally under 15-20 seconds).
-- Ask only one question at a time to keep the conversation flowing naturally.
-- Be polite, patient, enthusiastic, and friendly.
-- Match the client's energy and speaking style.
-- If you don't hear or understand what the customer said, immediately ask them to repeat or clarify before saying anything else.
-  Example: "Sorry, I didn't catch that. Could you say that again?"
-
-Phone Number Handling:
-- Calls can come from 2 sources: a website/browser (web call) or a real phone.
-- WEB CALL (no caller phone number available): The customer is calling from the business owner's test page in their dashboard. There is NO phone number on file. You MUST ask the customer directly: "Can I get a phone number for the booking?"
-- REAL PHONE CALL (caller phone number IS available): The customer is calling from a real phone. After collecting other booking info (name, service, date/time), verify their number naturally: "Just to confirm, should we use the number you're calling from for the booking, or would you prefer a different one?"
-  - If they say yes/same, use the caller's number.
-  - If they want a different number, ask for the new number.
-- IMPORTANT: Never read out template variables like "customer dot number" or "slash customer number". If you don't have the customer's actual phone number, simply ask for it.
-
-Booking Flow:
-1. Greet the customer.
-2. Ask for their name (if not given).
-3. Ask what service they want.
-4. Ask for preferred day and time.
-5. Check availability using the checkAvailability tool.
-6. Get their phone number (ask directly for web calls, or verify for real phone calls).
-7. Repeat the full details back naturally and ask for confirmation.
-8. Once confirmed, you MUST call bookAppointment() with all the collected details.
-9. Wait for the bookAppointment() tool to return a result.
-10. ONLY after bookAppointment() returns success, confirm the booking to the customer.
-11. If bookAppointment() returns an error, apologize and ask the customer to correct the details.
-
-*** CRITICAL RULES ***
-- You MUST call bookAppointment() BEFORE confirming or ending the call. NEVER say the appointment is booked without calling the tool first.
-- NEVER end the call or say goodbye until bookAppointment() has returned successfully.
-- If the customer confirms their details and you have name, phone, service, date, and time — IMMEDIATELY call bookAppointment(). Do NOT skip this step.
-
-Greeting (First message - use this exactly):
-"Hello! Welcome to {business_name}. How can I help you today?"
-
-Tone & Style:
-- Warm and welcoming: Use words like "Awesome!", "No problem at all!", "Sounds good!", "Great choice!", "Happy to help!"
-- Positive and solution-oriented.
-- Make every client feel valued.
-- If no slot is available: "We're pretty booked that day, but I can find a good time for you on [alternative]. Does that work?"
-
-Booking Confirmation (ONLY say this after bookAppointment() returns success):
-"Perfect! Your appointment is confirmed for [Date] at [Time] for a [Service] under the name [Name]. We'll send a reminder to your phone number the day before. Looking forward to seeing you at {business_name}!"
-
-Important Guidelines:
-- When talking about dates with the customer, use natural language: "Monday 20 April at 3 PM", "this Friday at 11 AM", "tomorrow at 2:30 PM".
-- Never say the year or use numbers like 2026-04-20 when speaking to the customer.
-- Use the current date context injected by the backend to resolve relative dates.
-- ALWAYS call getAvailableServices() when the customer asks about services or prices.
-- ALWAYS call getBusinessLocation() when asked about address, directions, or location.
-- To book, you need: name, phone number, service, date (YYYY-MM-DD), and time (HH:MM 24-hour).
-- If you don't know something, offer to have someone from the team call them back.
-- Keep responses concise and natural for voice conversations.
-"""
+        default_instructions = voice_languages.default_instructions(language, business_name)
         
         default_config = {
             "name": f"{business_name} AI Receptionist",
@@ -108,13 +114,15 @@ Important Guidelines:
                     }
                 ]
             },
-            "firstMessage": f"Hello! Welcome to {business_name}. How can I help you today?",
+            "firstMessage": voice_languages.first_message(language, business_name),
             "transcriber": {
                 "provider": "deepgram",
                 "model": "nova-2",
                 "language": "en"
             }
         }
+        if language == voice_languages.TUNISIAN:
+            default_config["voice"] = voice_languages.tunisian_voice()
 
         try:
             # 1. Create Assistant
@@ -124,10 +132,11 @@ Important Guidelines:
                 company_name=business_name,
                 instructions=default_config["model"]["messages"][0]["content"],
                 first_message=default_config["firstMessage"],
-                voice="jennifer", # Pass string matching default_config["voice"]["voiceId"]
-                voice_provider="11labs",
+                voice=default_config["voice"]["voiceId"], # "jennifer" for English
+                voice_provider=default_config["voice"]["provider"],
                 model="gpt-4o-mini",
-                transcriber_provider="deepgram"
+                transcriber_provider="deepgram",
+                language=language
             )
             
             assistant_id = assistant.get("assistant_id")
@@ -143,7 +152,8 @@ Important Guidelines:
                 {"$set": {
                     "vapi_assistant_id": assistant_id,
                     "ai_config.voice": default_config["voice"],
-                    "ai_config.voice_provider": "11labs",
+                    "ai_config.voice_provider": default_config["voice"]["provider"],
+                    "ai_config.language": language,
                     "ai_config.system_prompt": default_config["model"]["messages"][0]["content"],
                     "ai_config.first_message": default_config["firstMessage"],
                     "is_configured": True
@@ -210,7 +220,8 @@ Important Guidelines:
                                 "date": {"type": "string", "description": "Date in YYYY-MM-DD format"},
                                 "time": {"type": "string", "description": "Time in HH:MM format"},
                                 "name": {"type": "string", "description": "Customer full name"},
-                                "phone": {"type": "string", "description": "Customer phone number - exactly 8 digits without country code, no spaces (e.g., '12345678' not '1234 5678')"}
+                                "phone": {"type": "string", "description": BOOKING_PHONE_DESCRIPTION},
+                                "service": {"type": "string", "description": BOOKING_SERVICE_DESCRIPTION}
                             },
                             "required": ["date", "time", "name", "phone"]
                         }

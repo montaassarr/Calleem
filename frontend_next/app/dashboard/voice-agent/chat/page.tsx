@@ -1,182 +1,212 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Input } from '@/components/ui/input';
-import { Loader2, Send, MessageSquare, Bot, User, ArrowLeft, Mic, Sparkles } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { vapiApi } from '@/lib/api-endpoints';
-import Link from 'next/link';
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { CalendarCheck, Loader2, MessageCircle, Mic, RotateCcw, Send } from "lucide-react";
+import { whatsappApi } from "@/lib/api/whatsapp";
+import { useConfig } from "@/contexts/ConfigContext";
 
-interface Message {
-    role: 'user' | 'assistant' | 'system';
-    content: string;
-    timestamp: Date;
-    toolCall?: string;
+interface ChatMessage {
+    role: "customer" | "assistant";
+    text: string;
+    at: Date;
+    tools?: string[];
+    appointmentId?: string | null;
+    failed?: boolean;
+}
+
+const TOOL_LABELS: Record<string, string> = {
+    getCurrentDateTime: "Checked today's date",
+    getAvailableServices: "Looked up services",
+    getBusinessLocation: "Looked up the address",
+    checkAvailability: "Checked availability",
+    bookAppointment: "Booked the appointment",
+};
+
+const SUGGESTIONS = [
+    "Hi, what services do you offer?",
+    "Can I book for tomorrow at 2pm?",
+    "Where are you located?",
+];
+
+function newSessionId() {
+    if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
 export default function ChatTestPage() {
-    const { user, isLoading: authLoading } = useAuth();
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [input, setInput] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [assistantId, setAssistantId] = useState<string | null>(null);
-    const [systemPrompt, setSystemPrompt] = useState('');
-    const [conversationHistory, setConversationHistory] = useState<{ role: string, content: string }[]>([]);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const { config } = useConfig();
+    const [sessionId, setSessionId] = useState(newSessionId);
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [input, setInput] = useState("");
+    const [sending, setSending] = useState(false);
+    const endRef = useRef<HTMLDivElement>(null);
 
-    const loadAssistant = useCallback(async () => {
-        if (!user) return;
+    const businessName = config?.business_name || "Your business";
+
+    useEffect(() => {
+        endRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages, sending]);
+
+    const send = async (text: string) => {
+        const message = text.trim();
+        if (!message || sending) return;
+        setInput("");
+        setMessages((prev) => [...prev, { role: "customer", text: message, at: new Date() }]);
+        setSending(true);
         try {
-            const data = await vapiApi.getMyAssistant();
-            if (data?.assistant_id) {
-                setAssistantId(data.assistant_id);
-                const personality = await fetch('/api/v1/assistant/me/personality', {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('access_token')}` }
-                }).then(r => r.json()).catch(() => ({}));
-                const prompt = personality.system_prompt || 'You are a helpful AI assistant.';
-                setSystemPrompt(prompt);
-                setConversationHistory([{ role: 'system', content: prompt }]);
-                setMessages([{ role: 'assistant', content: data.first_message || personality.first_message || "Hi! Thank you for calling. How can I help you today?", timestamp: new Date() }]);
-            }
-        } catch (err) { console.error("Failed to load assistant", err); }
-    }, [user]);
-
-    useEffect(() => { loadAssistant(); }, [loadAssistant]);
-
-    const sendMessage = async () => {
-        if (!input.trim() || loading) return;
-        const userMessage: Message = { role: 'user', content: input.trim(), timestamp: new Date() };
-        setMessages(prev => [...prev, userMessage]);
-        const currentInput = input.trim();
-        setInput('');
-        setLoading(true);
-        const newHistory = [...conversationHistory, { role: 'user', content: currentInput }];
-        setConversationHistory(newHistory);
-
-        try {
-            const response = await fetch('/api/v1/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('access_token')}` },
-                body: JSON.stringify({ messages: newHistory, assistant_id: assistantId })
-            });
-            if (response.ok) {
-                const data = await response.json();
-                const aiResponse = data.response || data.choices?.[0]?.message?.content || "I understand. Let me help you with that.";
-                setConversationHistory([...newHistory, { role: 'assistant', content: aiResponse }]);
-                setMessages(prev => [...prev, { role: 'assistant', content: aiResponse, timestamp: new Date(), toolCall: data.tool_used }]);
-            } else {
-                const aiResponse = getIntelligentResponse(currentInput, systemPrompt);
-                setConversationHistory([...newHistory, { role: 'assistant', content: aiResponse }]);
-                setMessages(prev => [...prev, { role: 'assistant', content: aiResponse, timestamp: new Date() }]);
-            }
+            const reply = await whatsappApi.testChat(message, sessionId);
+            setMessages((prev) => [
+                ...prev,
+                { role: "assistant", text: reply.response, at: new Date(), tools: reply.tools_used, appointmentId: reply.appointment_id },
+            ]);
         } catch {
-            const aiResponse = getIntelligentResponse(currentInput, systemPrompt);
-            setConversationHistory([...newHistory, { role: 'assistant', content: aiResponse }]);
-            setMessages(prev => [...prev, { role: 'assistant', content: aiResponse, timestamp: new Date() }]);
-        } finally { setLoading(false); }
+            setMessages((prev) => [
+                ...prev,
+                { role: "assistant", text: "The assistant couldn't answer. Please try again in a moment.", at: new Date(), failed: true },
+            ]);
+        } finally {
+            setSending(false);
+        }
     };
 
-    const getIntelligentResponse = (userInput: string, prompt: string): string => {
-        const lower = userInput.toLowerCase();
-        if (lower.includes('book') || lower.includes('appointment') || lower.includes('schedule')) return "I'd love to help you schedule an appointment! What day and time works best for you?";
-        if (lower.includes('available') || lower.includes('time')) return "Let me check our availability. We have openings tomorrow at 9:00 AM, 10:00 AM, 11:00 AM, 2:00 PM, and 3:00 PM.";
-        if (lower.includes('price') || lower.includes('cost')) return "I'd be happy to provide pricing information! What specific service are you interested in?";
-        if (lower.includes('hour') || lower.includes('when') || lower.includes('close')) return "We're open Tuesday through Friday 9 AM to 7 PM, Saturday 9 AM to 6 PM, and Sunday 10 AM to 4 PM.";
-        if (lower.includes('cancel')) return "I can help you cancel your appointment. Can you provide the name and scheduled date/time?";
-        if (lower.includes('thank') || lower.includes('bye')) return "You're welcome! Thank you for chatting. Have a wonderful day!";
-        if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) return "Hello! Welcome! How can I help you today?";
-        return "I can assist you with booking appointments, checking availability, or answering questions about our services!";
+    const restart = async () => {
+        const old = sessionId;
+        setSessionId(newSessionId());
+        setMessages([]);
+        whatsappApi.resetTestChat(old).catch(() => undefined);
     };
-
-    const handleKeyPress = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-    };
-
-    if (authLoading) {
-        return <div className="flex items-center justify-center h-[calc(100vh-4rem)]"><Loader2 className="h-12 w-12 animate-spin text-[#0a4c2f]" /></div>;
-    }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-200px)]">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col h-[calc(100vh-200px)] min-h-[520px]">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-4">
                 <div>
-                    <h1 className="text-[24px] font-bold text-gray-900 flex items-center gap-2"><MessageSquare className="h-6 w-6" />Chat Test</h1>
-                    <p className="text-sm text-gray-500">Test your AI assistant via text chat</p>
+                    <h1 className="text-[24px] font-bold text-gray-900 flex items-center gap-2">
+                        <MessageCircle className="h-6 w-6" />Chat Test
+                    </h1>
+                    <p className="text-sm text-gray-500">
+                        Write as if you were a customer texting your business. The assistant uses your real services, prices, hours and calendar.
+                    </p>
                 </div>
-                <div className="flex gap-2">
-                    <Link href="/dashboard/voice-agent/test" className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors text-sm flex items-center gap-2">
+                <div className="flex gap-2 shrink-0">
+                    <button
+                        onClick={restart}
+                        className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors text-sm flex items-center gap-2"
+                    >
+                        <RotateCcw className="w-4 h-4" />New conversation
+                    </button>
+                    <Link
+                        href="/dashboard/voice-agent/test"
+                        className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors text-sm flex items-center gap-2"
+                    >
                         <Mic className="w-4 h-4" />Voice Test
-                    </Link>
-                    <Link href="/dashboard/voice-agent/control-center" className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors text-sm flex items-center gap-2">
-                        <ArrowLeft className="w-4 h-4" />Back
                     </Link>
                 </div>
             </div>
 
-            {/* Chat Container */}
-            <div className="bg-white rounded-[24px] shadow-[0_2px_15px_-4px_rgba(0,0,0,0.03)] border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden">
-                {/* Chat Header */}
-                <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#187848] to-[#0a4c2f] flex items-center justify-center">
-                        <Sparkles className="h-5 w-5 text-white" />
+            <div className="rounded-[24px] border border-gray-100 shadow-[0_2px_15px_-4px_rgba(0,0,0,0.03)] flex-1 flex flex-col min-h-0 overflow-hidden">
+                {/* Header, like a phone chat */}
+                <div className="px-5 py-3 bg-[#0a4c2f] text-white flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center font-bold">
+                        {businessName.charAt(0).toUpperCase()}
                     </div>
-                    <div>
-                        <h3 className="font-bold text-gray-900 text-sm">AI Receptionist</h3>
-                        {assistantId ? (
-                            <span className="text-xs font-bold text-green-700 flex items-center gap-1"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>Connected</span>
-                        ) : (
-                            <span className="text-xs font-bold text-red-600">Not Configured</span>
-                        )}
+                    <div className="min-w-0">
+                        <h3 className="font-semibold text-sm truncate">{businessName}</h3>
+                        <span className="text-xs text-white/70">{sending ? "typing..." : "AI receptionist · online"}</span>
                     </div>
                 </div>
 
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
-                    {messages.map((msg, idx) => (
-                        <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            {msg.role === 'assistant' && (
-                                <div className="w-8 h-8 rounded-full bg-[#f3f5f4] flex items-center justify-center shrink-0">
-                                    <Bot className="h-4 w-4 text-[#0a4c2f]" />
-                                </div>
-                            )}
-                            <div className={`max-w-[75%] p-3 rounded-2xl ${msg.role === 'user' ? 'bg-[#0a4c2f] text-white rounded-br-md' : 'bg-gray-100 text-gray-900 rounded-bl-md'}`}>
-                                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                                {msg.toolCall && <span className="mt-2 inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-white/20 text-white/80">🔧 {msg.toolCall}</span>}
-                                <p className="text-xs opacity-50 mt-1">{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                            </div>
-                            {msg.role === 'user' && (
-                                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                                    <User className="h-4 w-4 text-gray-500" />
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                    {loading && (
-                        <div className="flex gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#f3f5f4] flex items-center justify-center"><Bot className="h-4 w-4 text-[#0a4c2f]" /></div>
-                            <div className="bg-gray-100 p-3 rounded-2xl rounded-bl-md">
-                                <div className="flex gap-1">
-                                    <div className="w-2 h-2 bg-[#0a4c2f]/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                                    <div className="w-2 h-2 bg-[#0a4c2f]/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                                    <div className="w-2 h-2 bg-[#0a4c2f]/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-[#efeae2]">
+                    {messages.length === 0 && (
+                        <div className="h-full flex flex-col items-center justify-center text-center gap-4 px-6">
+                            <p className="text-sm text-gray-600 bg-white/80 rounded-xl px-4 py-2 shadow-sm max-w-md">
+                                Bookings made here are real: they appear in your Appointments marked &quot;Booked from the Chat Test&quot;.
+                            </p>
+                            <div className="flex flex-wrap justify-center gap-2">
+                                {SUGGESTIONS.map((s) => (
+                                    <button
+                                        key={s}
+                                        onClick={() => send(s)}
+                                        className="text-sm bg-white border border-gray-200 rounded-full px-3 py-1.5 text-gray-700 hover:bg-gray-50"
+                                    >
+                                        {s}
+                                    </button>
+                                ))}
                             </div>
                         </div>
                     )}
-                    <div ref={messagesEndRef} />
+
+                    {messages.map((m, i) => (
+                        <div key={i} className={`flex ${m.role === "customer" ? "justify-end" : "justify-start"}`}>
+                            <div
+                                className={`max-w-[80%] px-3 py-2 rounded-lg shadow-sm text-sm ${m.role === "customer"
+                                    ? "bg-[#d9fdd3] text-gray-900 rounded-tr-none"
+                                    : m.failed
+                                        ? "bg-red-50 text-red-800 rounded-tl-none"
+                                        : "bg-white text-gray-900 rounded-tl-none"
+                                    }`}
+                            >
+                                <p className="whitespace-pre-wrap">{m.text}</p>
+                                {!!m.tools?.length && (
+                                    <div className="flex flex-wrap gap-1 mt-1.5">
+                                        {Array.from(new Set(m.tools)).map((t) => (
+                                            <span key={t} className="text-[10px] font-semibold bg-[#0a4c2f]/10 text-[#0a4c2f] px-1.5 py-0.5 rounded">
+                                                {TOOL_LABELS[t] || t}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                {m.appointmentId && (
+                                    <Link
+                                        href="/dashboard/appointments"
+                                        className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-[#0a4c2f] hover:underline"
+                                    >
+                                        <CalendarCheck className="w-3.5 h-3.5" />See it in Appointments
+                                    </Link>
+                                )}
+                                <p className="text-[10px] text-gray-500 text-right mt-0.5">
+                                    {m.at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                </p>
+                            </div>
+                        </div>
+                    ))}
+
+                    {sending && (
+                        <div className="flex justify-start">
+                            <div className="bg-white px-3 py-2.5 rounded-lg rounded-tl-none shadow-sm flex gap-1">
+                                {[0, 150, 300].map((delay) => (
+                                    <span key={delay} className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: `${delay}ms` }} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    <div ref={endRef} />
                 </div>
 
-                {/* Input */}
-                <div className="p-4 border-t border-gray-100 bg-gray-50/50">
-                    <div className="flex gap-2">
-                        <Input id="chat-input" name="chat-message" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyPress} placeholder="Type a message..." disabled={loading || !assistantId} className="flex-1 rounded-xl border-gray-200" autoComplete="off" />
-                        <button onClick={sendMessage} disabled={loading || !input.trim() || !assistantId} className="w-10 h-10 bg-[#0a4c2f] hover:bg-[#073922] text-white rounded-xl flex items-center justify-center transition-colors disabled:opacity-40">
-                            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                        </button>
-                    </div>
-                    <p className="text-xs text-gray-400 mt-2 text-center">💡 Try: &quot;I want to book a men&apos;s haircut for tomorrow at 2pm&quot;</p>
-                </div>
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        send(input);
+                    }}
+                    className="p-3 bg-[#f0f2f5] flex gap-2"
+                >
+                    <input
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder="Type a message"
+                        maxLength={2000}
+                        autoComplete="off"
+                        className="flex-1 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0a4c2f]/20"
+                    />
+                    <button
+                        type="submit"
+                        disabled={sending || !input.trim()}
+                        aria-label="Send"
+                        className="w-10 h-10 bg-[#0a4c2f] hover:bg-[#073922] text-white rounded-full flex items-center justify-center transition-colors disabled:opacity-40"
+                    >
+                        {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    </button>
+                </form>
             </div>
         </div>
     );

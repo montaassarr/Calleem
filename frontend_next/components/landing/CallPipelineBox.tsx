@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import demoCall from "@/lib/demo-call.json";
 
 const B = {
   cardBg: "#648768",
@@ -28,6 +29,8 @@ type IconName =
   | "chat"
   | "phone-off"
   | "play"
+  | "pause"
+  | "volume"
   | "arrow-left"
   | "arrow-right";
 
@@ -117,6 +120,19 @@ function Icon({ name, size = 20, color = "currentColor" }: { name: IconName; siz
           <path d="M19.4 9.85 8.78 3.78C6.78 2.64 4.5 4.05 4.5 6.36v12.13c0 2.31 2.28 3.72 4.28 2.58l10.62-6.07a3 3 0 0 0 0-5.15Z" />
         </svg>
       );
+    case "pause":
+      return (
+        <svg {...props}>
+          <path d="M6.5 4.5A1.5 1.5 0 0 1 8 3h1a1.5 1.5 0 0 1 1.5 1.5v15A1.5 1.5 0 0 1 9 21H8a1.5 1.5 0 0 1-1.5-1.5v-15Zm7 0A1.5 1.5 0 0 1 15 3h1a1.5 1.5 0 0 1 1.5 1.5v15A1.5 1.5 0 0 1 16 21h-1a1.5 1.5 0 0 1-1.5-1.5v-15Z" />
+        </svg>
+      );
+    case "volume":
+      return (
+        <svg {...props}>
+          <path d="M11.47 3.84A1 1 0 0 1 13 4.7v14.6a1 1 0 0 1-1.53.86L6.9 17.25H4.5A1.5 1.5 0 0 1 3 15.75v-7.5a1.5 1.5 0 0 1 1.5-1.5h2.4l4.57-2.91Z" />
+          <path d="M16.03 8.47a.75.75 0 0 1 1.06 0 5 5 0 0 1 0 7.06.75.75 0 1 1-1.06-1.06 3.5 3.5 0 0 0 0-4.94.75.75 0 0 1 0-1.06Zm2.47-2.47a.75.75 0 0 1 1.06 0 8.5 8.5 0 0 1 0 12 .75.75 0 0 1-1.06-1.06 7 7 0 0 0 0-9.88.75.75 0 0 1 0-1.06Z" />
+        </svg>
+      );
     case "arrow-left":
       return (
         <svg {...props}>
@@ -176,6 +192,8 @@ type Step = {
   label: string;
   stepLabel: string;
   bubble: Bubble;
+  /** Seconds into the voice demo recording when this line starts (voice demo only). */
+  at?: number;
 };
 
 type Wire = {
@@ -192,7 +210,33 @@ type Scenario = {
   activeWiresByStep: string[][];
 };
 
-type ScenarioId = "book" | "info";
+type ScenarioId = "book" | "info" | "emergency";
+
+// A real call to a plumbing business in Calleem's voice: lib/demo-call.json, written by
+// scripts/fetch_demo_call.py from a recorded Vapi call. Without a recording it plays silently.
+type DemoCall = {
+  audio: string | null;
+  voice: string;
+  business: string;
+  durationSeconds: number;
+  lines: { at: number; who: Bubble["who"]; node: NodeId; label: string; stepLabel: string; text: string }[];
+};
+const DEMO_CALL = demoCall as DemoCall;
+const DEMO_STEPS: Step[] = DEMO_CALL.lines
+  .filter((line) => line.node in NODE_DEFS)
+  .map(({ at, who, node, label, stepLabel, text }) => ({ nodeId: node, label, stepLabel, bubble: { who, text }, at }));
+const DEMO_NODES = new Set<NodeId>(["phone", ...DEMO_STEPS.map((step) => step.nodeId)]);
+// Left-column nodes wire into the hub; right-column nodes are wired out of it.
+const INTO_HUB: NodeId[] = ["phone", "kb", "end"];
+const demoWire = (node: NodeId) =>
+  node === "calleem" ? "phone->calleem" : INTO_HUB.includes(node) ? `${node}->calleem` : `calleem->${node}`;
+
+export const DEMO_AUDIO_AVAILABLE = Boolean(DEMO_CALL.audio);
+/** Window event that starts the voice demo, so buttons outside this component can play it. */
+export const PLAY_DEMO_EVENT = "calleem:play-demo";
+
+const formatTime = (seconds: number) =>
+  `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 
 const SCENARIOS: Record<ScenarioId, Scenario> = {
   book: {
@@ -227,8 +271,8 @@ const SCENARIOS: Record<ScenarioId, Scenario> = {
       {
         nodeId: "confirm",
         label: "Sends confirmation",
-        stepLabel: "SMS and email confirmation dispatched",
-        bubble: { who: "calleem", text: "Done — confirmation sent by SMS and email." },
+        stepLabel: "SMS confirmation sent to the caller",
+        bubble: { who: "calleem", text: "Done — I've texted you a confirmation." },
       },
       {
         nodeId: "end",
@@ -290,6 +334,16 @@ const SCENARIOS: Record<ScenarioId, Scenario> = {
     ],
     activeWiresByStep: [[], ["phone->calleem"], ["kb->calleem"], ["calleem->answer"], ["end->calleem"]],
   },
+  emergency: {
+    label: "Plumbing Emergency",
+    shortLabel: "Plumber",
+    iconName: "phone",
+    steps: DEMO_STEPS,
+    wires: [...DEMO_NODES]
+      .filter((node) => node !== "calleem")
+      .map((node): Wire => (INTO_HUB.includes(node) ? { from: node, to: "calleem" } : { from: "calleem", to: node })),
+    activeWiresByStep: DEMO_STEPS.map((step, i) => (i === 0 && step.nodeId === "phone" ? [] : [demoWire(step.nodeId)])),
+  },
 };
 
 const cy = (node: { y: number; h: number }) => node.y + node.h / 2;
@@ -341,7 +395,7 @@ const NODE_META: Record<NodeId, { iconName: IconName; title: string; sub: string
   calleem: { iconName: "user", title: "Calleem", sub: "AI Receptionist", isHub: true },
   cal: { iconName: "calendar-search", title: "Check Calendar", sub: "availability" },
   book: { iconName: "calendar-check", title: "Book Appointment", sub: "saves the slot" },
-  confirm: { iconName: "envelope-check", title: "Send Confirmation", sub: "SMS · email" },
+  confirm: { iconName: "envelope-check", title: "Send Confirmation", sub: "by SMS" },
   kb: { iconName: "book", title: "Knowledge Base", sub: "business info" },
   answer: { iconName: "chat", title: "Reply to Caller", sub: "instant answer" },
   end: { iconName: "phone-off", title: "Call Ends", sub: "customer happy" },
@@ -366,10 +420,6 @@ function CalleemLogo({ color, size = 26 }: { color: string; size?: number }) {
 }
 
 function NodeCard({ nodeId, present, isCurrent, def, isPhone }: { nodeId: NodeId; present: boolean; isCurrent: boolean; def: { x: number; y: number; w: number; h: number }; isPhone: boolean }) {
-  const meta = NODE_META[nodeId];
-  if (!meta || !def) return null;
-  const { iconName, title, sub, isHub } = meta;
-
   // Activation pulse: fires once each time this node becomes the current node
   const prevCurrent = useRef(isCurrent);
   const [activating, setActivating] = useState(false);
@@ -382,6 +432,11 @@ function NodeCard({ nodeId, present, isCurrent, def, isPhone }: { nodeId: NodeId
     }
     prevCurrent.current = isCurrent;
   }, [isCurrent]);
+
+  // Hooks above run on every render; only then may the card bail out.
+  const meta = NODE_META[nodeId];
+  if (!meta || !def) return null;
+  const { iconName, title, sub, isHub } = meta;
 
   let bg: string;
   let border: string;
@@ -926,7 +981,7 @@ function StepStrip({
         const done = index < currentStep;
         const cur = index === currentStep;
         return (
-          <div key={step.label} style={{ display: "flex", alignItems: "center" }}>
+          <div key={`${index}-${step.label}`} style={{ display: "flex", alignItems: "center" }}>
             <button
               onClick={() => onStep(index)}
               title={step.stepLabel}
@@ -1000,7 +1055,13 @@ export default function CallPipelineBox() {
   const [stepIdx, setStepIdx] = useState(0);
   const [bubbleVis, setBubbleVis] = useState(true);
   const [isPhone, setIsPhone] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [duration, setDuration] = useState(DEMO_CALL.durationSeconds);
   const timerRef = useRef<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const listeningRef = useRef(false);
+  const spokenStepRef = useRef(0);
 
   useEffect(() => {
     const update = () => setIsPhone(window.innerWidth < 768);
@@ -1048,6 +1109,7 @@ export default function CallPipelineBox() {
   const wires = scenario.wires.map(resolveWireLocal);
 
   const advance = useCallback(() => {
+    if (listeningRef.current) return; // while the recording plays, the audio moves the steps
     setBubbleVis(false);
     window.setTimeout(() => {
       setStepIdx((current) => (current + 1) % steps.length);
@@ -1062,7 +1124,62 @@ export default function CallPipelineBox() {
     };
   }, [advance]);
 
+  // Show the line being spoken `time` seconds into the recording: the last one that has started.
+  const showSpokenStep = useCallback((time: number, immediate = false) => {
+    let idx = 0;
+    DEMO_STEPS.forEach((step, i) => {
+      if ((step.at ?? 0) <= time) idx = i;
+    });
+    if (!immediate && idx === spokenStepRef.current) return;
+    spokenStepRef.current = idx;
+    setBubbleVis(false);
+    window.setTimeout(() => {
+      setStepIdx(idx);
+      setBubbleVis(true);
+    }, immediate ? 0 : 160);
+  }, []);
+
+  const stopListening = useCallback(() => {
+    audioRef.current?.pause();
+    listeningRef.current = false;
+    setListening(false);
+  }, []);
+
+  const startListening = useCallback(() => {
+    if (!DEMO_CALL.audio) return;
+    const audio = audioRef.current ?? new Audio(DEMO_CALL.audio);
+    audioRef.current = audio;
+    audio.onloadedmetadata = () => {
+      if (Number.isFinite(audio.duration)) setDuration(audio.duration);
+    };
+    audio.ontimeupdate = () => {
+      setElapsed(audio.currentTime);
+      showSpokenStep(audio.currentTime);
+    };
+    audio.onended = () => {
+      listeningRef.current = false;
+      setListening(false);
+    };
+    if (audio.ended) audio.currentTime = 0;
+    listeningRef.current = true;
+    setListening(true);
+    setScenarioId("emergency");
+    showSpokenStep(audio.currentTime, true);
+    audio.play().catch(() => {
+      listeningRef.current = false;
+      setListening(false);
+    });
+  }, [showSpokenStep]);
+
+  useEffect(() => {
+    window.addEventListener(PLAY_DEMO_EVENT, startListening);
+    return () => window.removeEventListener(PLAY_DEMO_EVENT, startListening);
+  }, [startListening]);
+
+  useEffect(() => stopListening, [stopListening]);
+
   function switchScenario(id: ScenarioId) {
+    if (listening) stopListening();
     if (timerRef.current !== null) window.clearInterval(timerRef.current);
     setScenarioId(id);
     setStepIdx(0);
@@ -1071,6 +1188,12 @@ export default function CallPipelineBox() {
   }
 
   function goToStep(i: number) {
+    if (listening && scenarioId === "emergency" && audioRef.current) {
+      // Jump the recording to that line; the steps follow the audio.
+      audioRef.current.currentTime = steps[i].at ?? 0;
+      showSpokenStep(audioRef.current.currentTime, true);
+      return;
+    }
     setBubbleVis(false);
     window.setTimeout(() => {
       setStepIdx(i);
@@ -1177,7 +1300,33 @@ export default function CallPipelineBox() {
         })}
       </div>
 
-      <StepStrip steps={steps} currentStep={stepIdx} onStep={goToStep} dotsOnly={isPhone} />
+      {DEMO_AUDIO_AVAILABLE && (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, marginBottom: isPhone ? 14 : 18 }}>
+          <button
+            onClick={listening ? stopListening : startListening}
+            className="cp-ctrl-btn"
+            aria-pressed={listening}
+            style={{
+              ...btnBaseStyle,
+              fontSize: isPhone ? 12 : 13,
+              padding: isPhone ? "9px 16px" : "10px 22px",
+              border: `1.5px solid ${B.white}`,
+              background: listening ? "rgba(255,255,255,0.12)" : B.white,
+              color: listening ? B.white : B.greenDeep,
+            }}
+          >
+            <Icon name={listening ? "pause" : "volume"} size={isPhone ? 13 : 15} />
+            {listening
+              ? `Pause · ${formatTime(elapsed)} / ${formatTime(duration)}`
+              : `Hear a real call in ${DEMO_CALL.voice}'s voice`}
+          </button>
+          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.62)", fontFamily: FONT_SANS, textAlign: "center" }}>
+            Unedited recording of Calleem answering a demo plumbing business
+          </span>
+        </div>
+      )}
+
+      <StepStrip steps={steps} currentStep={stepIdx} onStep={goToStep} dotsOnly={isPhone || steps.length > 7} />
 
       {isPhone ? (
         /* ── MOBILE LAYOUT ── */

@@ -5,6 +5,7 @@ from datetime import timedelta
 from fastapi import HTTPException
 from bson import ObjectId
 
+from services import call_transfer, usage_billing, voice_languages
 from services.vapi_service import vapi_service
 from database.mongo_config import get_database
 from data.tenants import TenantRepository
@@ -26,6 +27,10 @@ class AssistantService:
             or tenant.get("name")
             or "our business"
         )
+
+    @staticmethod
+    def _language(tenant: Dict[str, Any]) -> str:
+        return voice_languages.normalize((tenant.get("ai_config") or {}).get("language"))
 
     async def _get_tenant(self, tenant_id: str):
         tenant = await self.tenant_repo.get_by_id(tenant_id)
@@ -98,15 +103,17 @@ class AssistantService:
                 transcriber_provider=config.transcriber_provider,
                 transcriber_model=config.transcriber_model,
                 transcriber_language=config.transcriber_language,
-                tools=config.tools
+                tools=config.tools,
+                language=config.language
             )
-            
+
             await self.tenant_repo.update(tenant_id, {
                 "vapi_assistant_id": result["assistant_id"],
-                "ai_config.voice": config.voice,
-                "ai_config.voice_provider": config.voice_provider,
+                "ai_config.voice": result.get("voice") or config.voice,
+                "ai_config.voice_provider": result.get("voice_provider") or config.voice_provider,
                 "ai_config.system_prompt": config.instructions,
-                "ai_config.first_message": config.first_message
+                "ai_config.first_message": config.first_message,
+                "ai_config.language": result.get("language") or voice_languages.DEFAULT_LANGUAGE
             })
             
             # Default-enable built-in tools if none configured
@@ -199,11 +206,13 @@ class AssistantService:
             return {
                 "configured": True,
                 "voice": details.get("voice", {}),
-                "transcriber": details.get("transcriber", {})
+                "transcriber": details.get("transcriber", {}),
+                "language": voice_languages.normalize((details.get("metadata") or {}).get("language")),
             }
 
         return {
             "configured": False,
+            "language": self._language(tenant),
             "voice": {
                 "provider": tenant.get("ai_config", {}).get("voice_provider", "11labs"),
                 "voiceId": tenant.get("ai_config", {}).get("voice", "jennifer")
@@ -230,6 +239,57 @@ class AssistantService:
         
         return {"success": True, "voice": voice_config.dict()}
 
+    # Language (services/voice_languages.py)
+    async def get_language(self, tenant_id: str) -> Dict[str, Any]:
+        tenant = await self._get_tenant(tenant_id)
+        return {"language": self._language(tenant), "options": voice_languages.options()}
+
+    async def set_language(self, tenant_id: str, language: str) -> Dict[str, Any]:
+        """
+        Make the assistant speak `language`: speech-to-text, LLM, voice, prompt and greeting all
+        switch. Instructions the business never edited are replaced by the new language's default;
+        edited ones are kept.
+        """
+        if language not in voice_languages.LANGUAGES:
+            raise HTTPException(400, f"Unsupported language: {language}")
+        tenant = await self._get_tenant(tenant_id)
+        company_name = self._business_name(tenant)
+
+        if not tenant.get("vapi_assistant_id"):
+            from services.provisioning import vapi_provisioning
+            assistant = await vapi_provisioning.provision_tenant_assistant(tenant_id, company_name, language)
+            if not assistant:
+                raise HTTPException(500, "Failed to provision assistant")
+            tenant = await self._get_tenant(tenant_id)
+            ai_config = tenant.get("ai_config") or {}
+            return {"success": True, "language": language, "first_message": ai_config.get("first_message")}
+
+        instructions = (tenant.get("ai_config") or {}).get("system_prompt") or ""
+        if voice_languages.is_default_instructions(instructions, company_name):
+            instructions = voice_languages.default_instructions(language, company_name)
+        faqs = (await self.get_knowledge_base(tenant_id))["faqs"]
+
+        try:
+            result = await vapi_service.set_language(
+                tenant["vapi_assistant_id"], language, company_name, self._inject_current_date(instructions), faqs
+            )
+        except Exception as e:
+            logger.error(f"Error switching assistant language for {tenant_id}: {e}")
+            raise HTTPException(502, f"Failed to switch the assistant language: {e}")
+
+        voice = result.get("voice") or {}
+        await self.tenant_repo.update(tenant_id, {
+            "ai_config.language": language,
+            "ai_config.system_prompt": instructions,
+            "ai_config.first_message": result.get("firstMessage"),
+            "ai_config.voice": voice.get("voiceId"),
+            "ai_config.voice_provider": voice.get("provider"),
+        })
+        if tenant.get("transfer_phone_number"):
+            # The transfer's hold message is said by the assistant's voice, so it switches language too.
+            await self._sync_tools_to_vapi(tenant_id, tenant.get("enabled_tools") or [])
+        return {"success": True, "language": language, "voice": voice, "first_message": result.get("firstMessage")}
+
     async def get_personality_settings(self, tenant_id: str) -> Dict[str, Any]:
         tenant = await self._get_tenant(tenant_id)
         if not tenant.get("vapi_assistant_id"):
@@ -245,8 +305,11 @@ class AssistantService:
                     system_prompt = msg.get("content", "")
                     break
             
+            # The business's own instructions, not the full prompt they were wrapped in: saving the
+            # wrapped prompt back would wrap it again on every save.
+            stored = (tenant.get("ai_config") or {}).get("system_prompt")
             return {
-                "system_prompt": system_prompt,
+                "system_prompt": stored if stored is not None else system_prompt,
                 "first_message": details.get("firstMessage", ""),
                 "model": model_config.get("model", "gpt-4o-mini"),
                 "temperature": model_config.get("temperature", 0.7),
@@ -482,6 +545,8 @@ Important:
 
     async def enable_tool(self, tenant_id: str, tool_id: str) -> Dict[str, Any]:
         tenant = await self._get_tenant(tenant_id)
+        if tool_id == call_transfer.TOOL_ID and not tenant.get("transfer_phone_number"):
+            raise HTTPException(400, "Add the phone number to transfer calls to first, on the AI Receptionist page")
         
         # Lazy creation logic duplication here basically, but assuming tenant exists from _get_tenant
         if not tenant.get("vapi_assistant_id"):
@@ -542,6 +607,7 @@ Important:
         normalized = self._normalize_enabled_tools(tools)
 
         vapi_tools = []
+        transfer_left_out = False
         for entry in normalized:
             tool = entry.get("config") or {}
             tool_type = tool.get("type")
@@ -554,11 +620,19 @@ Important:
                         "function": function_def,
                         "server": {"url": webhook_url}
                     })
-            elif tool_type in {"transferCall", "endCall"}:
+            elif tool_type == "transferCall":
+                # Its destination is the business's transfer number; with no number it is left out.
+                transfer_tool = call_transfer.vapi_tool(tenant.get("transfer_phone_number"), self._language(tenant))
+                if transfer_tool:
+                    vapi_tools.append(transfer_tool)
+                else:
+                    transfer_left_out = True
+            elif tool_type == "endCall":
                 vapi_tools.append(tool)
         
         try:
-            if vapi_tools or not normalized:
+            # A transfer tool left out must still reach Vapi, to remove the one it may have.
+            if vapi_tools or not normalized or transfer_left_out:
                  await vapi_service.update_assistant(
                     tenant.get("vapi_assistant_id"),
                     tools=vapi_tools
@@ -567,6 +641,56 @@ Important:
             logger.error(f"Failed to sync tools to Vapi: {e}")
             if raise_on_failure:
                 raise HTTPException(502, f"Failed to sync tools to Vapi: {str(e)}")
+
+    # ===== CALL TRANSFER (services/call_transfer.py) =====
+    def _transfer_status(self, tenant: Dict[str, Any]) -> Dict[str, Any]:
+        number = tenant.get("transfer_phone_number") or None
+        tool_enabled = any(
+            entry["tool_id"] == call_transfer.TOOL_ID
+            for entry in self._normalize_enabled_tools(tenant.get("enabled_tools", []))
+        )
+        return {
+            "transfer_phone_number": number,
+            # False while the number is unset, there is no assistant, or Transfer Call was switched off in Tools.
+            "active": bool(number and tool_enabled and tenant.get("vapi_assistant_id")),
+        }
+
+    async def get_transfer_number(self, tenant_id: str) -> Dict[str, Any]:
+        return self._transfer_status(await self._get_tenant(tenant_id))
+
+    async def set_transfer_number(self, tenant_id: str, number: str) -> Dict[str, Any]:
+        """
+        Save the number urgent calls are put through to ("" clears it) and apply it to the assistant
+        right away: a number switches the transfer_call tool on, clearing it switches the tool off.
+        """
+        try:
+            # Same E.164 rules as the billing fallback number.
+            number = usage_billing.normalize_fallback_number(number)
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+
+        tenant = await self._get_tenant(tenant_id)
+        calleem_number = "".join(c for c in (tenant.get("phone_config") or {}).get("phone_number") or "" if c.isdigit())
+        if number and number[1:] == calleem_number:
+            raise HTTPException(400, "That's your Calleem number. Use your own phone, or transferred calls would ring the assistant again")
+        if number and not tenant.get("vapi_assistant_id"):
+            from services.provisioning import vapi_provisioning
+            if not await vapi_provisioning.provision_tenant_assistant(tenant_id, self._business_name(tenant)):
+                raise HTTPException(500, "Failed to provision assistant")
+            tenant = await self._get_tenant(tenant_id)
+
+        tools = self._normalize_enabled_tools(tenant.get("enabled_tools", []))
+        if not number:
+            tools = [entry for entry in tools if entry["tool_id"] != call_transfer.TOOL_ID]
+        elif not any(entry["tool_id"] == call_transfer.TOOL_ID for entry in tools):
+            built_in = next(t for t in vapi_service.get_built_in_tools() if t["id"] == call_transfer.TOOL_ID)
+            tools.append({"tool_id": call_transfer.TOOL_ID, "config": built_in["config"]})
+
+        await self.tenant_repo.update(tenant_id, {"transfer_phone_number": number, "enabled_tools": tools})
+        tenant.update({"transfer_phone_number": number, "enabled_tools": tools})
+        if tenant.get("vapi_assistant_id"):
+            await self._sync_tools_to_vapi(tenant_id, tools, raise_on_failure=True)
+        return self._transfer_status(tenant)
 
     # ===== ANALYTICS & PROVISIONING =====
     async def get_call_analytics(self, tenant_id: str, days: int) -> Dict[str, Any]:

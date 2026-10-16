@@ -74,7 +74,7 @@ export const INDUSTRIES: IndustryData[] = [
         slug: "med-spas",
         name: "Med Spas",
         title: "AI Booking Assistant for Med Spas & Estheticians",
-        description: "Fill your calendar automatically. Calleem AI handles booking, deposits, and consultation inquiries for medical spas.",
+        description: "Fill your schedule automatically. Calleem AI handles booking, pricing questions, and consultation inquiries for medical spas.",
         keywords: ["med spa answering service", "esthetician virtual receptionist", "spa appointment booking", "salon automation"],
         painPoints: [
             "Front desk overwhelmed during peak hours",
@@ -84,7 +84,7 @@ export const INDUSTRIES: IndustryData[] = [
         ],
         benefits: [
             "Educate clients on treatments and pricing",
-            "Secure bookings with deposit capability",
+            "Book consultations while the client is still on the phone",
             "Upsell services during the call",
             "Build a premium, modern brand image"
         ],
@@ -100,12 +100,12 @@ export const INDUSTRIES: IndustryData[] = [
             "Missing emergency calls at night",
             "Losing jobs to competitors who pick up first",
             "Chaotic scheduling while in the field",
-            "Wasting time on non-service area calls"
+            "Calls going to voicemail while you're on a job"
         ],
         benefits: [
             "Immediate response to emergency calls",
-            "Service area and capability screening",
-            "Booked jobs land straight in your calendar, with a summary of every call",
+            "Emergency triage that collects the address and problem before booking",
+            "Booked jobs land in your dashboard, with a transcript and summary of every call",
             "Stop paying for per-minute live answering services"
         ],
         schemaType: "HomeAndConstructionBusiness"
@@ -123,7 +123,7 @@ export const INDUSTRIES: IndustryData[] = [
             "Patient frustration with voicemail"
         ],
         benefits: [
-            "Seamless recurring appointment scheduling",
+            "Book new and returning patients 24/7",
             "Answer insurance and location questions",
             "Reduce staff burn-out",
             "Convert more website visitors to patients"
@@ -144,7 +144,7 @@ export const INDUSTRIES: IndustryData[] = [
         ],
         benefits: [
             "Executive-level conversational AI",
-            "Calendar integration for seamless scheduling",
+            "Consultations booked straight into your schedule",
             "Screen solicitors and robocalls",
             "Impress high-net-worth clients with tech"
         ],
@@ -204,7 +204,7 @@ export const INDUSTRIES: IndustryData[] = [
         ],
         benefits: [
             "Automated heavy lifting of candidate screening",
-            "24/7 interview scheduling on your calendar",
+            "24/7 interview scheduling",
             "Faster time-to-hire",
             "Candidate engagement improvement"
         ],
@@ -254,7 +254,7 @@ export const INDUSTRIES: IndustryData[] = [
         slug: "cleaning-services",
         name: "Cleaning Services",
         title: "AI Booking Agent for Cleaning Companies",
-        description: "Clean up your schedule. Calleem AI quotes prices, books cleanings, and manages cancellations for residential and commercial cleaners.",
+        description: "Clean up your schedule. Calleem AI quotes your prices, books cleanings, and answers client questions for residential and commercial cleaners.",
         keywords: ["cleaning service answering service", "maid service virtual receptionist", "cleaning appointment booking", "janitorial automation"],
         painPoints: [
             "Missing calls while cleaning client homes",
@@ -263,7 +263,7 @@ export const INDUSTRIES: IndustryData[] = [
             "Scheduling conflicts suited for automation"
         ],
         benefits: [
-            "Instant quotes based on room count/size",
+            "Quote your standard prices on the call",
             "Fill gaps in the schedule automatically",
             "Professional handling of new inquiries",
             "Grow your client base 24/7"
@@ -374,7 +374,7 @@ export const INDUSTRIES: IndustryData[] = [
         slug: "moving",
         name: "Moving Companies",
         title: "AI Logistics Coordinator for Movers",
-        description: "Fill your trucks. Calleem AI provides instant quotes, books moves, and answers status scheduling questions.",
+        description: "Fill your trucks. Calleem AI collects move details, books in-home estimates, and answers scheduling questions.",
         keywords: ["moving company answering service", "mover virtual receptionist", "moving quote ai", "logistics automation"],
         painPoints: [
             "Missing calls during physical moves",
@@ -386,7 +386,7 @@ export const INDUSTRIES: IndustryData[] = [
             "Collect move details (size, distance)",
             "Schedule in-home estimates",
             "Answer questions about insurance/supplies",
-            "Book moves directly into calendar"
+            "Book estimates and moves on the spot"
         ],
         schemaType: "ProfessionalService"
     },

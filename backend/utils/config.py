@@ -27,10 +27,13 @@ class Settings(BaseSettings):
     MONGO_URI: str = "mongodb://localhost:27017/calleem"
     MONGO_DB_NAME: str = "calleem"
     
-    # WhatsApp Cloud API
+    # WhatsApp Cloud API (Meta). Calleem's Meta app sends its webhook to /api/v1/whatsapp/webhook.
+    # WHATSAPP_TOKEN is the platform system-user token, used for numbers Calleem manages;
+    # a business with its own Meta app stores its own token (and app secret) instead.
     WHATSAPP_TOKEN: str = ""
     WHATSAPP_PHONE_NUMBER_ID: str = ""
     WHATSAPP_VERIFY_TOKEN: str = ""
+    WHATSAPP_APP_SECRET: str = ""
     
     # Groq API - REMOVED
     # GROQ_API_KEY: str = ""

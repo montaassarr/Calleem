@@ -1,0 +1,18 @@
+{
+  "audio": null,
+  "voice": "Elliot",
+  "business": "Bluebonnet Plumbing",
+  "durationSeconds": 42,
+  "lines": [
+    { "at": 0, "who": "calleem", "node": "calleem", "label": "Calleem answers", "stepLabel": "Picks up on the first ring, 24/7", "text": "Thanks for calling Bluebonnet Plumbing! Is this an emergency, or would you like to book a visit?" },
+    { "at": 5.5, "who": "caller", "node": "phone", "label": "Caller explains", "stepLabel": "A homeowner with a leaking water heater", "text": "It's an emergency, my water heater is leaking all over the garage." },
+    { "at": 9.5, "who": "calleem", "node": "kb", "label": "Safety first", "stepLabel": "Walks the caller through a quick fix", "text": "Okay, let's stop the water first. Turn the cold-water valve on top of the heater clockwise until it stops." },
+    { "at": 17, "who": "caller", "node": "phone", "label": "Caller follows along", "stepLabel": "Water shut off in seconds", "text": "Okay, done. It's slowing down." },
+    { "at": 19.5, "who": "calleem", "node": "calleem", "label": "Takes the details", "stepLabel": "Name, number and service address", "text": "Great. Can I get your name and the address of the house?" },
+    { "at": 23, "who": "caller", "node": "phone", "label": "Caller shares address", "stepLabel": "Job details captured", "text": "Mike Johnson, 2418 Oak Street in Dallas." },
+    { "at": 27.5, "who": "calleem", "node": "cal", "label": "Finds a slot", "stepLabel": "Checks the schedule in real time", "text": "Thanks, Mike. Our earliest emergency slot is 2 PM today. Does that work?" },
+    { "at": 32.5, "who": "caller", "node": "phone", "label": "Caller agrees", "stepLabel": "Time confirmed", "text": "Yes, please." },
+    { "at": 34, "who": "calleem", "node": "book", "label": "Books the job", "stepLabel": "Emergency visit saved and texted", "text": "You're booked for 2 PM today, and I'm texting you the details now." },
+    { "at": 38.5, "who": "caller", "node": "end", "label": "Call ends", "stepLabel": "Emergency handled in one call", "text": "Perfect, thank you so much!" }
+  ]
+}

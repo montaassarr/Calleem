@@ -14,6 +14,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+import asyncio
 import logging
 import os
 from datetime import datetime
@@ -38,6 +39,9 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Starting AI Receptionist...")
     await connect_to_mongo()
     set_error_logger_db(get_database())
+    # Background: brings existing assistants' booking tool up to date (no-op once done).
+    from services.provisioning import update_booking_tools
+    app.state.booking_tools_update = asyncio.create_task(update_booking_tools())
     logger.info("✅ Application ready!")
     yield
     logger.info("🛑 Shutting down...")

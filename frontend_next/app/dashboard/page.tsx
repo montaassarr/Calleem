@@ -7,6 +7,8 @@ import { useDashboardStats } from "@/hooks/domain/useDashboardStats";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { conversationsApi, phoneApi } from "@/lib/api-endpoints";
+import { appointmentsApi, DashboardOverview } from "@/lib/api/appointments";
+import { toast } from "sonner";
 import {
     ArrowUpRight,
     ChevronDown,
@@ -21,14 +23,42 @@ import {
 } from "lucide-react";
 
 /* ─────────────── KPI Cards ─────────────── */
-function KPICards({ metrics, conversations, isLoading }: any) {
+function formatMoney(amount: number, currency: string) {
+    try {
+        return new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency,
+            notation: amount >= 100000 ? "compact" : "standard",
+            maximumFractionDigits: amount >= 1000 ? 0 : 2,
+        }).format(amount);
+    } catch {
+        return `${amount.toFixed(0)} ${currency}`;
+    }
+}
+
+function revenueCard(overview: DashboardOverview | undefined, isLoading: boolean) {
+    if (isLoading) return { value: "...", subtext: "Booked this month", badgeText: undefined };
+    if (!overview) return { value: "—", subtext: "Couldn't load revenue", badgeText: undefined };
+    const { this_month, change_pct, unpriced_appointments } = overview.revenue;
+    let subtext = change_pct === null ? "Booked this month" : "vs last month";
+    if (this_month === 0 && unpriced_appointments > 0) subtext = "Add prices to your services";
+    return {
+        value: formatMoney(this_month, overview.currency),
+        subtext,
+        badgeText: change_pct === null ? undefined : `${change_pct > 0 ? "+" : ""}${change_pct}%`,
+    };
+}
+
+function KPICards({ metrics, conversations, isLoading, overview, overviewLoading }: any) {
+    const revenue = revenueCard(overview, overviewLoading);
     const cards = [
         {
             title: "Revenue",
-            value: "$24.5k",
-            subtext: "+15% from last month",
+            value: revenue.value,
+            subtext: revenue.subtext,
             isActive: true,
-            badgeText: "15%+",
+            badgeText: revenue.badgeText,
+            hideBadge: !revenue.badgeText,
         },
         {
             title: "Total Appointments",
@@ -115,40 +145,22 @@ function KPICards({ metrics, conversations, isLoading }: any) {
     );
 }
 
-/* ─────────────── Project Analytics ─────────────── */
-function ProjectAnalytics() {
+/* ─────────────── Bookings Analytics ─────────────── */
+function ProjectAnalytics({ overview, isLoading }: { overview?: DashboardOverview; isLoading: boolean }) {
     const [timeRange, setTimeRange] = useState<"7days" | "1month" | "all">("1month");
 
-    const datasets: Record<string, { label: string; type: string; height: number; hasTooltip?: boolean }[]> = {
-        "7days": [
-            { label: "S", type: "striped", height: 45 },
-            { label: "M", type: "solid-dark", height: 85 },
-            { label: "T", type: "solid-light", height: 74, hasTooltip: true },
-            { label: "W", type: "solid-dark", height: 95 },
-            { label: "T", type: "striped", height: 50 },
-            { label: "F", type: "striped", height: 45 },
-            { label: "S", type: "striped", height: 35 },
-        ],
-        "1month": [
-            { label: "W1", type: "striped", height: 50 },
-            { label: "W2", type: "solid-dark", height: 88, hasTooltip: true },
-            { label: "W3", type: "solid-light", height: 65 },
-            { label: "W4", type: "solid-dark", height: 92 },
-        ],
-        all: [
-            { label: "Q1", type: "striped", height: 40 },
-            { label: "Q2", type: "solid-light", height: 62 },
-            { label: "Q3", type: "solid-dark", height: 85 },
-            { label: "Q4", type: "solid-dark", height: 95, hasTooltip: true },
-        ],
-    };
-
-    const data = datasets[timeRange];
+    const points = overview?.bookings[timeRange] ?? [];
+    const max = Math.max(1, ...points.map((p) => p.count));
+    const peak = points.reduce((best, p, i) => (p.count > (points[best]?.count ?? -1) ? i : best), 0);
+    const total = points.reduce((sum, p) => sum + p.count, 0);
 
     return (
         <div className="bg-white p-6 rounded-[24px] shadow-[0_2px_15px_-4px_rgba(0,0,0,0.03)] border border-gray-100 flex flex-col justify-between h-full min-h-[320px]">
             <div className="flex justify-between items-center relative">
-                <h3 className="font-semibold text-lg text-gray-900">Project Analytics</h3>
+                <div>
+                    <h3 className="font-semibold text-lg text-gray-900">Bookings</h3>
+                    <p className="text-[12px] text-gray-400 font-medium">{isLoading ? "Loading..." : `${total} appointment${total === 1 ? "" : "s"}`}</p>
+                </div>
                 <div className="relative">
                     <select
                         value={timeRange}
@@ -156,36 +168,40 @@ function ProjectAnalytics() {
                         className="appearance-none bg-transparent border border-gray-200 text-gray-700 text-[11px] font-bold tracking-wide rounded-full pl-3 pr-7 py-1.5 focus:outline-none focus:bg-gray-50 focus:ring-1 focus:ring-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
                     >
                         <option value="7days">Last 7 days</option>
-                        <option value="1month">Last month</option>
-                        <option value="all">All time</option>
+                        <option value="1month">Last 4 weeks</option>
+                        <option value="all">Last 6 months</option>
                     </select>
                     <ChevronDown className="w-3.5 h-3.5 text-gray-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
             </div>
 
             <div className="flex-1 flex items-end justify-between px-2 pb-2 mt-4 relative min-h-[150px]">
-                {data.map((item, i) => (
-                    <div key={i} className="flex flex-col items-center gap-3 cursor-pointer group h-full justify-end flex-1">
-                        <div className="relative w-full max-w-[48px] flex items-end justify-center h-full">
-                            {item.hasTooltip && (
-                                <div className="absolute -top-9 bg-white border border-gray-100 shadow-md text-[10px] font-bold text-gray-700 px-2.5 py-1 rounded-md tracking-wide z-10 whitespace-nowrap">
-                                    {item.height}%
-                                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-b border-r border-gray-100 rotate-45 rounded-sm"></div>
-                                </div>
-                            )}
-                            <div
-                                style={{ height: `${item.height}%` }}
-                                className={`w-full rounded-full transition-all duration-300 group-hover:opacity-90 ${item.type === "solid-dark"
-                                    ? "bg-[#0a4c2f]"
-                                    : item.type === "solid-light"
-                                        ? "bg-[#48a074]"
-                                        : "bg-striped border border-gray-200"
-                                    }`}
-                            ></div>
+                {points.map((item, i) => {
+                    const height = item.count === 0 ? 4 : Math.max(10, Math.round((item.count / max) * 95));
+                    const isPeak = total > 0 && i === peak;
+                    return (
+                        <div key={i} className="flex flex-col items-center gap-3 cursor-default group h-full justify-end flex-1" title={`${item.count} booking${item.count === 1 ? "" : "s"}`}>
+                            <div className="relative w-full max-w-[48px] flex items-end justify-center h-full">
+                                {isPeak && (
+                                    <div className="absolute -top-9 bg-white border border-gray-100 shadow-md text-[10px] font-bold text-gray-700 px-2.5 py-1 rounded-md tracking-wide z-10 whitespace-nowrap">
+                                        {item.count}
+                                        <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-b border-r border-gray-100 rotate-45 rounded-sm"></div>
+                                    </div>
+                                )}
+                                <div
+                                    style={{ height: `${height}%` }}
+                                    className={`w-full rounded-full transition-all duration-300 group-hover:opacity-90 ${item.count === 0
+                                        ? "bg-striped border border-gray-200"
+                                        : isPeak
+                                            ? "bg-[#0a4c2f]"
+                                            : "bg-[#48a074]"
+                                        }`}
+                                ></div>
+                            </div>
+                            <span className="text-[13px] font-semibold text-gray-400">{item.label}</span>
                         </div>
-                        <span className="text-[13px] font-semibold text-gray-400">{item.label}</span>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );
@@ -412,7 +428,7 @@ function LiveAIAgent({ config }: { config: any }) {
 
     const phoneNumber = (phoneStatus?.has_phone && phoneStatus?.phone_number)
         ? phoneStatus.phone_number
-        : (config?.vapi_phone_number || "+1 (000) 000-0000");
+        : (config?.vapi_phone_number || "No number yet");
     const agentName = config?.assistant_name || "Receptionist";
 
     return (
@@ -454,6 +470,40 @@ export default function DashboardPage() {
     const { config } = useTenant();
     const router = useRouter();
     const { data, isLoading } = useDashboardStats();
+    const { data: overview, isLoading: overviewLoading } = useQuery({
+        queryKey: ["dashboard-overview"],
+        queryFn: () => appointmentsApi.getOverview(),
+        staleTime: 60 * 1000,
+    });
+    const [exporting, setExporting] = useState(false);
+
+    const exportAppointments = async () => {
+        setExporting(true);
+        try {
+            const rows = await appointmentsApi.list({ limit: 500 });
+            const header = ["Date", "Time", "Client", "Phone", "Service", "Duration (min)", "Status", "Source", "Notes"];
+            const cell = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+            const lines = rows.map((a) => {
+                const when = new Date(a.datetime);
+                return [
+                    when.toLocaleDateString("en-CA"),
+                    when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                    a.client_name, a.client_phone, a.service, a.duration_minutes, a.status, a.source, a.notes,
+                ].map(cell).join(",");
+            });
+            const blob = new Blob([[header.map(cell).join(","), ...lines].join("\n")], { type: "text/csv;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `appointments-${new Date().toISOString().slice(0, 10)}.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+        } catch {
+            toast.error("Couldn't export your appointments. Please try again.");
+        } finally {
+            setExporting(false);
+        }
+    };
 
     const {
         appointments = [],
@@ -483,18 +533,22 @@ export default function DashboardPage() {
                         <span className="text-lg leading-none mb-0.5 relative z-10">+</span>
                         <span className="relative z-10 whitespace-nowrap">Appointment</span>
                     </button>
-                    <button className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-white border border-[#0a4c2f] text-[#0a4c2f] rounded-[20px] font-semibold hover:bg-[#0a4c2f]/5 transition-colors shadow-sm whitespace-nowrap">
-                        Export Data
+                    <button
+                        onClick={exportAppointments}
+                        disabled={exporting}
+                        className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-white border border-[#0a4c2f] text-[#0a4c2f] rounded-[20px] font-semibold hover:bg-[#0a4c2f]/5 transition-colors shadow-sm whitespace-nowrap disabled:opacity-60"
+                    >
+                        {exporting ? "Exporting..." : "Export Data"}
                     </button>
                 </div>
             </div>
 
             {/* All Dashboard Widgets */}
             <div className="flex flex-col gap-6">
-                <KPICards metrics={metrics} conversations={conversations} isLoading={isLoading} />
+                <KPICards metrics={metrics} conversations={conversations} isLoading={isLoading} overview={overview} overviewLoading={overviewLoading} />
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <ProjectAnalytics />
+                    <ProjectAnalytics overview={overview} isLoading={overviewLoading} />
                     <div className="relative">
                         <AppointmentsTimeline appointments={appointments} />
                     </div>

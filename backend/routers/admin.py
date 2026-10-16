@@ -645,3 +645,17 @@ async def admin_apply_template(tenant_id: str, body: ApplyTemplateRequest, db=De
 
     await db.tenants.update_one({"_id": tenant["_id"]}, {"$set": {"industry": body.template, "updated_at": now}})
     return {"success": True, "template": body.template, "services_added": added}
+
+
+# ==================== CALL TRANSFER ====================
+
+class TransferNumberRequest(BaseModel):
+    transfer_phone_number: str = ""  # E.164; "" turns call transfer off
+
+
+@router.put("/tenants/{tenant_id}/transfer-number")
+async def admin_set_transfer_number(tenant_id: str, body: TransferNumberRequest, db=Depends(get_database)):
+    """Set the number a business's urgent calls are put through to, as its owner can from the dashboard."""
+    from services.assistant_service import AssistantService
+
+    return await AssistantService(db).set_transfer_number(tenant_id, body.transfer_phone_number)

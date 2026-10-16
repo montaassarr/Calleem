@@ -41,10 +41,11 @@ class TwilioMessagingService:
         to: str,
         body: str,
         from_: Optional[str] = None,
-        messaging_service_sid: Optional[str] = None
+        messaging_service_sid: Optional[str] = None,
+        credentials: Optional[Dict[str, str]] = None
     ) -> Dict[str, Any]:
         """
-        Send an SMS message via Twilio
+        Send an SMS message via Twilio (credentials: a business's own Twilio account, optional)
         
         Args:
             to: Recipient phone number (E.164 format, e.g., +1234567890)
@@ -55,10 +56,11 @@ class TwilioMessagingService:
         Returns:
             Dictionary with message SID and status
         """
-        if not self.is_configured():
+        client = Client(credentials["account_sid"], credentials["auth_token"]) if credentials else self.client
+        if not client:
             logger.warning("Twilio not configured - SMS not sent")
             return {"success": False, "error": "Twilio not configured"}
-        
+
         try:
             # Determine which sender to use
             sender_sid = messaging_service_sid
@@ -81,8 +83,8 @@ class TwilioMessagingService:
                 # Fallback to direct phone number
                 message_kwargs["from_"] = sender_phone
             
-            logger.info(f"Sending SMS to {to} (length: {len(body)} chars)")
-            message = self.client.messages.create(**message_kwargs)
+            logger.info(f"Sending SMS to ***{to[-4:]} (length: {len(body)} chars)")
+            message = client.messages.create(**message_kwargs)
             
             logger.info(f"✅ SMS sent successfully. SID: {message.sid}, Status: {message.status}")
             

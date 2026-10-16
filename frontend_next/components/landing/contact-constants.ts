@@ -22,7 +22,7 @@ export const FAQ_ITEMS: FAQItem[] = [
         id: '0',
         number: '01',
         question: 'What is an AI Receptionist?',
-        answer: 'An AI Receptionist is a virtual answering service that uses artificial intelligence to handle phone calls 24/7. Unlike traditional voicemail, it engages callers in natural conversation, answers questions, books appointments directly into your calendar, and captures leads instantly, ensuring you never miss a business opportunity.'
+        answer: 'An AI Receptionist is a virtual answering service that uses artificial intelligence to handle phone calls 24/7. Unlike traditional voicemail, it engages callers in natural conversation, answers questions, books appointments on the spot, and captures leads instantly, ensuring you never miss a business opportunity.'
     },
     {
         id: '1',
@@ -46,13 +46,13 @@ export const FAQ_ITEMS: FAQItem[] = [
         id: '4',
         number: '05',
         question: 'Will I get transcripts of every call?',
-        answer: 'Yes, every interaction is recorded and transcribed in real-time. You can access full text transcripts and audio recordings within your Calleem dashboard. This allows you to review client details, verify appointment information, and monitor lead quality without listening to every minute of audio.'
+        answer: 'Yes. Every call is transcribed and summarized, and you can read the full transcript in your Calleem dashboard as soon as the call ends. This lets you review client details, verify appointment information, and monitor lead quality in seconds.'
     },
     {
         id: '5',
         number: '06',
         question: 'How does the AI handle appointment booking?',
-        answer: 'Calleem connects directly to your calendar (Google Calendar, etc.). When a caller wants to book, the AI checks your real-time availability, offers open slots, and confirms the appointment on the spot. It works just like a human receptionist but operates instantly and is available 24/7.'
+        answer: 'You set your opening hours and services in your Calleem dashboard. When a caller wants to book, the AI checks your real-time availability, offers open slots, and confirms the appointment on the spot. Every booking appears in your dashboard with a summary of the call. It works just like a human receptionist but operates instantly and is available 24/7.'
     }
 ];
 

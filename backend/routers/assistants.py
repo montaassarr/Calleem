@@ -4,8 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query
 from pydantic import BaseModel
 from datetime import datetime
 
+from services import voice_languages
 from services.vapi_service import vapi_service
-from routers.users import get_current_user
+from routers.users import get_current_admin, get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,13 @@ class AssistantConfig(BaseModel):
     transcriber_model: str = "nova-2"
     transcriber_language: str = "en"
     tools: Optional[List[Dict[str, Any]]] = None
+    language: str = voice_languages.DEFAULT_LANGUAGE  # "ar-TN" = Tunisian Derja stack
+
+class LanguageConfig(BaseModel):
+    language: str
+
+class TransferNumberConfig(BaseModel):
+    transfer_phone_number: str = ""  # E.164, e.g. "+14155550123"; "" turns call transfer off
 
 class AssistantResponse(BaseModel):
     assistant_id: str
@@ -161,11 +169,40 @@ async def update_voice_settings(
     return await service.update_voice_settings(tenant_id, voice_config)
 
 @router.get("/voice-providers")
-async def list_voice_providers(current_user: dict = Depends(get_current_user)):
-    """Get available voice providers and their voices"""
+async def list_voice_providers(
+    current_user: dict = Depends(get_current_user),
+    service: AssistantService = Depends(get_assistant_service)
+):
+    """Get available voice providers and their voices (Tunisian voices first for a Derja assistant)"""
     # This calls vapi directly, could be moved to service too but is simple enough
     providers = await vapi_service.get_voice_providers()
+    try:
+        language = (await service.get_language(str(current_user.get("tenant_id"))))["language"]
+    except HTTPException:  # no tenant: plain list
+        language = voice_languages.DEFAULT_LANGUAGE
+    if language == voice_languages.TUNISIAN:
+        providers = [voice_languages.tunisian_voice_group()] + providers
     return {"providers": providers}
+
+
+# ===== LANGUAGE =====
+
+@router.get("/assistant/me/language")
+async def get_language(
+    current_user: dict = Depends(get_current_user),
+    service: AssistantService = Depends(get_assistant_service)
+):
+    """The language the assistant speaks, and the languages it can speak"""
+    return await service.get_language(str(current_user.get("tenant_id")))
+
+@router.put("/assistant/me/language")
+async def set_language(
+    body: LanguageConfig,
+    current_user: dict = Depends(get_current_user),
+    service: AssistantService = Depends(get_assistant_service)
+):
+    """Switch the assistant's language (speech-to-text, LLM, voice, prompt and greeting)"""
+    return await service.set_language(str(current_user.get("tenant_id")), body.language)
 
 @router.post("/assistant/me/voice/preview")
 async def preview_voice(
@@ -275,6 +312,29 @@ async def disable_tool(
     """Disable a tool for the assistant"""
     tenant_id = str(current_user.get("tenant_id"))
     return await service.disable_tool(tenant_id, tool_id)
+
+
+# ===== CALL TRANSFER =====
+
+@router.get("/assistant/me/transfer-number")
+async def get_transfer_number(
+    current_user: dict = Depends(get_current_user),
+    service: AssistantService = Depends(get_assistant_service)
+):
+    """The phone number urgent calls are put through to, and whether calls are being transferred"""
+    tenant_id = str(current_user.get("tenant_id"))
+    return await service.get_transfer_number(tenant_id)
+
+
+@router.put("/assistant/me/transfer-number")
+async def set_transfer_number(
+    body: TransferNumberConfig,
+    current_admin: dict = Depends(get_current_admin),
+    service: AssistantService = Depends(get_assistant_service)
+):
+    """Set the number urgent calls are put through to ("" turns transfer off); the assistant uses it right away"""
+    tenant_id = str(current_admin.get("tenant_id"))
+    return await service.set_transfer_number(tenant_id, body.transfer_phone_number)
 
 
 # ===== ANALYTICS & CONVERSATIONS =====

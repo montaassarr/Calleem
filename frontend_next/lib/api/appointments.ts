@@ -10,6 +10,22 @@ import type {
     AppointmentFilters,
 } from '@/lib/types';
 
+export interface BookingsPoint {
+    label: string;
+    count: number;
+}
+
+export interface DashboardOverview {
+    currency: string;
+    revenue: {
+        this_month: number;
+        last_month: number;
+        change_pct: number | null;
+        unpriced_appointments: number;
+    };
+    bookings: Record<'7days' | '1month' | 'all', BookingsPoint[]>;
+}
+
 export const appointmentsApi = {
     /**
      * List appointments with optional filters
@@ -102,6 +118,11 @@ export const appointmentsApi = {
         const response = await api.get('/appointments/stats/summary');
         return response;
     },
+
+    /**
+     * Dashboard numbers: revenue booked this month vs last month, and bookings over time
+     */
+    getOverview: (): Promise<DashboardOverview> => api.get<DashboardOverview>('/appointments/stats/overview'),
 
     /**
      * Get appointments for a specific date range

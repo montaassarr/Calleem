@@ -8,8 +8,15 @@ import { assistantApi } from "@/lib/api-endpoints";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 
-interface Voice { id: string; name: string; gender: string; accent: string; }
+// `provider` is set on voices of the "Tunisian voices" group, which mixes providers.
+interface Voice { id: string; name: string; gender: string; accent: string; provider?: string; }
 interface VoiceProvider { id: string; name: string; description: string; voices: Voice[]; }
+interface LanguageOption { id: string; label: string; native_label: string; }
+
+const PREVIEW_TEXT: Record<string, string> = {
+    en: "Hello! Thank you for calling. How can I help you today?",
+    "ar-TN": "عسلامة، مرحبا بيك! كيفاش نجّم نعاونك؟",
+};
 
 export default function VoiceConfigPage() {
     const { toast } = useToast();
@@ -20,14 +27,25 @@ export default function VoiceConfigPage() {
     const [selectedProvider, setSelectedProvider] = useState("11labs");
     const [selectedVoice, setSelectedVoice] = useState("");
     const [voiceSpeed, setVoiceSpeed] = useState([1.0]);
-    const [previewText, setPreviewText] = useState("Hello! Thank you for calling. How can I help you today?");
+    const [previewText, setPreviewText] = useState(PREVIEW_TEXT.en);
+    const [language, setLanguage] = useState("en");
+    const [languages, setLanguages] = useState<LanguageOption[]>([]);
+    const [switchingTo, setSwitchingTo] = useState<string | null>(null);
 
     const loadData = useCallback(async () => {
         try {
             setLoading(true);
-            const [providersData, voiceData] = await Promise.all([assistantApi.getVoiceProviders(), assistantApi.getVoice()]);
-            setProviders(providersData.providers || []); setCurrentVoice(voiceData.voice || {});
-            if (voiceData.voice) { setSelectedProvider(voiceData.voice.provider || "11labs"); setSelectedVoice(voiceData.voice.voiceId || ""); setVoiceSpeed([voiceData.voice.speed || 1.0]); }
+            const [providersData, voiceData, languageData] = await Promise.all([assistantApi.getVoiceProviders(), assistantApi.getVoice(), assistantApi.getLanguage()]);
+            const groups: VoiceProvider[] = providersData.providers || [];
+            setProviders(groups); setCurrentVoice(voiceData.voice || {});
+            setLanguage(languageData.language || "en"); setLanguages(languageData.options || []);
+            setPreviewText(PREVIEW_TEXT[languageData.language] || PREVIEW_TEXT.en);
+            if (voiceData.voice) {
+                const voiceId = voiceData.voice.voiceId || "";
+                const tunisianGroup = groups.find(g => g.id === "tunisian" && g.voices.some(v => v.id === voiceId));
+                setSelectedProvider(tunisianGroup ? tunisianGroup.id : (voiceData.voice.provider || "11labs"));
+                setSelectedVoice(voiceId); setVoiceSpeed([voiceData.voice.speed || 1.0]);
+            }
         } catch { toast({ title: "Error", description: "Failed to load voice configuration", variant: "destructive" }); }
         finally { setLoading(false); }
     }, [toast]);
@@ -35,9 +53,22 @@ export default function VoiceConfigPage() {
     useEffect(() => { loadData(); }, [loadData]);
 
     const handleSave = async () => {
-        try { setSaving(true); await assistantApi.updateVoice({ provider: selectedProvider, voice_id: selectedVoice, speed: voiceSpeed[0] }); toast({ title: "Saved", description: "Voice configuration updated" }); }
+        const voice = currentProviderVoices.find(v => v.id === selectedVoice);
+        try { setSaving(true); await assistantApi.updateVoice({ provider: voice?.provider || selectedProvider, voice_id: selectedVoice, speed: voiceSpeed[0] }); toast({ title: "Saved", description: "Voice configuration updated" }); }
         catch { toast({ title: "Error", description: "Failed to save", variant: "destructive" }); }
         finally { setSaving(false); }
+    };
+
+    const handleLanguageChange = async (option: LanguageOption) => {
+        if (option.id === language || switchingTo) return;
+        if (!window.confirm(`Switch your AI receptionist to ${option.label}? Its voice, greeting and speech recognition change too. You can switch back at any time.`)) return;
+        try {
+            setSwitchingTo(option.id);
+            await assistantApi.setLanguage(option.id);
+            toast({ title: "Language updated", description: `Your assistant now speaks ${option.label}.` });
+            await loadData();
+        } catch { toast({ title: "Error", description: "Failed to switch language", variant: "destructive" }); }
+        finally { setSwitchingTo(null); }
     };
 
     const currentProviderVoices = providers.find(p => p.id === selectedProvider)?.voices || [];
@@ -62,6 +93,28 @@ export default function VoiceConfigPage() {
                     </button>
                 </div>
             </div>
+
+            {/* Language */}
+            {languages.length > 0 && (
+                <div className="bg-white rounded-[24px] shadow-[0_2px_15px_-4px_rgba(0,0,0,0.03)] border border-gray-100 p-6 mb-6">
+                    <h3 className="font-bold text-lg text-gray-900 mb-1">Language</h3>
+                    <p className="text-sm text-gray-500 mb-6">The language your assistant speaks on calls. Each language has its own speech recognition, AI model and voices.</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {languages.map((option) => (
+                            <button key={option.id} type="button" onClick={() => handleLanguageChange(option)} disabled={switchingTo !== null}
+                                className={`p-4 rounded-xl text-left transition-all disabled:cursor-wait ${language === option.id ? "border-2 border-[#0a4c2f] bg-[#0a4c2f]/5 ring-1 ring-[#0a4c2f]/20" : "border border-gray-100 hover:border-[#0a4c2f]/30 bg-gray-50"}`}>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h4 className="font-bold text-gray-900">{option.label}</h4>
+                                        {option.native_label !== option.label && <p className="text-sm text-gray-500" dir="auto">{option.native_label}</p>}
+                                    </div>
+                                    {switchingTo === option.id ? <Loader2 className="h-5 w-5 animate-spin text-[#0a4c2f]" /> : language === option.id && <Check className="h-5 w-5 text-[#0a4c2f]" />}
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <div className="grid gap-6 lg:grid-cols-2">
                 {/* Voice Provider */}
@@ -121,7 +174,7 @@ export default function VoiceConfigPage() {
                         </div>
                         <div className="space-y-4">
                             <Label className="font-semibold text-gray-700">Voice Preview</Label>
-                            <textarea value={previewText} onChange={(e) => setPreviewText(e.target.value)} className="w-full p-3 border border-gray-200 rounded-xl resize-none h-20 focus:outline-none focus:ring-2 focus:ring-[#0a4c2f]/20 focus:border-[#0a4c2f]/30 text-sm" placeholder="Enter text to preview..." />
+                            <textarea value={previewText} onChange={(e) => setPreviewText(e.target.value)} dir="auto" className="w-full p-3 border border-gray-200 rounded-xl resize-none h-20 focus:outline-none focus:ring-2 focus:ring-[#0a4c2f]/20 focus:border-[#0a4c2f]/30 text-sm" placeholder="Enter text to preview..." />
                             <button className="w-full px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm">
                                 <Play className="w-4 h-4" />Preview Voice (Coming Soon)
                             </button>

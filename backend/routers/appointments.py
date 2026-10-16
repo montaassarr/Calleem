@@ -5,7 +5,7 @@ CRUD operations for appointments
 
 from fastapi import APIRouter, HTTPException, Query, Depends, Request
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import hmac
 
@@ -253,6 +253,92 @@ async def check_availability(
         duration_minutes=duration_minutes
     )
     return result
+
+
+@router.get("/stats/overview")
+async def get_dashboard_overview(current_user: dict = Depends(get_current_user)):
+    """
+    Dashboard numbers: revenue booked this month (appointments x service price) against last month,
+    and bookings per day / week / month. Cancelled and no-show appointments don't count.
+    """
+    from database.mongo_config import get_database
+    import pytz
+
+    db = get_database()
+    tenant_id = current_user.get("tenant_id") or current_user.get("business_id")
+    tz = await appointments_service._resolve_tenant_timezone(tenant_id)
+    now = datetime.now(tz)
+    today = tz.localize(datetime(now.year, now.month, now.day))
+
+    def month_start(year: int, month: int) -> datetime:
+        """First day of a month; month may run past 12 or below 1."""
+        year, month = year + (month - 1) // 12, (month - 1) % 12 + 1
+        return tz.localize(datetime(year, month, 1))
+
+    this_month, next_month = month_start(now.year, now.month), month_start(now.year, now.month + 1)
+    last_month = month_start(now.year, now.month - 1)
+    months = [month_start(now.year, now.month - i) for i in range(5, -1, -1)]  # last 6, oldest first
+    since = min(months[0], today - timedelta(days=27))
+
+    services = await db.services.find({"tenant_id": tenant_id}, {"name": 1, "price": 1}).to_list(500)
+    price_by_id = {str(s["_id"]): s.get("price") or 0 for s in services}
+    price_by_name = {(s.get("name") or "").strip().lower(): s.get("price") or 0 for s in services}
+    config = await db.business_config.find_one({"tenant_id": tenant_id}, {"currency": 1}) or {}
+
+    appointments = await db.appointments.find(
+        {
+            "tenant_id": tenant_id,
+            "datetime": {"$gte": since, "$lt": next_month},
+            "status": {"$nin": [AppointmentStatus.CANCELLED.value, AppointmentStatus.NO_SHOW.value]},
+        },
+        {"datetime": 1, "service": 1, "service_id": 1},
+    ).to_list(20000)
+
+    revenue = {"this_month": 0.0, "last_month": 0.0}
+    unpriced = 0
+    days = [0] * 7   # last 7 days, today last
+    weeks = [0] * 4  # last 4 weeks of 7 days, this week last
+    per_month = [0] * len(months)
+    for apt in appointments:
+        when = apt["datetime"]
+        when = (pytz.utc.localize(when) if when.tzinfo is None else when).astimezone(tz)
+        price = price_by_id.get(str(apt.get("service_id"))) or price_by_name.get((apt.get("service") or "").strip().lower())
+        if this_month <= when < next_month:
+            revenue["this_month"] += price or 0
+            unpriced += 0 if price else 1
+        elif last_month <= when < this_month:
+            revenue["last_month"] += price or 0
+        if when < today + timedelta(days=1):
+            age_days = (today - tz.localize(datetime(when.year, when.month, when.day))).days
+            if 0 <= age_days < 7:
+                days[6 - age_days] += 1
+            if 0 <= age_days < 28:
+                weeks[3 - age_days // 7] += 1
+        for i in range(len(months) - 1, -1, -1):
+            if when >= months[i]:
+                per_month[i] += 1
+                break
+
+    change = None
+    if revenue["last_month"] > 0:
+        change = round((revenue["this_month"] - revenue["last_month"]) / revenue["last_month"] * 100)
+
+    return {
+        "currency": config.get("currency") or "USD",
+        "revenue": {
+            "this_month": round(revenue["this_month"], 2),
+            "last_month": round(revenue["last_month"], 2),
+            "change_pct": change,
+            "unpriced_appointments": unpriced,
+        },
+        "bookings": {
+            "7days": [
+                {"label": (today - timedelta(days=6 - i)).strftime("%a")[0], "count": days[i]} for i in range(7)
+            ],
+            "1month": [{"label": f"W{i + 1}", "count": weeks[i]} for i in range(4)],
+            "all": [{"label": m.strftime("%b"), "count": per_month[i]} for i, m in enumerate(months)],
+        },
+    }
 
 
 @router.get("/stats/summary")

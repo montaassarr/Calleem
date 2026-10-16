@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { vapiApi, assistantApi } from "@/lib/api-endpoints";
 import { useToast } from "@/hooks/use-toast";
+import { CallTransferCard } from "@/components/dashboard/CallTransferCard";
 import Link from "next/link";
 
 export default function VoiceAgentControlCenter() {
@@ -151,6 +152,8 @@ export default function VoiceAgentControlCenter() {
         </div>
       )}
 
+      {activeTab === "overview" && <CallTransferCard />}
+
       {activeTab === "personality" && (
         <div className="bg-white rounded-[24px] shadow-[0_2px_15px_-4px_rgba(0,0,0,0.03)] border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-6">
@@ -171,6 +174,7 @@ export default function VoiceAgentControlCenter() {
               <input
                 value={firstMessage}
                 onChange={(e) => setFirstMessage(e.target.value)}
+                dir="auto"
                 placeholder="Hello! Thank you for calling..."
                 className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0a4c2f]/20 focus:border-[#0a4c2f]/30 transition-all"
               />
@@ -181,6 +185,7 @@ export default function VoiceAgentControlCenter() {
               <textarea
                 value={systemPrompt}
                 onChange={(e) => setSystemPrompt(e.target.value)}
+                dir="auto"
                 placeholder="You are a helpful AI receptionist..."
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0a4c2f]/20 focus:border-[#0a4c2f]/30 transition-all min-h-[200px] font-mono resize-none"
               />

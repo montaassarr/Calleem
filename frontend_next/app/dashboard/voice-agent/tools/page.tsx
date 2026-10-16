@@ -37,7 +37,7 @@ export default function ToolsPage() {
             setTogglingTool(toolId);
             if (isEnabled) { await assistantApi.disableTool(toolId); setEnabledTools(enabledTools.filter(n => n !== toolId)); toast({ title: "Disabled", description: `${builtInTools.find(t => t.id === toolId)?.name} disabled` }); }
             else { await assistantApi.enableTool(toolId); setEnabledTools([...enabledTools, toolId]); toast({ title: "Enabled", description: `${builtInTools.find(t => t.id === toolId)?.name} enabled` }); }
-        } catch { toast({ title: "Error", description: "Failed to update tool", variant: "destructive" }); }
+        } catch (error) { toast({ title: "Error", description: (error as { message?: string })?.message || "Failed to update tool", variant: "destructive" }); }
         finally { setTogglingTool(null); }
     };
 

@@ -8,3 +8,4 @@ export * from './business-config';
 export * from './auth';
 export * from './users';
 export * from './billing';
+export * from './whatsapp';

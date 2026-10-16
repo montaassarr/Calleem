@@ -154,11 +154,6 @@ export const webhookApi = {
         const response = await api.get("/whatsapp/status")
         return response
     },
-
-    updateSettings: async (settings: any): Promise<any> => {
-        const response = await api.post("/whatsapp/settings", settings)
-        return response
-    }
 }
 
 export const usersApi = {
@@ -272,6 +267,12 @@ export const vapiApi = {
     }
 }
 
+/** Where urgent calls are transferred. `active` is false while no number is set or Transfer Call is off in Tools. */
+export interface TransferNumberSettings {
+    transfer_phone_number: string | null
+    active: boolean
+}
+
 // Comprehensive Assistant API
 export const assistantApi = {
     // Core CRUD
@@ -297,6 +298,14 @@ export const assistantApi = {
     },
     getVoiceProviders: async (): Promise<any> => {
         return await api.get(`/voice-providers`)
+    },
+
+    // Language ("en" or "ar-TN" for Tunisian Derja)
+    getLanguage: async (): Promise<any> => {
+        return await api.get(`/assistant/me/language`)
+    },
+    setLanguage: async (language: string): Promise<any> => {
+        return await api.put(`/assistant/me/language`, { language })
     },
 
     // Personality Configuration
@@ -337,6 +346,14 @@ export const assistantApi = {
     },
     disableTool: async (toolId: string): Promise<any> => {
         return await api.delete(`/assistant/me/tools/${toolId}`)
+    },
+
+    // Call transfer: urgent calls are put through to this number ("" turns transfer off)
+    getTransferNumber: async (): Promise<TransferNumberSettings> => {
+        return await api.get<TransferNumberSettings>(`/assistant/me/transfer-number`)
+    },
+    setTransferNumber: async (transferPhoneNumber: string): Promise<TransferNumberSettings> => {
+        return await api.put<TransferNumberSettings>(`/assistant/me/transfer-number`, { transfer_phone_number: transferPhoneNumber })
     },
 
     // Analytics

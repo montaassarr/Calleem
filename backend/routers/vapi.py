@@ -5,7 +5,7 @@ Handles Vapi webhooks (call events, function calls, transcripts)
 
 import logging
 import json
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from fastapi import APIRouter, Request, BackgroundTasks, HTTPException, status
 from datetime import datetime
 import pytz
@@ -18,6 +18,8 @@ from services.appointments_service import AppointmentsService
 from services.twilio_messaging import twilio_messaging
 from database.mongo_config import get_database
 from utils.config import settings
+from utils.money import format_price
+from utils.phone import to_e164
 
 logger = logging.getLogger(__name__)
 
@@ -243,8 +245,8 @@ async def resolve_tenant(call: dict) -> str:
     return tenant_id
 
 
-async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
-    """Process a single tool call execution and broadcasting"""
+async def process_tool_call(name: str, args: dict, tenant_id: str, call: Optional[dict] = None) -> dict:
+    """Process a single tool call execution and broadcasting. call: the Vapi call it comes from, if any."""
     logger.info(f"Processing Tool Call: {name} (tenant={tenant_id}) args={args}")
     
     appointments_service = AppointmentsService()
@@ -321,13 +323,14 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
                 "active": True
             })
             services = await services_cursor.to_list(length=100)
-            
+            config = await db.business_config.find_one({"tenant_id": tenant_id}, {"currency": 1}) or {}
+
             services_list = []
             for svc in services:
                 services_list.append({
                     "name": svc.get("name"),
                     "description": svc.get("description", ""),
-                    "price": f"${svc.get('price', 0):.2f}" if svc.get('price') else "Price on request"
+                    "price": format_price(svc["price"], config.get("currency")) if svc.get('price') else "Price on request"
                 })
             
             if not services_list:
@@ -349,7 +352,6 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
             tenant = None
             if tenant_id:
                 try:
-                    from bson import ObjectId
                     tenant_query = {"_id": ObjectId(tenant_id)} if ObjectId.is_valid(tenant_id) else {"_id": tenant_id}
                     tenant = await db.tenants.find_one(tenant_query)
                 except Exception:
@@ -376,18 +378,17 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
         elif name == "bookAppointment":
             from models.appointment import AppointmentCreate
             
-            # Sanitize phone number (keep only digits, then validate 8-digit format)
-            # Try both 'phone' and 'customerPhone' field names
-            phone = args.get("phone") or args.get("customerPhone") or ""
-            phone = "".join(c for c in phone if c.isdigit())
-            
-            # Ensure exactly 8 digits
-            if len(phone) != 8:
-                logger.error(f"Invalid phone format: ***{str(phone)[-4:] if len(str(phone)) >= 4 else '****'} - must be exactly 8 digits")
-                return {"error": "Phone number must be exactly 8 digits (without country code)"}
-            
-            logger.info(f"✅ Phone sanitized and validated: ***{str(phone)[-4:]}")
-            
+            # Any format ("55 123 456", "(415) 555-0123", "+216..."): a local number takes the
+            # country of the number calling, else of the business's own number.
+            raw_phone = args.get("phone") or args.get("customerPhone") or ""
+            caller_phone = ((call or {}).get("customer") or {}).get("number")
+            business_tenant = await get_database().tenants.find_one(usage_billing.tenant_query(tenant_id)) if tenant_id else None
+            business_phone = ((business_tenant or {}).get("phone_config") or {}).get("phone_number")
+            phone = to_e164(raw_phone, caller_phone, business_phone)
+            if not phone:
+                logger.error(f"Invalid phone number for booking: ***{raw_phone[-4:]}")
+                return {"error": "That phone number doesn't look complete. Ask the customer to repeat it, digit by digit."}
+
             # Create timezone-aware datetime in business timezone
             date_str = args.get('date')
             time_str = args.get('time')
@@ -412,6 +413,12 @@ async def process_tool_call(name: str, args: dict, tenant_id: str) -> dict:
                 duration_minutes=30
             )
             app_result = await appointments_service.create_appointment(tenant_id, appointment)
+            if (call or {}).get("id"):
+                # Lets the end-of-call report find what this call booked (SMS confirmation).
+                await get_database().appointments.update_one(
+                    {"_id": ObjectId(app_result["id"])},
+                    {"$set": {"vapi_call_id": call["id"], "source": "phone_call"}},
+                )
             result_data = {"success": True, "details": app_result}
         
         else:
@@ -442,7 +449,7 @@ async def handle_function_call(data: dict) -> dict:
     
     tenant_id = await resolve_tenant(call)
     
-    result_data = await process_tool_call(name, args, tenant_id)
+    result_data = await process_tool_call(name, args, tenant_id, call)
     
     # Convert to single-line JSON string per Vapi requirements
     if "error" in result_data:
@@ -472,7 +479,7 @@ async def handle_tool_calls(data: dict) -> dict:
         except:
             args = {}
             
-        result_data = await process_tool_call(name, args, tenant_id)
+        result_data = await process_tool_call(name, args, tenant_id, call)
         
         # Convert result to single-line JSON string (Vapi requirement)
         if "error" in result_data:
@@ -576,97 +583,106 @@ async def store_call_log(data: dict):
 
         logger.info(f"Stored call log for tenant {tenant_id}: {call_id}")
         
-        # Send SMS confirmation if enabled
-        if customer_phone and tenant_id:
-            await send_sms_confirmation(tenant_id, customer_phone, report)
+        # Text the caller a confirmation of what the assistant booked during this call
+        await send_sms_confirmation(tenant_id, call_id, customer_phone)
 
 
-async def send_sms_confirmation(tenant_id: str, customer_phone: str, call_report: dict):
+def confirmation_text(business_name: str, appointment: dict, tz) -> str:
+    when = appointment["datetime"]
+    when = (pytz.utc.localize(when) if when.tzinfo is None else when).astimezone(tz)
+    name = (appointment.get("client_name") or "").split(" ")[0]
+    service = appointment.get("service") or "appointment"
+    text = (
+        f"Hi {name}, your {service} at {business_name} is confirmed for "
+        f"{when.strftime('%a %b')} {when.day} at {when.strftime('%I:%M %p').lstrip('0')}. Reply STOP to opt out."
+    )
+    if len(text) > 160:  # keep it to one SMS segment
+        text = f"{business_name}: {service} confirmed for {when.strftime('%a %b')} {when.day}, {when.strftime('%I:%M %p').lstrip('0')}. Reply STOP to opt out."
+    return text
+
+
+async def send_sms_confirmation(tenant_id: Optional[str], call_id: Optional[str], caller_phone: Optional[str]):
     """
-    Send SMS confirmation to customer after call ends (if enabled in business config)
-    
-    Args:
-        tenant_id: The tenant/business ID
-        customer_phone: Customer's phone number (E.164 format)
-        call_report: Call report from Vapi webhook
+    After a call, text the caller a confirmation of each appointment the assistant booked during it.
+    Nothing is sent when no appointment was booked. Sent from the business's own number, through
+    its own Twilio account when it connected one, else through Calleem's Twilio account.
+    Can be turned off per business with business_config.sms_config.send_confirmation_on_call_end.
     """
+    if not tenant_id or not call_id:
+        return
     try:
-        # Check if Twilio is configured
-        if not twilio_messaging.is_configured():
-            logger.debug("Twilio not configured - SMS confirmation skipped")
-            return
-        
-        # Fetch business config to check if SMS confirmation is enabled
         db = get_database()
-        config = await db.business_config.find_one({"tenant_id": tenant_id})
-        tenant = await db.tenants.find_one({"_id": ObjectId(tenant_id)}) if ObjectId.is_valid(tenant_id) else await db.tenants.find_one({"tenant_id": tenant_id})
-
-        if not config:
-            logger.debug(f"No business config found for tenant {tenant_id}")
+        appointments = await db.appointments.find({
+            "tenant_id": tenant_id,
+            "vapi_call_id": call_id,
+            "status": {"$in": ["confirmed", "pending"]},
+            "sms_confirmation_sent_at": {"$exists": False},
+        }).to_list(5)
+        if not appointments:
             return
-        
-        # Check if SMS on call end is enabled (default: True for convenience)
-        sms_config = config.get("sms_config", {}) or {}
-        send_on_call_end = sms_config.get("send_confirmation_on_call_end", True)
-        
-        if not send_on_call_end:
-            logger.debug(f"SMS confirmation disabled for tenant {tenant_id}")
-            return
-        
-        # Build confirmation message
-        business_name = config.get("business_name", "Our business")
 
-        # Resolve tenant-owned outbound phone number only.
-        sender_phone = None
-        if tenant:
-            phone_config = tenant.get("phone_config", {}) or {}
-            twilio_credentials = phone_config.get("twilio_credentials", {}) or {}
-            sender_phone = phone_config.get("phone_number") or twilio_credentials.get("phone_number")
-
-        if not sender_phone:
-            logger.error(f"Tenant {tenant_id} has no phone_config sender configured; SMS skipped")
+        config = await db.business_config.find_one({"tenant_id": tenant_id}) or {}
+        if not (config.get("sms_config") or {}).get("send_confirmation_on_call_end", True):
+            logger.info(f"SMS confirmations are turned off for tenant {tenant_id}")
             return
-        
-        # Try to extract structured data if available
-        analysis = call_report.get("analysis", {}) or {}
-        structured_data = analysis.get("structuredData", {}) or {}
-        
-        appointment_data = {
-            "name": structured_data.get("customer_name", ""),
-            "date": structured_data.get("appointment_date", ""),
-            "time": structured_data.get("appointment_time", ""),
-            "service": structured_data.get("service", "appointment")
-        }
-        
-        # Build message
-        sms_body = twilio_messaging.build_confirmation_sms(appointment_data, business_name)
-        
-        logger.info(f"📱 Sending SMS confirmation to ***{customer_phone[-4:]} for tenant {tenant_id}")
-        logger.info(f"📤 Using sender number ***{sender_phone[-4:]} for tenant {tenant_id}")
-        
-        # Send SMS
-        result = await twilio_messaging.send_sms(
-            to=customer_phone,
-            body=sms_body,
-            from_=sender_phone
-        )
-        
-        if result.get("success"):
-            logger.info(f"✅ SMS confirmation sent: SID={result.get('message_sid')}")
-            
-            # Store SMS record in database
+
+        tenant = await db.tenants.find_one(usage_billing.tenant_query(tenant_id)) or {}
+        phone_config = tenant.get("phone_config") or {}
+        twilio_credentials = phone_config.get("twilio_credentials") or {}
+        sender_phone = phone_config.get("phone_number") or twilio_credentials.get("phone_number")
+        credentials = None
+        if twilio_credentials.get("account_sid_encrypted") and twilio_credentials.get("auth_token_encrypted"):
+            from services.twilio_service import TwilioService
+            credentials = TwilioService().decrypt_credentials(
+                twilio_credentials["account_sid_encrypted"], twilio_credentials["auth_token_encrypted"]
+            )
+        messaging_service_sid = None if credentials else twilio_messaging.messaging_service_sid
+        if not sender_phone and not messaging_service_sid:
+            logger.error(f"Tenant {tenant_id} has no number to send SMS from; confirmation skipped")
+            return
+
+        from services.assistant_service import AssistantService
+        business_name = AssistantService._business_name(tenant)
+        tz = await AppointmentsService()._resolve_tenant_timezone(tenant_id)
+
+        for appointment in appointments:
+            to = to_e164(appointment.get("client_phone"), caller_phone, sender_phone)
+            if not to:
+                logger.info(f"No valid phone number for appointment {appointment['_id']}; SMS skipped")
+                continue
+            body = confirmation_text(business_name, appointment, tz)
+            # Claim it first, so a repeated end-of-call report can't text the customer twice.
+            claimed = await db.appointments.update_one(
+                {"_id": appointment["_id"], "sms_confirmation_sent_at": {"$exists": False}},
+                {"$set": {"sms_confirmation_sent_at": datetime.utcnow()}},
+            )
+            if not claimed.modified_count:
+                continue
+            result = await twilio_messaging.send_sms(
+                to=to,
+                body=body,
+                from_=sender_phone,
+                messaging_service_sid=None if sender_phone else messaging_service_sid,
+                credentials=credentials,
+            )
+            if not result.get("success") and sender_phone and messaging_service_sid:
+                # The business number may not be able to send SMS (e.g. bought in Vapi): use Calleem's sender.
+                result = await twilio_messaging.send_sms(to=to, body=body, messaging_service_sid=messaging_service_sid)
             await db.sms_confirmations.insert_one({
                 "tenant_id": tenant_id,
-                "customer_phone": customer_phone,
+                "appointment_id": str(appointment["_id"]),
+                "vapi_call_id": call_id,
+                "customer_phone": to,
                 "sender_phone": sender_phone,
                 "message_sid": result.get("message_sid"),
-                "body": sms_body,
-                "call_report_summary": call_report.get("summary", ""),
-                "status": "sent",
-                "sent_at": datetime.utcnow()
+                "body": body,
+                "status": "sent" if result.get("success") else "failed",
+                "error": result.get("error"),
+                "sent_at": datetime.utcnow(),
             })
-        else:
-            logger.error(f"❌ Failed to send SMS confirmation: {result.get('error')}")
-    
+            if result.get("success"):
+                logger.info(f"SMS confirmation sent to ***{to[-4:]} for tenant {tenant_id}: {result.get('message_sid')}")
+            else:
+                logger.error(f"SMS confirmation to ***{to[-4:]} failed for tenant {tenant_id}: {result.get('error')}")
     except Exception as e:
-        logger.error(f"Error sending SMS confirmation: {e}")
+        logger.error(f"Error sending SMS confirmation for call {call_id}: {e}")

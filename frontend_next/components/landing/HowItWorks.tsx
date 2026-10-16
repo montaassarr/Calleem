@@ -2,7 +2,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Play } from 'lucide-react';
-import CallPipelineBox from '@/components/landing/CallPipelineBox';
+import CallPipelineBox, { DEMO_AUDIO_AVAILABLE, PLAY_DEMO_EVENT } from '@/components/landing/CallPipelineBox';
+
+const PILL_CLASS = "bg-[#e4ebdd] bg-opacity-10 backdrop-blur-md rounded-full pl-1 pr-6 py-1 flex items-center gap-3 w-fit border border-white/10";
 
 const HowItWorks: React.FC = () => {
     return (
@@ -16,12 +18,25 @@ const HowItWorks: React.FC = () => {
                     transition={{ duration: 0.6 }}
                     className="flex flex-col md:flex-row md:items-center gap-6 mb-12"
                 >
-                    <div className="bg-[#e4ebdd] bg-opacity-10 backdrop-blur-md rounded-full pl-1 pr-6 py-1 flex items-center gap-3 w-fit border border-white/10">
-                        <div className="bg-white rounded-full p-2">
-                            <Play size={14} className="text-[#2C7A44] fill-[#2C7A44] ml-0.5" />
+                    {DEMO_AUDIO_AVAILABLE ? (
+                        <button
+                            type="button"
+                            onClick={() => window.dispatchEvent(new Event(PLAY_DEMO_EVENT))}
+                            className={`${PILL_CLASS} cursor-pointer transition hover:border-white/30`}
+                        >
+                            <div className="bg-white rounded-full p-2">
+                                <Play size={14} className="text-[#2C7A44] fill-[#2C7A44] ml-0.5" />
+                            </div>
+                            <span className="text-[#143d15] font-bold text-sm tracking-wide">Hear a real call</span>
+                        </button>
+                    ) : (
+                        <div className={PILL_CLASS}>
+                            <div className="bg-white rounded-full p-2">
+                                <Play size={14} className="text-[#2C7A44] fill-[#2C7A44] ml-0.5" />
+                            </div>
+                            <span className="text-[#143d15] font-bold text-sm tracking-wide">Interactive demo</span>
                         </div>
-                        <span className="text-[#143d15] font-bold text-sm tracking-wide">Watch video</span>
-                    </div>
+                    )}
                     <h2 className="text-3xl md:text-5xl font-host font-bold text-white leading-tight">
                         How Calleem works
                     </h2>

@@ -107,6 +107,10 @@ async def create_indexes():
         await database.billing_ledger.create_index([("tenant_id", 1), ("assistant_id", 1)])
         await database.billing_ledger.create_index([("tenant_id", 1), ("created_at", -1)])
 
+        # WhatsApp: one business per number; conversations listed per business, newest first
+        await database.whatsapp_accounts.create_index("phone_number_id", unique=True)
+        await database.text_conversations.create_index([("tenant_id", 1), ("channel", 1), ("updated_at", -1)])
+
         logger.info("✅ Database indexes created successfully")
         
     except Exception as e:

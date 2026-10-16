@@ -25,7 +25,6 @@ import {
     CalendarDays,
     Waves,
     Zap,
-    MessageCircle,
     Wallet,
 } from "lucide-react";
 import Link from "next/link";
@@ -36,7 +35,7 @@ const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
     { icon: Calendar, label: "Appointments", path: "/dashboard/appointments" },
     { icon: Scissors, label: "Services", path: "/dashboard/services" },
-    { icon: MessageSquare, label: "Call History", path: "/dashboard/calls", badge: "5" },
+    { icon: MessageSquare, label: "Call History", path: "/dashboard/calls" },
     {
         icon: Mic,
         label: "Voice AI",
@@ -51,7 +50,7 @@ const menuItems = [
             { icon: MessageSquare, label: "Chat Test", path: "/dashboard/voice-agent/chat" },
         ]
     },
-    { icon: MessageCircle, label: "WhatsApp", path: "/dashboard/whatsapp" },
+    // WhatsApp (/dashboard/whatsapp) is hidden until Calleem is a Meta Tech Provider.
     { icon: CalendarDays, label: "Schedule", path: "/dashboard/schedule" },
 ];
 

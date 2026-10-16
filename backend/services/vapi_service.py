@@ -10,6 +10,8 @@ import httpx
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 
+from services import call_transfer, voice_languages
+
 logger = logging.getLogger(__name__)
 
 
@@ -104,75 +106,34 @@ class VapiService:
         transcriber_model: str = "nova-2",
         transcriber_language: str = "en",
         tools: Optional[List[Dict]] = None,
+        language: str = voice_languages.DEFAULT_LANGUAGE,
         **kwargs
     ) -> Dict[str, Any]:
-        """Create a new Vapi assistant for a tenant"""
+        """Create a new Vapi assistant for a tenant, speaking `language` (see services/voice_languages.py)."""
         if not self.is_configured():
             raise ValueError("Vapi not configured")
-        
-        system_prompt = f"""You are an AI receptionist for {company_name}. You are the friendly and professional AI receptionist at {company_name}.
 
-{instructions}
+        language = voice_languages.normalize(language)
+        system_prompt = voice_languages.system_prompt(language, company_name, instructions)
+        if language == voice_languages.TUNISIAN:
+            voice_config = voice_languages.tunisian_voice(
+                voice if voice_languages.find_tunisian_voice(voice) else None, speed=voice_speed
+            )
+            transcriber_config = voice_languages.transcriber(language)
+            llm = voice_languages.llm(language)
+        else:
+            voice_config = {
+                "provider": voice_provider,
+                "voiceId": self._get_voice_id(voice, voice_provider),
+                "speed": voice_speed
+            }
+            transcriber_config = {
+                "provider": transcriber_provider,
+                "model": transcriber_model,
+                "language": transcriber_language
+            }
+            llm = {"provider": "openai", "model": model}
 
-You are a warm, helpful, and slightly casual young guy. Speak naturally like a real friendly receptionist — clear, relaxed, upbeat, and human. Never sound robotic.
-
-Core Rules (always follow):
-- Use short, natural sentences. Keep responses brief and easy to speak (ideally under 15-20 seconds).
-- Ask only one question at a time to keep the conversation flowing naturally.
-- Be polite, patient, enthusiastic, and friendly.
-- Match the client's energy and speaking style.
-- If you don't hear or understand what the customer said, immediately ask them to repeat or clarify before saying anything else.
-  Example: "Sorry, I didn't catch that. Could you say that again?"
-
-Phone Number Handling:
-- Calls can come from 2 sources: a website/browser (web call) or a real phone.
-- WEB CALL (no caller phone number available): The customer is calling from the business owner's test page in their dashboard. There is NO phone number on file. You MUST ask the customer directly: "Can I get a phone number for the booking?"
-- REAL PHONE CALL (caller phone number IS available): The customer is calling from a real phone. After collecting other booking info (name, service, date/time), verify their number naturally: "Just to confirm, should we use the number you're calling from for the booking, or would you prefer a different one?"
-  - If they say yes/same, use the caller's number.
-  - If they want a different number, ask for the new number.
-- IMPORTANT: Never read out template variables like "customer dot number" or "slash customer number". If you don't have the customer's actual phone number, simply ask for it.
-
-Booking Flow:
-1. Greet the customer.
-2. Ask for their name (if not given).
-3. Ask what service they want.
-4. Ask for preferred day and time.
-5. Check availability using the checkAvailability tool.
-6. Get their phone number (ask directly for web calls, or verify for real phone calls).
-7. Repeat the full details back naturally and ask for confirmation.
-8. Once confirmed, you MUST call bookAppointment() with all the collected details.
-9. Wait for the bookAppointment() tool to return a result.
-10. ONLY after bookAppointment() returns success, confirm the booking to the customer.
-11. If bookAppointment() returns an error, apologize and ask the customer to correct the details.
-
-*** CRITICAL RULES ***
-- You MUST call bookAppointment() BEFORE confirming or ending the call. NEVER say the appointment is booked without calling the tool first.
-- NEVER end the call or say goodbye until bookAppointment() has returned successfully.
-- If the customer confirms their details and you have name, phone, service, date, and time — IMMEDIATELY call bookAppointment(). Do NOT skip this step.
-
-Greeting (First message - use this exactly):
-"Hello! Welcome to {company_name}. How can I help you today?"
-
-Tone & Style:
-- Warm and welcoming: Use words like "Awesome!", "No problem at all!", "Sounds good!", "Great choice!", "Happy to help!"
-- Positive and solution-oriented.
-- Make every client feel valued.
-- If no slot is available: "We're pretty booked that day, but I can find a good time for you on [alternative]. Does that work?"
-
-Booking Confirmation (ONLY say this after bookAppointment() returns success):
-"Perfect! Your appointment is confirmed for [Date] at [Time] for a [Service] under the name [Name]. We'll send a reminder to your phone number the day before. Looking forward to seeing you at {company_name}!"
-
-Important Guidelines:
-- When talking about dates with the customer, use natural language: "Monday 20 April at 3 PM", "this Friday at 11 AM", "tomorrow at 2:30 PM".
-- Never say the year or use numbers like 2026-04-20 when speaking to the customer.
-- Use the current date context injected by the backend to resolve relative dates.
-- ALWAYS call getAvailableServices() when the customer asks about services or prices.
-- ALWAYS call getBusinessLocation() when asked about address, directions, or location.
-- To book, you need: name, phone number, service, date (YYYY-MM-DD), and time (HH:MM 24-hour).
-- If you don't know something, offer to have someone from the team call them back.
-- Keep responses concise and natural for voice conversations.
-"""
-        
         requested_server_messages = kwargs.pop("server_messages", self.DEFAULT_SERVER_MESSAGES)
         valid_server_messages = [
             msg for msg in requested_server_messages
@@ -184,26 +145,17 @@ Important Guidelines:
 
         assistant_config = {
             "name": f"AI Receptionist - {company_name}"[:40],
-            "firstMessage": first_message or f"Hello! Welcome to {company_name}. How can I help you today?",
+            "firstMessage": first_message or voice_languages.first_message(language, company_name),
             "model": {
-                "provider": "openai",
-                "model": model,
+                **llm,
                 "temperature": temperature,
                 "maxTokens": max_tokens,
                 "messages": [
                     {"role": "system", "content": system_prompt}
                 ]
             },
-            "voice": {
-                "provider": voice_provider,
-                "voiceId": self._get_voice_id(voice, voice_provider),
-                "speed": voice_speed
-            },
-            "transcriber": {
-                "provider": transcriber_provider,
-                "model": transcriber_model,
-                "language": transcriber_language
-            },
+            "voice": voice_config,
+            "transcriber": transcriber_config,
             "serverUrl": os.getenv("VAPI_WEBHOOK_URL", ""),
             # Ensure webhook events are delivered to our server per Vapi docs
             # https://docs.vapi.ai/api-reference/webhooks/server-message
@@ -212,13 +164,15 @@ Important Guidelines:
             "maxDurationSeconds": int(os.getenv("MAX_CALL_SECONDS", "600")),
             "metadata": {
                 "tenant_id": tenant_id,
-                "company_name": company_name
+                "company_name": company_name,
+                "language": language
             }
         }
         
         # Add tools if provided
         if tools:
             assistant_config["tools"] = self._normalize_tool_definitions(tools)
+        call_transfer.sync_prompt_rules(assistant_config["model"], language, assistant_config.get("tools"))
         
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
@@ -235,8 +189,10 @@ Important Guidelines:
                 return {
                     "assistant_id": result.get("id"),
                     "name": result.get("name"),
-                    "voice": voice,
-                    "model": model,
+                    "voice": voice if language == voice_languages.DEFAULT_LANGUAGE else voice_config["voiceId"],
+                    "voice_provider": voice_config["provider"],
+                    "model": llm["model"],
+                    "language": language,
                     "created": True
                 }
         except httpx.HTTPError as e:
@@ -266,6 +222,7 @@ Important Guidelines:
             raise ValueError("Vapi not configured")
         
         # Fetch current assistant to preserve model config if needed
+        language = voice_languages.DEFAULT_LANGUAGE
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
                 current = await client.get(
@@ -275,6 +232,7 @@ Important Guidelines:
                 if current.status_code == 200:
                     current_data = current.json()
                     current_model = current_data.get("model", {})
+                    language = voice_languages.normalize((current_data.get("metadata") or {}).get("language"))
                 else:
                     logger.warning(f"Could not fetch assistant {assistant_id} for merge, assuming defaults")
                     current_model = {
@@ -295,73 +253,15 @@ Important Guidelines:
             update_data["firstMessage"] = first_message
         
         if instructions and company_name:
-            system_prompt = f"""You are an AI receptionist for {company_name}. You are the friendly and professional AI receptionist at {company_name}.
-
-{instructions}
-
-You are a warm, helpful, and slightly casual young guy. Speak naturally like a real friendly receptionist — clear, relaxed, upbeat, and human. Never sound robotic.
-
-Core Rules (always follow):
-- Use short, natural sentences. Keep responses brief and easy to speak (ideally under 15-20 seconds).
-- Ask only one question at a time to keep the conversation flowing naturally.
-- Be polite, patient, enthusiastic, and friendly.
-- Match the client's energy and speaking style.
-- If you don't hear or understand what the customer said, immediately ask them to repeat or clarify before saying anything else.
-  Example: "Sorry, I didn't catch that. Could you say that again?"
-
-Phone Number Handling:
-- Calls can come from 2 sources: a website/browser (web call) or a real phone.
-- WEB CALL (no caller phone number available): The customer is calling from the business owner's test page in their dashboard. There is NO phone number on file. You MUST ask the customer directly: "Can I get a phone number for the booking?"
-- REAL PHONE CALL (caller phone number IS available): The customer is calling from a real phone. After collecting other booking info (name, service, date/time), verify their number naturally: "Just to confirm, should we use the number you're calling from for the booking, or would you prefer a different one?"
-  - If they say yes/same, use the caller's number.
-  - If they want a different number, ask for the new number.
-- IMPORTANT: Never read out template variables like "customer dot number" or "slash customer number". If you don't have the customer's actual phone number, simply ask for it.
-
-Booking Flow:
-1. Greet the customer.
-2. Ask for their name (if not given).
-3. Ask what service they want.
-4. Ask for preferred day and time.
-5. Check availability using the checkAvailability tool.
-6. Get their phone number (ask directly for web calls, or verify for real phone calls).
-7. Repeat the full details back naturally and ask for confirmation.
-8. Once confirmed, you MUST call bookAppointment() with all the collected details.
-9. Wait for the bookAppointment() tool to return a result.
-10. ONLY after bookAppointment() returns success, confirm the booking to the customer.
-11. If bookAppointment() returns an error, apologize and ask the customer to correct the details.
-
-*** CRITICAL RULES ***
-- You MUST call bookAppointment() BEFORE confirming or ending the call. NEVER say the appointment is booked without calling the tool first.
-- NEVER end the call or say goodbye until bookAppointment() has returned successfully.
-- If the customer confirms their details and you have name, phone, service, date, and time — IMMEDIATELY call bookAppointment(). Do NOT skip this step.
-
-Greeting (First message - use this exactly):
-"Hello! Welcome to {company_name}. How can I help you today?"
-
-Tone & Style:
-- Warm and welcoming: Use words like "Awesome!", "No problem at all!", "Sounds good!", "Great choice!", "Happy to help!"
-- Positive and solution-oriented.
-- Make every client feel valued.
-- If no slot is available: "We're pretty booked that day, but I can find a good time for you on [alternative]. Does that work?"
-
-Booking Confirmation (ONLY say this after bookAppointment() returns success):
-"Perfect! Your appointment is confirmed for [Date] at [Time] for a [Service] under the name [Name]. We'll send a reminder to your phone number the day before. Looking forward to seeing you at {company_name}!"
-
-Important Guidelines:
-- When talking about dates with the customer, use natural language: "Monday 20 April at 3 PM", "this Friday at 11 AM", "tomorrow at 2:30 PM".
-- Never say the year or use numbers like 2026-04-20 when speaking to the customer.
-- Use the current date context injected by the backend to resolve relative dates.
-- ALWAYS call getAvailableServices() when the customer asks about services or prices.
-- ALWAYS call getBusinessLocation() when asked about address, directions, or location.
-- To book, you need: name, phone number, service, date (YYYY-MM-DD), and time (HH:MM 24-hour).
-- If you don't know something, offer to have someone from the team call them back.
-- Keep responses concise and natural for voice conversations.
-"""
+            system_prompt = voice_languages.system_prompt(language, company_name, instructions)
             # Start with current model config
             new_model = current_model.copy()
             new_model["messages"] = [{"role": "system", "content": system_prompt}]
-            new_model["provider"] = "openai" # Ensure provider is set
-            new_model["model"] = model or "gpt-4o-mini"
+            if language == voice_languages.TUNISIAN:
+                new_model.update(voice_languages.llm(language))
+            else:
+                new_model["provider"] = "openai" # Ensure provider is set
+                new_model["model"] = model or "gpt-4o-mini"
             
             if temperature is not None:
                 new_model["temperature"] = temperature
@@ -371,17 +271,12 @@ Important Guidelines:
             update_data["model"] = new_model
             
             # Inject FAQs directly into the system prompt if they exist
-            if faqs and len(faqs) > 0:
-                faq_section = "\n\n### Business Frequently Asked Questions:\n"
-                for f in faqs:
-                    question = f.get("question", "").strip()
-                    answer = f.get("answer", "").strip()
-                    if question and answer:
-                        faq_section += f"Q: {question}\nA: {answer}\n\n"
-                faq_section += "If a customer asks a question covered above, use the provided answer exactly.\n"
-                update_data["model"]["messages"][0]["content"] += faq_section
+            update_data["model"]["messages"][0]["content"] += voice_languages.faq_section(language, faqs)
         
-        if voice:
+        if voice and language == voice_languages.TUNISIAN:
+            voice_id = voice if voice_languages.find_tunisian_voice(voice) else self._get_voice_id(voice, voice_provider)
+            update_data["voice"] = voice_languages.tunisian_voice(voice_id, voice_provider, voice_speed)
+        elif voice:
             update_data["voice"] = {
                 "provider": voice_provider,
                 "voiceId": self._get_voice_id(voice, voice_provider)
@@ -394,6 +289,10 @@ Important Guidelines:
             if "model" not in update_data:
                 update_data["model"] = current_model.copy()
             update_data["model"]["tools"] = self._normalize_tool_definitions(tools)
+
+        if "model" in update_data:
+            # The transfer rules stay in the prompt only while the tools can transfer the call.
+            call_transfer.sync_prompt_rules(update_data["model"], language)
 
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
@@ -417,7 +316,42 @@ Important Guidelines:
                 logger.error(f"Vapi API Update Error Body: {e.response.text}")
             logger.error(f"Failed to update Vapi assistant: {e}")
             raise
-    
+
+    async def set_language(
+        self,
+        assistant_id: str,
+        language: str,
+        company_name: str,
+        instructions: str,
+        faqs: Optional[List[Dict[str, str]]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Switch an assistant to another language: its speech-to-text, LLM, voice, prompt and greeting
+        change; its tools, temperature and other settings are kept.
+        """
+        language = voice_languages.normalize(language)
+        current = await self.get_assistant(assistant_id)
+        if current is None:
+            raise ValueError(f"Assistant {assistant_id} not found in Vapi")
+
+        model = dict(current.get("model") or {})
+        model.update(voice_languages.llm(language))
+        prompt = voice_languages.system_prompt(language, company_name, instructions)
+        model["messages"] = [{"role": "system", "content": prompt + voice_languages.faq_section(language, faqs)}]
+        call_transfer.sync_prompt_rules(model, language)
+        if language == voice_languages.TUNISIAN:
+            voice_config = voice_languages.tunisian_voice()
+        else:
+            voice_config = {"provider": "11labs", "voiceId": self._get_voice_id("jennifer", "11labs")}
+
+        return await self.patch_assistant(assistant_id, {
+            "transcriber": voice_languages.transcriber(language),
+            "model": model,
+            "voice": voice_config,
+            "firstMessage": voice_languages.first_message(language, company_name),
+            "metadata": {**(current.get("metadata") or {}), "language": language},
+        })
+
     async def get_assistant(self, assistant_id: str) -> Optional[Dict[str, Any]]:
         """Get assistant details from Vapi"""
         if not self.is_configured():
@@ -988,7 +922,7 @@ Important Guidelines:
                                 "date": {"type": "string", "description": "Appointment date (YYYY-MM-DD)"},
                                 "time": {"type": "string", "description": "Appointment time (HH:MM)"},
                                 "name": {"type": "string", "description": "Customer name"},
-                                "phone": {"type": "string", "description": "Customer phone number"},
+                                "phone": {"type": "string", "description": "Customer phone number, digits only, including the country code if the customer gives one"},
                                 "email": {"type": "string", "description": "Customer email (optional)"},
                                 "service": {"type": "string", "description": "Service requested (optional)"}
                             },
@@ -1036,8 +970,10 @@ Important Guidelines:
             {
                 "id": "transfer_call",
                 "name": "Transfer Call",
-                "description": "Transfer the call to a human agent",
+                "description": "Put urgent calls through to your phone (set the number on the AI Receptionist page first)",
                 "category": "call_control",
+                # The destination is added when tools are synced, from tenant["transfer_phone_number"]
+                # (services/call_transfer.py); without a number the tool is not sent to Vapi.
                 "config": {
                     "type": "transferCall",
                     "destinations": []
