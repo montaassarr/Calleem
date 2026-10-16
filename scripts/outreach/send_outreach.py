@@ -258,8 +258,9 @@ def build_message(config: dict, to_addr: str, subject: str, text: str, reply_to_
     msg["Message-ID"] = make_msgid(domain=sender.split("@")[1])
     # A one-click way out keeps spam complaints (and Gmail's penalties for them) down.
     msg["List-Unsubscribe"] = f"<mailto:{sender}?subject=unsubscribe>"
-    if reply_to_id:
-        # Follow-ups thread under the first email in the prospect's inbox.
+    if reply_to_id.startswith("<"):
+        # Follow-ups thread under the first email in the prospect's inbox. (Emails sent from Gmail
+        # itself are logged with their Gmail thread ID instead, which is no use as a header.)
         msg["In-Reply-To"] = reply_to_id
         msg["References"] = reply_to_id
     msg.set_content(text)
